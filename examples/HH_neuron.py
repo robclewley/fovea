@@ -733,6 +733,12 @@ def getHH_DSSRT(model, pts, name=None, header=None, verbose=0,
     print "\n"
     return (ptsDSSRT, strDSSRT, epochs_reg, epochs_rate), (da_reg, da_rate, da_reg_signed, da_rate_signed)
 
+def make_mline(pt, angle):
+    """Utility factory function to make m a function of V (constrained along a line
+    starting at pt at the given angle): Returns a callable m(V)"""
+    def m(V):
+        return (V-pt['V'])*tan(angle) + pt['Na.m']
+    return m
 
 def make_generic_table(header, pts, model, da_reg, da_rate, table_lookup_dict, repeat_header=None, verbose=0):
     """If repeat_header is an integer, the header will repeat every that many rows

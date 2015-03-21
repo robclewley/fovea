@@ -33,24 +33,15 @@ def fdiff(pts, ix):
     return (b-a)/(tb-ta)
 
 
-def make_mline(pt, angle):
-    """Utility factory function to make m a function of V (constrained along a line
-    starting at pt at the given angle): Returns a callable m(V)"""
-    def m(V):
-        return (V-pt['V'])*tan(angle) + pt['Na.m']
-    return m
-
-
-
 class queue(object):
-    """Create a list of items with a limited size.  As more items are added, older
-    items are removed from the end of the stack."""
-
+    """
+    Create a queue of items that has a limited size.
+    As more items than the limit are added, oldest items are
+    removed from the end of the queue.
+    """
 
     def __init__(self, size, data=None):
-
         self.size = size
-
         if data is None:
             self.data = []
         elif type(data) is not list:
@@ -67,7 +58,6 @@ class queue(object):
         return ret
 
     def append(self, item):
-
         if len(self.data) < self.size:
             print len(self.data)
             self.data.append(item)
@@ -82,7 +72,9 @@ class queue(object):
 
 
 class hashedQ(object):
-    """ Class to create a queue that has a lookup table."""
+    """
+    Class to create a queue that has a lookup table.
+    """
 
     def __init__(self, size):
         self.size = size
@@ -101,9 +93,8 @@ class hashedQ(object):
         return ret
 
     def append(self, item):
-
-        assert type(item) is dict, "Appended item must be of type dict"
-
+        """Appended item must be a mapping object (dict-like)
+        """
         for key in item:
             self.keys.append(key)
             self.data.append(item[key])
@@ -120,12 +111,12 @@ class hashedQ(object):
 
 def castNullArray(null):
     """
-    Convert nullcline array data to a list of pairs of arrays useable by plotter.
+    Convert nullcline array data to a list of pairs of arrays usable by plotter.
     """
     return [null[:,0], null[:,1]]
 
 def castNull(null):
     """
-    Convert nullcline object to a set of points useable by plotter.
+    Convert nullcline object to a set of points usable by plotter.
     """
     return [null.array[:,0], null.array[:,1]]
