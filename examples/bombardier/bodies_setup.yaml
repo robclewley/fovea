@@ -1,25 +1,521 @@
 Domain:
-    x: (-0.7, 0.7)
-    y: (0, 1.0)
+    x: [-0.7, 0.7]
+    y: [0, 1.0]
 Full_model:
-    body1:
-        density: 0.5
-        radius: 0.04
-        position: (-0.2, 0.45)
-    body2:
-        density: 0.5
-        radius: 0.04
-        position: (0.2, 0.7)
-    body3:
-        density: 0.5
-        radius: 0.03
-        position: (0.3, 0.4)
-    body4:
-        density: 0.5
-        radius: 0.03
-        position: (-0.14, 0.55)
-    body5:
+    0:
         density: 0.0
         radius: 0.08
-        position: (0.0, 0.0)
+        position: [0.0, 0.0]
+    1:
+        density: 0.5
+        radius: 0.04
+        position: [-0.2, 0.45]
+    2:
+        density: 0.5
+        radius: 0.04
+        position: [0.2, 0.7]
+    3:
+        density: 0.5
+        radius: 0.03
+        position: [0.3, 0.4]
+    4:
+        density: 0.5
+        radius: 0.03
+        position: [-0.14, 0.55]
 
+
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
