@@ -1,5 +1,5 @@
 """
-Data visualization class for dynamical systems
+Graphical user interface and plotting tools for dynamical systems
 
 Bryce Chung and Rob Clewley, 2012
 
@@ -10,14 +10,22 @@ Plotting styles can be given either as a string or as a dictionary of
 
 """
 
-
-import matplotlib.pyplot as pp
-from matplotlib.widgets import Slider, Button
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button, RectangleSelector
 import numpy as np
 from copy import copy
+from math import *
 
 from PyDSTool import args, numeric_to_traj, Point
+import PyDSTool.Toolbox.phaseplane as pp
 from PyDSTool.Toolbox.phaseplane import Point2D
+# for potentially generalizable functions and classes to use
+import PyDSTool as dst
+
+# local imports
+from common import *
+import domain2D as dom
 
 
 # ----------------------------------------------
@@ -50,8 +58,8 @@ class plotter2D(object):
                     yScale[0] = min(min(d[0][1]), yScale[0])
                     yScale[1] = max(max(d[0][1]), yScale[1])
 
-        pp.xlim(xScale)
-        pp.ylim(yScale)
+        plt.xlim(xScale)
+        plt.ylim(yScale)
 
 
     # This method is never called!
@@ -73,8 +81,8 @@ class plotter2D(object):
 ##            if not fig_struct.display:
 ##                continue
 ##
-##            fig = pp.figure(fig_struct.fignum)
-##            #pp.title(fig_struct.title)
+##            fig = plt.figure(fig_struct.fignum)
+##            #plt.title(fig_struct.title)
 ##
 ##            if len(fig_struct.arrange) == 0:
 ##                ax = fig.add_subplot(1,1,1)
@@ -98,7 +106,7 @@ class plotter2D(object):
 ##                    except:
 ##                        raise ValueError("Error setting axis label for subplot")
 ##                    try:
-##                        pp.title(subplot['name'])
+##                        plt.title(subplot['name'])
 ##                    except:  #### What exception is caught here?
 ##                        pass
 ##                    layer = subplot['layers']
@@ -110,7 +118,7 @@ class plotter2D(object):
 ##                            continue
 ##                    else:
 ##                        self._buildLayer_(figName, layer, ax)
-##                    pp.autoscale(enable=autoscale)
+##                    plt.autoscale(enable=autoscale)
 ##
 ##            fig.canvas.draw()
 ##            self.figs[figName].window = fig
@@ -681,14 +689,6 @@ class plotter2D(object):
                 pass
 
 
-def castNull(null):
-    """
-    Utility to convert nullcline object to a set of points useable by plotter.
-    """
-    return [null.array[:,0], null.array[:,1]]
-
-
-
 class diagnosticGUI(object):
     """
     Diagnostics Graphical User Interface
@@ -704,6 +704,8 @@ class diagnosticGUI(object):
         self.ix = None
 
         self.points = None
+        # add Trajectory object too?
+
         # times is an array from trajectory points
         self.times = None
 
@@ -768,28 +770,28 @@ class diagnosticGUI(object):
         Optional size is a pair of figure screen size measurements in inches
         """
 
-        pp.close('all')
+        plt.close('all')
         self.masterWin = None
 
         for figName, fig_struct in self.plotter.figs.items():
             if figsize is not None:
-                fig_handle = pp.figure(fig_struct.fignum, figsize=figsize)
+                fig_handle = plt.figure(fig_struct.fignum, figsize=figsize)
                 # fig sizing later, with fig.set_figsize_inches doesn't seem
                 # to work properly unless put in the initialization call
             else:
-                fig_handle = pp.figure(fig_struct.fignum)
+                fig_handle = plt.figure(fig_struct.fignum)
             fig_handle.canvas.set_window_title(fig_struct.title + " : Master window")
             if figName != 'Master':
                 continue
             ##### Set up master window controls
-            pp.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
+            plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
                                wspace=0.2, hspace=0.23)
 
             self.masterWin = fig_handle
 
             ## Time bar controls time lines in figures
             sliderRange = self.times
-            slide = pp.axes([0.25, 0.02, 0.65, 0.03])
+            slide = plt.axes([0.25, 0.02, 0.65, 0.03])
             tMin = min(sliderRange)
             tMax = max(sliderRange)
             if self.t is None:
@@ -801,22 +803,22 @@ class diagnosticGUI(object):
             # button axes are in figure coords: (left, bottom, width, height)
 
             ## +/- dt buttons
-            m_dt_Button = Button(pp.axes([0.16, 0.02, 0.017, 0.03]), '-dt')
+            m_dt_Button = Button(plt.axes([0.16, 0.02, 0.017, 0.03]), '-dt')
             self.widgets['minus_dt'] = m_dt_Button
 
-            p_dt_Button = Button(pp.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
+            p_dt_Button = Button(plt.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
             self.widgets['plus_dt'] = p_dt_Button
 
             ## Capture point button in lower left
-            captureButton = Button(pp.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
+            captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
             self.widgets['capturePoint'] = captureButton
 
             ## Refresh button
-            refreshButton = Button(pp.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
+            refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
             self.widgets['refresh'] = refreshButton
 
             ## Go back to last point button
-            backButton = Button(pp.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
+            backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
             self.widgets['goBack'] = backButton
 
             ## Build up each subplot, left to right, top to bottom
@@ -1069,7 +1071,7 @@ class diagnosticGUI(object):
         else:
             do_draw = True
         if do_draw:
-            pp.draw()
+            plt.draw()
 
     def goBack(self, ev):
         if self._last_ix is not None:
@@ -1113,31 +1115,217 @@ class diagnosticGUI(object):
         self._key_mod = None
 
 
-# -------------------
+class context_object(object):
+    # Abstract base class
+    pass
 
-def checked_scale(sc):
-    """Internal utility to verify scale syntax:
-    None or [None, (ylo,yhi)] or [(xlo,xhi), None]
-    of [(xlo,xhi), (ylo,yhi)]
+class domain_GUI(context_object):
+    pass # Not implemented yet!
+
+class line_GUI(context_object):
     """
-    if sc is not None:
-        if len(sc) != 2:
-            raise ValueError("Invalid argument for axis scales")
-        if sc[0] is not None:
-            if len(sc[0]) != 2:
-                raise ValueError("X-axis scale must have two components")
-        if sc[1] is not None:
-            if len(sc[1]) != 2:
-                raise ValueError("Y-axis scale must have two components")
-    return sc
+    Line of interest context_object for GUI
+    """
+    def __init__(self, gui, gui_axes, pt1, pt2):
+        xnames = pt1.coordnames
+        if pt2.coordnames != xnames:
+            raise ValueError("Coordinate name mismatch")
+        x1, y1 = pt1.coordarray
+        x2, y2 = pt2.coordarray
+        if x1 > x2:
+            # ensure correct ordering for angles
+            xt = x1
+            yt = y1
+            x1 = x2
+            y1 = y2
+            x2 = xt
+            y2 = yt
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        self.dy = y2-y1
+        self.dx = x2-x1
+        self.length = np.linalg.norm((self.dx, self.dy))
+        # angle relative to horizontal, in radians
+        self.ang = atan2(self.dy,self.dx)
+        self.ang_deg = 180*self.ang/pi
+        # hook back to linked axes object in GUI
+        self.gui_axes = gui_axes
+        # declare self to GUI
+        gui.declare_in_context(self)
+        # move self to the currently selected object in GUI
+        gui.selected_object = self
+        self.gui = gui
+        self.extra_fnspecs = {}
+        self.extra_pars = {}
+        self.extra_auxvars = {}
+        self.extra_events = []
+        print("Created line and moved to currently selected object")
+
+        # actual MPL line object handle
+        self.l = None
+        self.name = '<untitled>'
+        self.show()
+
+    def __repr__(self):
+        if self.extra_events == []:
+            ev_str = '(no event)'
+        else:
+            ev_str = '(with event)'
+        return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
+                                          self.x2, self.y2, self.name, ev_str)
+
+    def show(self):
+        if self.l is None:
+            self.l = self.gui_axes.plot([self.x1,self.x2],
+                                       [self.y1,self.y2],
+                                   'y-')[0]
+        else:
+            self.l.set_visible(True)
+        plt.draw()
+
+    def unshow(self):
+        self.l.set_visible(False)
+        plt.draw()
+
+    def remove(self):
+        self.l.remove()
+        plt.draw()
+
+    def distance_to_pos(self, dist):
+        """
+        Calculate absolute (x,y) position of distance dist from (x1,y1) along line
+        """
+        return self.fraction_to_pos(self, dist/self.length)
+
+    def fraction_to_pos(self, fraction):
+        """
+        Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
+        """
+        return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
+
+    def make_event_def(self, uniquename, dircode=0):
+        self.name = uniquename
+        res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
+                                          ['x', 'y'], True)
+
+        parname_base = 'exit_line_%s_' %uniquename
+        self.extra_pars[parname_base+'p_x'] = self.x1
+        self.extra_pars[parname_base+'p_y'] = self.y1
+        self.extra_pars[parname_base+'dp_x'] = self.dx
+        self.extra_pars[parname_base+'dp_y'] = self.dy
+        self.extra_fnspecs.update(res['auxfn'])
+        targetlang = \
+            self.gui.gen_versioner._targetlangs[self.gui.gen_versioner.gen_type]
+        self.extra_events = [dst.Events.makeZeroCrossEvent(
+                                              expr='exit_fn_%s(x,y)' %uniquename,
+                                              dircode=dircode,
+                                              argDict={'name': 'exit_ev_%s' %uniquename,
+                                                       'eventtol': 1e-8,
+                                                       'eventdelay': 1e-3,
+                                                       'starttime': 0,
+                                                       'precise': True,
+                                                       'active': True,
+                                                       'term': False},
+                                              varnames=('x', 'y'),
+                                              fnspecs=res['auxfn'],
+                                              parnames=res['pars'],
+                                              targetlang=targetlang
+                                              )]
+
+class tracker_plotter(object):
+    """
+    Auto-updating plots that are connected to a diagnostic GUI simulator.
+    """
+    def __init__(self):
+        self.figs = {}
+        self.sim = None
+        self.calc_context = None
+
+    def __call__(self, calc_context, fignum, xstr, ystr, style):
+        self.sim = calc_context.sim
+        self.calc_context = calc_context
+        fig = plt.figure(fignum)
+        new_track = args(xstr=xstr, ystr=ystr, style=style)
+        if fignum in self.figs:
+            self.figs[fignum].tracked.append(new_track)
+        else:
+            self.figs[fignum] = args(figure=fig, tracked=[new_track])
+        self.sim.tracked_objects.append(self)
+
+    def show(self):
+        for fignum, figdata in self.figs.items():
+            fig = plt.figure(fignum)
+            ax = plt.gca()
+            #figdata.figure.clf()
+            ax.cla()
+            wspace = self.calc_context.workspace
+            for tracked in figdata.tracked:
+                try:
+                    xdata = getattr(wspace, tracked.xstr)
+                except Exception, e:
+                    print("Failed to evaluate: '%s' in workspace '%s'" % (tracked.xstr, wspace._name))
+                    raise
+                try:
+                    ydata = getattr(self.calc_context.workspace, tracked.ystr)
+                except Exception, e:
+                    print("Failed to evaluate: '%s' in workspace '%s'" % (tracked.ystr, wspace._name))
+                    raise
+                plt.plot(xdata, ydata,
+                     tracked.style, label=_escape_underscore(tracked.ystr))
+            plt.legend()
+            plt.title('%s measures vs %s (workspace: %s)'%(self.calc_context.sim.name, tracked.xstr,
+                                                           _escape_underscore(self.calc_context.workspace._name)))
+            fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
+        plt.show()
+
+def _escape_underscore(text):
+    """
+    Internal utility to escape any TeX-related underscore ('_') characters in mpl strings
+    """
+    return text.replace('_', '\_')
+
+class tracker_manager(object):
+    """
+    Track different quantities from different calc contexts in different figures.
+    Cannot re-use same figure with different contexts.
+    """
+    def __init__(self):
+        self.tracked = {}
+        # currently, all_figs does not automatically release figures if
+        # contexts are deleted or replaced
+        self.all_figs = []
+
+    def __call__(self, calc_context, fignum, xstr, ystr, style):
+        if calc_context in self.tracked:
+            self.tracked[calc_context](calc_context, fignum, xstr, ystr, style)
+            if fignum not in self.all_figs:
+                self.all_figs.append(fignum)
+        else:
+            tp = tracker_plotter()
+            if fignum not in self.all_figs:
+                tp(calc_context, fignum, xstr, ystr, style)
+                self.tracked[calc_context] = tp
+            else:
+                raise ValueError("Figure number %i already in use" % fignum)
+
+    def show(self):
+        for tp in self.tracked.values():
+            tp.show()
 
 
 # ---------------------------------------------------------
 
-global gui
+global gui, track_plot
+
+# singleton pattern
 
 # plotter is not a globally visible object outside of this module
 plotter = plotter2D()
 
 gui = diagnosticGUI(plotter)
+
+track_plot = tracker_manager()
+
 
