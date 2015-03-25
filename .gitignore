@@ -5,6 +5,10 @@ __pycache__/
 # C extensions
 *.so
 
+# PyDSTool save files
+*.sav
+dop853_*
+
 # Distribution / packaging
 .Python
 env/
