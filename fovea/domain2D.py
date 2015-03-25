@@ -169,3 +169,152 @@ def merge_to_polygon(p1, p2):
         p2 = p2.polygon
     return p1.union(p2)
 
+class GUI_domain_handler(object):
+    def __init__(self, gui, verbose=False):
+        self.func = None
+        self.domain = None  # polygon object
+        self.gui = gui  # hook back (was for Bombardier GUIrocket object)
+        self.polygon_domain_obj = None
+        # grow states per polygon:
+        #  0 = not begun, no domain object created
+        #  1 = center placed, no initial radius
+        #  2 = initial polygon defined, domain object created
+        #  3 = final polygon defined
+        #  4 = 3+1 (new center)
+        #  5 = 3+2
+        #  (6 = new polygon defined) --> 3 after merge (not yet implemented)
+        self.gui_grow_state = 0
+        self.center_pt = None
+        self.p1_pt = None
+        self.verbose = verbose
+
+    def assign_criterion_func(self, func):
+        """
+        func( (x,y) ) --> real scalar
+
+        func is a zero-crossing function whose nullcline
+        defines the boundary of a domain, or a sequence of
+        such functions
+        """
+        self.func = func
+
+    def event(self, evcode):
+        """
+        Simple finite state machine
+        legal event codes:
+          'key' = domain key pressed
+          'mouse' = mouse primary button pressed
+          'reset' = clear data and revert to state 0
+                    (keep any existing domain and function)
+        returns success/validity of state update from event
+        """
+        if evcode == 'reset':
+            self.gui_grow_state = 0
+            if self.verbose:
+                print("State 0 reset")
+            self.polygon_domain_obj = None
+            self.unshow_domain()
+            return True
+        elif evcode == 'key':
+            if self.gui_grow_state > 0:
+                # key doesn't make sense here, but GUIrocket.key_on
+                # logic should prevent arriving here
+                if self.verbose:
+                    print("Domain grow state already active: ignoring keypress")
+                return False
+            else:
+                # state 0
+                if self.verbose:
+                    print("State 0: setting up 1")
+                self.gui.mouse_cid = self.gui.fig.canvas.mpl_connect('button_release_event', self.mouse_event_make_dom_c)
+                return True
+        elif evcode == 'mouse':
+            if self.gui_grow_state == 0:
+                if self.verbose:
+                    print("State 0 -> 1")
+                self.gui_grow_state = 1
+                return True
+            elif self.gui_grow_state == 1:
+                if self.verbose:
+                    print("State 1 -> 2")
+                self.gui_grow_state = 2
+                return True
+            else:
+                if self.verbose:
+                    print("Not yet supported")
+                return False
+
+    def mouse_event_make_dom_c(self, ev):
+        if self.verbose:
+            print("In make_dom_c")
+        # release mouse event control
+        self.gui.fig.canvas.mpl_disconnect(self.gui.mouse_cid)
+        # update state
+        self.event('mouse')
+        if self.gui_grow_state != 1:
+            if self.verbose:
+                print "make_dom_c failed"
+            self.gui.mouse_wait_state_owner = None
+            return
+        # assign to c
+        self.center_pt = pp.Point2D(ev.xdata, ev.ydata)
+        # display c
+        self.gui.selected_object_temphandle = self.gui.ax.plot(ev.xdata, ev.ydata, 'go')[0]
+        self.gui.fig.canvas.draw()
+        # switch control to make_dom_p1
+        self.gui.mouse_cid = self.gui.fig.canvas.mpl_connect('button_release_event', self.mouse_event_make_dom_p1)
+
+    def mouse_event_make_dom_p1(self, ev):
+        if self.verbose:
+            print("In make_dom_p1")
+        # release mouse event control
+        self.gui.fig.canvas.mpl_disconnect(self.gui.mouse_cid)
+        self.gui.mouse_wait_state_owner = None
+        # update state
+        self.event('mouse')
+        if self.gui_grow_state != 2:
+            if self.verbose:
+                print "make_dom_p1 failed"
+            return
+        # assign to p1
+        self.p1_pt = pp.Point2D(ev.xdata, ev.ydata)
+        # delete display of c
+        self.gui.selected_object_temphandle.remove()
+        # create then iterate polygon_domain object
+        self.polygon_domain_obj = polygon_domain(self.center_pt,
+                                                     self.p1_pt,
+                                                     self.func,
+                                                     nsides=40,
+                                                     edge_len_rtol=3)
+        if self.verbose:
+            print("Growing domain")
+        self.polygon_domain_obj.grow()
+        self.domain = self.polygon_domain_obj.polygon
+        self.gui_grow_state = 3
+        self.show_domain()
+        if self.verbose:
+            print("Domain complete")
+
+    def show_domain(self):
+        xs, ys = self.polygon_domain_obj.polygon.exterior.xy
+##        if self.gui.selected_object_temphandle is not None:
+            #print "show_domain ignoring: ", self.gui.selected_object_temphandle
+##            try:
+##                self.gui.selected_object_temphandle.remove()
+##            except ValueError:
+##                # sequence
+##                for th in self.gui.selected_object_temphandle:
+##                    th.remove()
+        self.gui.selected_object_temphandle = self.gui.ax.plot(xs, ys, 'y-', lw=2, zorder=2)[0]
+        self.gui.fig.canvas.draw()
+
+    def unshow_domain(self):
+        if self.gui.selected_object_temphandle is not None:
+            try:
+                self.gui.selected_object_temphandle.remove()
+            except ValueError:
+                # sequence
+                for th in self.gui.selected_object_temphandle:
+                    th.remove()
+        self.gui.fig.canvas.draw()
+
