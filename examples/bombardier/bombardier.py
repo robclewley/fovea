@@ -11,15 +11,13 @@ import PyDSTool as dst   # for potentially generalizable functions and classes t
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RectangleSelector
+
+import fovea
 import fovea.domain2D as dom
-from fovea import common
+from fovea import common, prep
+
 
 gentype = 'dopri'
-
-if gentype == 'vode':
-    targetlang = 'python'
-else:
-    targetlang = 'c'
 
 # let rocket mass be negligible
 # and G chosen to absorb m_rocket
@@ -31,7 +29,7 @@ G = 35
 scale_thresh = 3.0
 
 # graphics / control params
-xdomain_halfwidth = .7
+xdomain_halfwidth = .7  # should derive from YAML setup in calling script
 maxangle = 80 # degrees
 da_dict = dict(zip( ('h','H','j','J','n','m'),
                     (-1, -10, 1, 10, -0.1, 0.1)))
@@ -54,7 +52,6 @@ print dv_dict
 dom_key = '.'
 change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-distfun = lambda x,y,x1,y1: sqrt((x-x1)*(x-x1)+(y-y1)*(y-y1))
 
 # Disable mpl interactive key defaults
 plt.rcParams['keymap.save'] = 'ctrl+s' # s
@@ -68,8 +65,22 @@ plt.rcParams['keymap.grid'] = ''  # g
 # initial value
 next_fighandle = 1
 
+_non_pickle_attr = ['ax', 'fig',
+                    'trajline', 'startpt', 'endpt', 'quartiles',
+                    'widgets',
+                    'RS_line']
+# attributes that themselves contain non-picklable objects
+_non_pickle_subattr = ['context_objects',  # e.g. line_GUI
+                       'tracked_objects']  # e.g. measure with dynamic fns
+
 class GUIrocket(object):
-    def __init__(self, radii, density, pos, title, axisbgcol='black'):
+    def __init__(self, bodies, title, axisbgcol='black'):
+        """
+        bodies is a dict-like mapping of 1 or more:
+           <ID int>: {'density': <float>,
+                      'radius': <float>,
+                      'position': [<float>, <float>]}
+        """
         global next_fighandle
 
         # Sim setup
@@ -116,9 +127,15 @@ class GUIrocket(object):
         #self.vtext = None
         #self.atext = None
 
+        # ---------
+
+        # ---- Make these generic in a parent class, then
+        # specifcaly configured to bombardier here
+
         # Axes background colour
         self.axisbgcol = axisbgcol
 
+        # Move these to a _recreate method than can be reused for un-pickling
         self.fig = figure(next_fighandle, figsize=(14,9))
         self.fignum = next_fighandle
         plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
@@ -142,17 +159,18 @@ class GUIrocket(object):
         self.widgets['VelBar'].on_changed(self.updateVel)
 
         # assume max of N-2 planetoid bodies + target + source
-        self.N = len(radii)
-        self.gen_versioner_rocket = common.gen_versioner(os.path.abspath('./models'),
+        self.N = len(bodies)
+        self.gen_versioner = common.gen_versioner(os.path.abspath('.'),
                                                          self.name,
                                                          'simgen_N%i'%self.N,
                                                          gentype, 1)
 
         # Make this more generic for ABC
-        self.setup_pars(radii, density, [pp.Point2D(x,y,labels={'body': i+1}) for i, (x,y) in enumerate(pos)])
+        self.setup_pars(bodies)
 
         # --- END OF BOMBARDIER SPECIFICS
 
+        # Move these to a _recreate method than can be reused for un-pickling
         GoButton = Button(plt.axes([0.005, 0.1, 0.045, 0.03]), 'Go!')
         GoButton.on_clicked(self.go)
         self.widgets['Go'] = GoButton
@@ -200,6 +218,32 @@ class GUIrocket(object):
             # external to main GUI window
             track_obj.show()
 
+    # Methods for pickling protocol
+    def __getstate__(self):
+        d = copy(self.__dict__)
+        for fname, finfo in self._funcreg.items():
+            try:
+                del d[fname]
+            except KeyError:
+                pass
+        # delete MPL objects
+        for obj in some_list:
+            try:
+                del d['']
+            except KeyError:
+                pass
+        return d
+
+    def __setstate__(self, state):
+        # INCOMPLETE!
+        self.__dict__.update(state)
+        self._stuff = None
+        if something != {}:
+            self._recreate() # or re-call __init__
+
+    def _recreate(self):
+        raise NotImplementedError
+
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is
         # created with the new context code included
@@ -209,18 +253,26 @@ class GUIrocket(object):
     def __str__(self):
         return self.name
 
-    def setup_pars(self, radii, density, pos):
+    def setup_pars(self, data):
         # Should generalize to non-bombardier application
         N = self.N
-        assert len(radii) == len(density) == len(pos) == N
-        self.radii = radii
-        self.density = density
-        self.pos = pos # planet positions
-        self.masses = [density[i]*np.pi*r*r for (i,r) in enumerate(radii)]
-        rdict = dict([('r%i' %i, self.radii[i-1]) for i in range(1,N+1)])
-        mdict = dict([('m%i' %i, self.masses[i-1]) for i in range(1,N+1)])
-        posxdict = dict([('bx%i' %i, pos[i-1][0]) for i in range(1,N+1)])
-        posydict = dict([('by%i' %i, pos[i-1][1]) for i in range(1,N+1)])
+        radii = {}
+        density = {}
+        pos = {}
+        for i, body in data.items():
+            pos[i] = pp.Point2D(body['position'][0], body['position'][1],
+                                labels={'body': i})
+            radii[i] = body['radius']
+            density[i] = body['density']
+        ixs = range(N)
+        self.radii = [radii[i] for i in ixs]
+        self.density = [density[i] for i in ixs]
+        self.pos = [pos[i] for i in ixs] # planet positions
+        self.masses = [density[i]*np.pi*r*r for (i,r) in enumerate(self.radii)]
+        rdict = dict([('r%i' %i, self.radii[i]) for i in ixs])
+        mdict = dict([('m%i' %i, self.masses[i]) for i in ixs])
+        posxdict = dict([('bx%i' %i, pos[i][0]) for i in ixs])
+        posydict = dict([('by%i' %i, pos[i][1]) for i in ixs])
         pardict = {'G': G}  # global param for gravitational constant
         pardict.update(rdict)
         pardict.update(mdict)
@@ -236,7 +288,7 @@ class GUIrocket(object):
             self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
         else:
             try:
-                self.model = self.gen_versioner_rocket.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
+                self.model = self.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
             except:
                 self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
             else:
@@ -257,7 +309,7 @@ class GUIrocket(object):
 
         Fx_str = ""
         Fy_str = ""
-        for i in range(1,self.N+1):
+        for i in range(self.N):
             Fx_str += "-G*m%i*(x-bx%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
             Fy_str += "-G*m%i*(y-by%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
 
@@ -283,6 +335,9 @@ class GUIrocket(object):
                             'max_pts': 20000,
                             'maxevtpts': 2,
                             'refine': 5}
+
+        targetlang = \
+            self.gen_versioner._targetlangs[self.gen_versioner.gen_type]
 
         # Events for external boundaries (left, right, top, bottom)
         Lev = Events.makeZeroCrossEvent('x+%f'%xdomain_halfwidth, -1,
@@ -316,7 +371,7 @@ class GUIrocket(object):
 
         # Events for planetoids
         bevs = []
-        for i in range(1,self.N+1):
+        for i in range(self.N):
             bev = Events.makeZeroCrossEvent('d(x,y,bx%i,by%i)-r%i' % (i,i,i),
                                             -1,
                                         {'name': 'b%iev' %i,
@@ -338,7 +393,7 @@ class GUIrocket(object):
         DSargs.tdata = [0, 50]
 
         # turns arguments into Generator then embed into Model object
-        self.model = self.gen_versioner_rocket.make(DSargs)
+        self.model = self.gen_versioner.make(DSargs)
 
 
     def go(self, run=True):
@@ -358,8 +413,8 @@ class GUIrocket(object):
         elif a < -maxangle:
             a = -maxangle
         rad = pi*(a-90)/180.
-        x = self.radii[-1]*cos(rad)
-        y = -self.radii[-1]*sin(rad)
+        x = self.radii[0]*cos(rad)
+        y = -self.radii[0]*sin(rad)
         vx = v*cos(rad)
         vy = -v*sin(rad)
         self.model.set(ics={'vx': vx, 'vy': vy,
@@ -478,7 +533,7 @@ class GUIrocket(object):
                     col = 'grey'
                 self.ax.add_artist(plt.Circle((px,py),self.radii[i],color=col))
                 self.ax.plot(px,py,'k.')
-                self.ax.text(px-0.016,min(0.96, max(0.01,py-0.008)), str(i+1))
+                self.ax.text(px-0.016,min(0.96, max(0.01,py-0.008)), str(i))
 
     def plot_traj(self, pts=None, with_speeds=True):
         """
@@ -542,7 +597,7 @@ class GUIrocket(object):
 
 
     def run(self, tmax=None):
-        self.model.compute('test')
+        self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
         self.pts = self.traj.sample()
         if self.calc_context is not None:
@@ -560,12 +615,12 @@ class GUIrocket(object):
         Fys = []
         Fs = []
         pars = self.model.query('pars')
-        ixs = range(1,self.N+1)
+        ixs = range(self.N)
         for i in ixs:
             m = pars['m%i'%i]
             bx = pars['bx%i'%i]
             by = pars['by%i'%i]
-            p = pow(distfun(x,y,bx,by),3)
+            p = pow(pp.distfun(x,y,bx,by),3)
             Fx = -m*(x-bx)/p
             Fy = -m*(y-by)/p
             Fxs.append(Fx)
@@ -574,28 +629,28 @@ class GUIrocket(object):
         return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))
 
     def set_planet_data(self, n, data):
-        assert n in range(1,self.N+1)
+        assert n in range(self.N)
 
         # default to old radius, unless updated (for masses)
         r = self.model.query('pars')['r%i'%n]
-        d = self.density[n-1]
+        d = self.density[n]
         pardict = {}
         for key, val in data.items():
             if key == 'r':
                 pardict['r%i'%n] = val
                 r = val
-                self.radii[n-1] = r
+                self.radii[n] = r
             elif key == 'x':
                 pardict['bx%i'%n] = val
-                p = self.pos[n-1]
-                self.pos[n-1] = (val, p.y)
+                p = self.pos[n]
+                self.pos[n] = (val, p.y)
             elif key == 'y':
                 pardict['by%i'%n] = val
-                p = self.pos[n-1]
-                self.pos[n-1] = (p.x, val)
+                p = self.pos[n]
+                self.pos[n] = (p.x, val)
             elif key == 'd':
                 d = val
-                self.density[n-1] = d
+                self.density[n] = d
             else:
                 raise ValueError("Invalid parameter key: %s"%key)
             pardict['m%i'%n] = G*d*np.pi*r*r
@@ -634,7 +689,8 @@ class GUIrocket(object):
         print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
         # have to guess phase, use widest tolerance
         try:
-            data = findpt_nophase(self, ev.xdata, ev.ydata, eps=0.1)
+            data = pp.find_pt_nophase_2D(self.pts, pp.Point2D(ev.xdata, ev.ydata),
+                                         eps=0.1)
         except ValueError:
             print("No nearby point found. Try again")
             self.fig.canvas.mpl_disconnect(self.mouse_cid)
@@ -648,7 +704,8 @@ class GUIrocket(object):
         self.selected_object_temphandle = self.ax.plot(x_snap, y_snap, 'go')[0]
         self.fig.canvas.draw()
         print("Last output = (index, distance, point)")
-        print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1], x_snap, y_snap))
+        print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
+                                                          x_snap, y_snap))
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
@@ -657,7 +714,9 @@ class GUIrocket(object):
             # left (primary)
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
-            self.selected_object = line_GUI(self, x1, y1, x2, y2)
+            self.selected_object = graphics.line_GUI(self, self.ax,
+                                            pp.Point2D(x1, y1),
+                                            pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
             self.RS_line.set_active(False)
@@ -668,166 +727,7 @@ class GUIrocket(object):
 
 
 
-def findpt_nophase(sim, x, y, eps=0.1, N_phases=20):
-    try_phases = linspace(0, 1, N_phases)
-    data = None
-    min_d = 1000
-    best_data = None
-    for ph in try_phases:
-        #print ph
-        try:
-            data = findpt(sim, x, y, ph, tol=1.0/N_phases, eps=eps)
-        except ValueError:
-            continue
-        else:
-            # found something
-            if data[1] < min_d:
-                best_data = data
-                min_d = data[1]
-    if best_data is None:
-        raise ValueError("No point found")
-    else:
-        return best_data
 
-def findpt(sim, x, y, phase, tol=0.2, eps=0.1):
-    """
-    Find closest point in pointset (not traj)
-    by (x,y) and approximate phase in (0,1) fraction
-    of whole trajectory.
-
-    Optional tolerance fraction of #pts around phase
-    guess to seek in (default 20%=0.2).
-
-    Optional epsilon tolerance is the minimum distance
-    from the desired point that target point must be.
-    """
-    pts = sim.pts
-    n = len(pts)
-    ixtol = int(tol*n)
-    tguess = phase * pts['t'][-1]
-    ixguess = pts.find(tguess, 0)
-    ixlo = max(0, ixguess - ixtol)
-    ixhi = min(n, ixguess + ixtol)
-    new_pts = pts[ixlo:ixhi]
-    ix1 = find(new_pts['x'], x)
-    ix2 = find(new_pts['y'], y)
-    d1 = distfun(new_pts[ix1]['x'], new_pts[ix1]['y'], x, y)
-    d2 = distfun(new_pts[ix2]['x'], new_pts[ix2]['y'], x, y)
-    if d1 < eps and d2 > eps:
-        return ix1+ixlo, d1, new_pts[ix1]
-    if d2 < eps and d1 > eps:
-        return ix2+ixlo, d2, new_pts[ix2]
-    if d1 < eps and d2 < eps:
-        if d1 < d2:
-            return ix1+ixlo, d1, new_pts[ix1]
-        else:
-            return ix2+ixlo, d2, new_pts[ix2]
-    else:
-        #print("findpt data was", (ix1, ix2), (d1, d2), (new_pts[ix1]['x'], new_pts[ix1]['y']),
-        #      (new_pts[ix2]['x'], new_pts[ix2]['y']))
-        #print '\n'
-        raise ValueError("No match found to within eps=%.3f"%eps)
-
-
-class line_GUI(object):
-    def __init__(self, sim, x1,y1,x2,y2):
-        if x1 > x2:
-            # ensure correct ordering for angles
-            xt = x1
-            yt = y1
-            x1 = x2
-            y1 = y2
-            x2 = xt
-            y2 = yt
-        self.x1 = x1
-        self.x2 = x2
-        self.y1 = y1
-        self.y2 = y2
-        self.dy = y2-y1
-        self.dx = x2-x1
-        self.length = np.linalg.norm((self.dx, self.dy))
-        # angle relative to horizontal, in radians
-        self.ang = atan2(self.dy,self.dx)
-        self.ang_deg = 180*self.ang/pi
-        # hook back to sim object
-        self.sim = sim
-        # declare self to sim
-        sim.declare_in_context(self)
-        # move self to the currently selected object in sim
-        sim.selected_object = self
-        self.extra_fnspecs = {}
-        self.extra_pars = {}
-        self.extra_auxvars = {}
-        self.extra_events = []
-        print("Created line and moved to currently selected object")
-
-        # actual MPL line object handle
-        self.l = None
-        self.name = '<untitled>'
-        self.show()
-
-    def __repr__(self):
-        if self.extra_events == []:
-            ev_str = '(no event)'
-        else:
-            ev_str = '(with event)'
-        return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
-                                          self.x2, self.y2, self.name, ev_str)
-
-    def show(self):
-        if self.l is None:
-            self.l = self.sim.ax.plot([self.x1,self.x2],
-                                       [self.y1,self.y2],
-                                   'y-')[0]
-        else:
-            self.l.set_visible(True)
-        plt.draw()
-
-    def unshow(self):
-        self.l.set_visible(False)
-        plt.draw()
-
-    def remove(self):
-        self.l.remove()
-        plt.draw()
-
-    def distance_to_pos(self, dist):
-        """
-        Calculate absolute (x,y) position of distance dist from (x1,y1) along line
-        """
-        return self.fraction_to_pos(self, dist/self.length)
-
-    def fraction_to_pos(self, fraction):
-        """
-        Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
-        """
-        return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
-
-    def make_event_def(self, uniquename, dircode=0):
-        self.name = uniquename
-        res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
-                                          ['x', 'y'], True)
-
-        parname_base = 'exit_line_%s_' %uniquename
-        self.extra_pars[parname_base+'p_x'] = self.x1
-        self.extra_pars[parname_base+'p_y'] = self.y1
-        self.extra_pars[parname_base+'dp_x'] = self.dx
-        self.extra_pars[parname_base+'dp_y'] = self.dy
-        self.extra_fnspecs.update(res['auxfn'])
-        self.extra_events = [Events.makeZeroCrossEvent(expr='exit_fn_%s(x,y)' %uniquename,
-                                              dircode=dircode,
-                                              argDict={'name': 'exit_ev_%s' %uniquename,
-                                                       'eventtol': 1e-8,
-                                                       'eventdelay': 1e-3,
-                                                       'starttime': 0,
-                                                       'precise': True,
-                                                       'active': True,
-                                                       'term': False},
-                                              varnames=('x', 'y'),
-                                              fnspecs=res['auxfn'],
-                                              parnames=res['pars'],
-                                              targetlang=targetlang
-                                              )]
 
 # also make a circular version (using radial event)
 class target4D_line(qt_feature_leaf):
@@ -907,89 +807,42 @@ class target4D_line(qt_feature_leaf):
         return conditions_met
 
 
-class tracker_plotter(object):
-    def __init__(self):
-        self.figs = {}
-        self.sim = None
-        self.calc_context = None
-
-    def __call__(self, calc_context, fignum, xstr, ystr, style):
-        self.sim = calc_context.sim
-        self.calc_context = calc_context
-        fig = plt.figure(fignum)
-        new_track = args(xstr=xstr, ystr=ystr, style=style)
-        if fignum in self.figs:
-            self.figs[fignum].tracked.append(new_track)
-        else:
-            self.figs[fignum] = args(figure=fig, tracked=[new_track])
-        self.sim.tracked_objects.append(self)
-
-    def show(self):
-        for fignum, figdata in self.figs.items():
-            plt.figure(fignum)
-            ax = plt.gca()
-            #figdata.figure.clf()
-            ax.cla()
-            for tracked in figdata.tracked:
-                plt.plot(getattr(self.calc_context.workspace, tracked.xstr),
-                     getattr(self.calc_context.workspace, tracked.ystr),
-                     tracked.style, label=tracked.ystr.replace('_','\_'))
-            plt.legend()
-            plt.title('%s measures vs %s'%(self.calc_context.sim.name, tracked.xstr))
-        plt.show()
-
-# singleton
-track_plot = tracker_plotter()
-
-
 
 # ===========================================
 
 
 
-def combine_planets(sim, body1, body2):
+def combine_planets(body_data, body1, body2):
     """
     Return effective combined single body from two bodies given
     as integers
     """
-    m1 = sim.masses[body1-1]
-    m2 = sim.masses[body2-1]
-    d1 = sim.density[body1-1]
-    d2 = sim.density[body2-1]
-    dp = sim.pos[body2-1] - sim.pos[body1-1]
-    new_pos = sim.pos[body2-1] - m1/(m1+m2)*dp
+    r1 = body_data[body1]['radius']
+    r2 = body_data[body2]['radius']
+    m1 = np.pi*r1*r1
+    m2 = np.pi*r2*r2
+    d1 = body_data[body1]['density']
+    d2 = body_data[body2]['density']
+    pos1 = pp.Point2D(body_data[body1]['position'][0], body_data[body1]['position'][1])
+    pos2 = pp.Point2D(body_data[body2]['position'][0], body_data[body2]['position'][1])
+    dp = pos2 - pos1
+    new_pos = pos2 - m1/(m1+m2)*dp
     # weighted mean of masses
     new_density = (m1*d1 + m2*d2)/(m1+m2)
-    new_radius = sqrt((m1+m2)/new_density/np.pi)
-    return {'r': new_radius, 'd': new_density, 'm': m1+m2, 'p': new_pos}
-
-
-def dist_vectorized(p1, p2vec, coordnames=None):
-    """
-    Vector of L2 distances between one point and one sequence of points,
-    assumed to have same dimension unless optional tuple of coord names
-    provided.
-    """
-    if coordnames is None:
-        return np.array([np.linalg.norm(np.asarray(p1)-p) for p in p2vec])
-    else:
-        return np.array([np.linalg.norm(np.asarray(p1)-p) for p in p2vec[coordnames]])
-
-def dist(p1, p2):
-    """
-    L2 distance between two points assumed to have same dimension
-    """
-    return np.linalg.norm(np.asarray(p2)-np.asarray(p1))
+    new_radius = float(sqrt((m1+m2)/new_density/np.pi))
+    # mass is redundant
+    return {'radius': new_radius, 'density': new_density,
+            'mass': m1+m2, 'position': [new_pos[0], new_pos[1]]}
 
 
 def make_forcelines(sim, x, y, i):
     #flines = []
-    #for n in range(1,sim.N+1):
+    #for n in range(sim.N):
     #    i = n-1
     #Fsi = Fs[i]
     #Fvi_x, Fvi_y = Fvecs[i]
-    bx, by = sim.pos[i-1]
-    line_i = line_GUI(sim, x, y, bx, by)
+    bx, by = sim.pos[i]
+    line_i = graphics.line_GUI(sim, x, y, bx, by)
     return line_i
 
 def relative_angle(line1, line2):
@@ -1003,8 +856,8 @@ def project(sim, x, y, i, pline):
     ra = relative_angle(fline, pline)
     print fline.ang_deg - pline.ang_deg
     proj_F = F*cos(ra)
-    bx, by = sim.pos[i-1]
-    proj_d = distfun(x,y,bx,by)*cos(ra)
+    bx, by = sim.pos[i]
+    proj_d = pp.distfun(x,y,bx,by)*cos(ra)
     return proj_F, proj_d
 
 def net_force_vs_line(sim, mesh_n=100):
@@ -1048,7 +901,7 @@ def net_force_along_pts(sim, pts, bodies=None):
     """
     num_pts = len(pts)
     if bodies is None:
-        bodies = [i+1 for i, d in enumerate(sim.density) if d > 0]
+        bodies = [i for i, d in enumerate(sim.density) if d > 0]
     Fs_by_body = {}
     net_Fs = np.zeros(num_pts)
 
@@ -1079,31 +932,17 @@ def plot_forces_along_line(sim, forces, fignum=2):
     axis('tight')
 
 
-# Add this to utils.py or common.py in PyDSTool
-def arclength(pts, vars=['x','y']):
-    """
-    Return array of L-2 arclength progress along parameterized pointset
-    in the chosen dimensions
-    """
-    xpts = pts[vars]
-    x0 = xpts[0]
-    arclength = np.zeros(len(pts))
-    for i, x in enumerate(xpts[1:]):
-        arclength[i+1] = np.linalg.norm(x - xpts[i]) + arclength[i]
-    return arclength
-
-
 def pericenter_vs_n(sim, n, ecc, pt=None):
     # closest passing point relative to body n (index n-1)
     # at given point (or else IC assumed)
     if pt is None:
         pt = sim.model.query('ics')
     p0 = np.array((pt['x'], pt['y'])) # e.g. (0.25, 0.3)
-    r0 = sim.pos[n-1]-p0
+    r0 = sim.pos[n]-p0
     v0  = np.array((pt['vx'], pt['vy']))
     v = np.linalg.norm(v0)
     r = np.linalg.norm(r0)
-    m = sim.masses[n-1]
+    m = sim.masses[n]
     mu = G*m
     # abs takes into account sign convention for hyperbolae
     # vs. ellipses
@@ -1120,11 +959,11 @@ def apicenter_vs_n(sim, n, ecc, pt=None):
     if ecc >= 1:
         return np.Inf
     p0 = np.array((pt['x'], pt['y'])) # e.g. (0.25, 0.3)
-    r0 = sim.pos[n-1]-p0
+    r0 = sim.pos[n]-p0
     v0  = np.array((pt['vx'], pt['vy']))
     v = np.linalg.norm(v0)
     r = np.linalg.norm(r0)
-    m = sim.masses[n-1]
+    m = sim.masses[n]
     mu = G*m
     # abs takes into account sign convention for hyperbolae
     # vs. ellipses
@@ -1139,9 +978,9 @@ def eccentricity_vs_n(sim, n, pt=None):
         pt = sim.model.query('ics')
     p0 = np.array((pt['x'], pt['y'])) # e.g. (0.25, 0.3)
     v0  = np.array((pt['vx'], pt['vy']))
-    r0 = sim.pos[n-1]-p0
+    r0 = sim.pos[n]-p0
     r_cross_v0 = float(np.cross(r0, v0))
-    m = sim.masses[n-1]
+    m = sim.masses[n]
     mu = G*m
     v = np.linalg.norm(v0)
     r = np.linalg.norm(r0)
@@ -1149,86 +988,7 @@ def eccentricity_vs_n(sim, n, pt=None):
     return e
 
 
-class calc_context(object):
-    """
-    __init__ method for concrete sub-class should insert any core parameters
-    that are needed into 'shared' attribute
-    """
-    def __init__(self, sim, *args, **kwargs):
-        self.sim = sim
-        self._update_order = []
-        self.workspace = dst.args()
-        self._refresh_init_args = []
-        # one function to one workspace variable
-        self._functions_to_workspace = {}
-        try:
-            self.local_init(*args, **kwargs)
-        except:
-            print("local_init could not complete at initialization")
-
-    def __call__(self):
-        """
-        Refresh workspace after update in attached simulator.
-        Returns workspace.
-        """
-        self.local_init(*self._refresh_init_args)
-        for fn_name in self._update_order:
-            f = getattr(self, fn_name)
-            # discard result but keep side-effects on workspace update
-            f()
-        return self.workspace
-
-
-    def local_init(self, *args, **kwargs):
-        """
-        Optionally override in concrete sub-class
-        """
-        pass
-
-
-    def attach(self, fn_seq):
-        """Expect each function to have been decorated using
-        @prep(<attr_name>)
-        """
-        if callable(fn_seq):
-            # make a singleton list, for simplicity
-            fn_seq = [fn_seq]
-        for fn in fn_seq:
-            self._attach(fn)
-
-
-    def _attach(self, fn):
-        """
-        Seems that functions need to be wrapped individually
-        in their own closure to avoid weird sharing of wrapped_fn
-        """
-        def wrapped_fn():
-            val = fn(self)
-            self.workspace[fn.attr_name] = val
-            #print("Set workspace for value of %s is"%fn.attr_name, val)
-            return val
-        self.__setattr__(fn.__name__, wrapped_fn)
-        self._functions_to_workspace[fn.__name__] = (wrapped_fn, fn.attr_name)
-
-        # default to adding new function to end of update order
-        self._update_order.append(fn.__name__)
-
-        try:
-            val = getattr(self, fn.__name__)() #fn(self)
-        except:
-            print("Could not compute value at attachment time for function %s"%fn.__name__)
-             # initialize with None now, to declare in the meantime
-            self.workspace[fn.attr_name] = None
-
-
-class general_context(calc_context):
-    """
-    General purpose context
-    """
-    pass
-
-
-class body_context(calc_context):
+class body_context(fovea.calc_context):
     """
     Calculation context for a single planetary body with small satellite
     of negligible mass. n specifies which body.
@@ -1241,14 +1001,18 @@ class body_context(calc_context):
         w.pt = pt
         w.p0 = np.array((pt['x'], pt['y'])) # e.g. (0.25, 0.3)
         w.v0  = np.array((pt['vx'], pt['vy']))
-        w.r0 = self.sim.pos[n-1]-w.p0
+        w.r0 = self.sim.pos[n]-w.p0
         # np.double might be easier to make work with Symbolic
         w.r_cross_v0 = np.double(np.cross(w.r0, w.v0))
-        w.m = self.sim.masses[n-1]
+        w.m = self.sim.masses[n]
         w.mu = G*w.m
         w.v = np.linalg.norm(w.v0)
         w.r = np.linalg.norm(w.r0)
 
+class calc_context_forces(fovea.calc_context):
+    def local_init(self):
+        self.workspace.net_Fs, self.workspace.Fs_by_body = \
+            net_force_along_pts(self.sim, self.sim.pts)
 
 ##def contextualize(context):
 ##    def decorator(target):
@@ -1266,12 +1030,6 @@ class body_context(calc_context):
 ##        return fn(con)
 ##    con.__dict__[fn.__name__] = wrapped_fn
 ##attach(con4, eccentricity)
-
-def prep(attr_name):
-    def decorator(fn):
-        fn.attr_name = attr_name
-        return fn
-    return decorator
 
 @prep('ecc')
 def eccentricity(con):
@@ -1295,67 +1053,3 @@ def apicenter(con):
 @prep('peri')
 def pericenter(con):
     return abs((1-con.workspace.ecc)*con.workspace.a)
-
-
-def make_measure(fn_name, fn_spec, **defs):
-    all_defs = defs.copy()
-    q = dst.QuantSpec('_dummy_', fn_spec, treatMultiRefs=False)
-    import PyDSTool.parseUtils as pu
-    mapping = pu.symbolMapClass()
-    assumed_modules = []
-    tokens = q.parser.tokenized
-    for sym in q.freeSymbols:
-        # Hack, for now: if first (therefore, assumed all)
-        # occurrences of symbol are in quotes, then don't convert.
-        # Better solution would be to make parser create "x" as a single
-        # symbol, at least with a detect quote option
-        first_ix = tokens.index(sym)
-        if first_ix == 0 or (first_ix > 0 and tokens[first_ix-1] not in ['"', "'"]):
-            if pu.isHierarchicalName(sym):
-                parts = sym.split('.')
-                if parts[0] == 'sim':
-                    mapping[sym] = 'con.'+sym
-                elif parts[0] == 'bombardier':
-                    # special case as this factory function is defined in that
-                    # module so that reference will fail at runtime: remove
-                    # 'bombardier' prefix
-                    rest_sym = '.'.join(parts[1:])
-                    mapping[sym] = rest_sym
-                    scope = globals()
-                    # locals override
-                    scope.update(locals())
-                    if parts[1] in scope:
-                        all_defs[parts[1]] = scope[parts[1]]
-                    else:
-                        raise ValueError("Cannot resolve scope of symbol '%s'"%sym)
-                else:
-                    # assume module reference
-                    assumed_modules.append(parts[0])
-                    # record here to ensure inclusion in dyn_dummy
-                    mapping[sym] = 'self.'+sym
-            else:
-                mapping[sym] = 'con.workspace.'+sym
-        elif first_ix > 0 and tokens[first_ix-1] in ['"', "'"]:
-            # put this symbol in the mapping values to ensure not included
-            # as an argument to the function
-            mapping[sym] = sym
-    q.mapNames(mapping)
-    import types
-    for module_name in assumed_modules:
-        global_scope = globals()
-        # test if module name in scope
-        if module_name in global_scope:
-            _mod = global_scope[module_name]
-            if isinstance(_mod, types.ModuleType):
-                all_defs[module_name] = _mod
-
-    # dyn_dummy contains dummy mappings but declares symbols to leave
-    # evaluating until runtime
-    dyn_dummy = dict(zip(mapping.values(), ['']*len(mapping)))
-    funq = expr2fun(q, ensure_args=['con'], ensure_dynamic=dyn_dummy,
-                   for_funcspec=False, fn_name=fn_name,
-                   **all_defs)
-
-    # decorate output
-    funq.attr_name = fn_name
-    return funq
