@@ -14,7 +14,7 @@ from PyDSTool.Toolbox.phaseplane import find_fixedpoints, fixedpoint_2D, nullcli
 
 from fovea.common import *
 
-from PyDSTool import ModelManager
+from PyDSTool import ModelManager, progressBar
 
 global man
 

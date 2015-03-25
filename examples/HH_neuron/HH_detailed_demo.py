@@ -6,6 +6,8 @@ Hodgkin-Huxley analysis.
 from PyDSTool.Toolbox.dssrt import *
 from PyDSTool.Toolbox.phaseplane import *
 import PyDSTool as dst
+import numpy as np
+import scipy as sp
 
 import matplotlib.pyplot as plt
 import sys
@@ -481,6 +483,20 @@ def add_epochs_to_layer(kind, to_layer, epochs, style, figure=None):
     return layer_name
 
 
+
+def animate_frames(t0, t1, n_frames=100,
+                   fname_base=None,
+                   format='png'):
+    if fname_base is None:
+        'screenshots_gK%i/fovea_gK%i_' % (Kgmax, Kgmax)
+
+    assert t0 < t1
+    for i, t in enumerate(np.linspace(t0, t1, n_frames)):
+        print i
+        sys.stdout.flush()
+        gui.set_time(t)
+        plt.savefig(fname_base+str(i+1)+'.'+format, format=format)
+
 # ------------------------------------------------------------------------
 
 ## Set dssrt_name to be for saved DSSRT data file
@@ -760,15 +776,3 @@ plotter.show_legends(subplot='Times')
 ##plt.plot(ptsDSSRT['t'], ptsDSSRT['a'])
 
 plt.show()
-
-1/0
-# Animate frames from t = 0 to 9.25ms
-n_frames = 100
-fname_base = 'screenshots_gK%i/fovea_gK%i_' % (Kgmax, Kgmax)
-format = 'png'
-
-for i, t in enumerate(np.linspace(0, 9.25, n_frames)):
-    print i
-    sys.stdout.flush()
-    gui.set_time(t)
-    plt.savefig(fname_base+str(i+1)+'.'+format, format=format)
