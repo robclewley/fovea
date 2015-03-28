@@ -67,7 +67,7 @@ class polygon_domain(object):
                                          target_fsigns
         # check that p1 satifies same sign
         if not self.boolfunc(p1):
-            raise PyDSTool_ValueError("f(p1) has different sign to f(c)")
+            raise dst.PyDSTool_ValueError("f(p1) has different sign to f(c)")
 
         # distance scale and initial trust radius
         self.r0 = np.linalg.norm(p1-c)
