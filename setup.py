@@ -38,7 +38,7 @@ setup(
     maintainer="Rob Clewley",
     maintainer_email="rob.clewley@gmail.com",
     description="Dynamic modeling diagnostic and visualization tools",
-    long_description=read('README.md') + '\n\n' + read('WHATS_NEW.txt'),
+    long_description=read('README.md'), # + '\n\n' + read('WHATS_NEW.txt'),
     license="BSD",
     keywords="dynamical systems, bioinformatics, modeling, diagnostics, " + \
                 "visualization, literate modeling",
