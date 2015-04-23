@@ -1,6 +1,8 @@
 """
 Graphical user interface and plotting tools for dynamical systems
 
+Rob Clewley, 2015
+based on work by:
 Bryce Chung and Rob Clewley, 2012
 
 
@@ -16,6 +18,8 @@ from matplotlib.widgets import Slider, Button, RectangleSelector
 import numpy as np
 from copy import copy
 from math import *
+import hashlib, time
+import euclid as euc
 
 from PyDSTool import args, numeric_to_traj, Point
 import PyDSTool.Toolbox.phaseplane as pp
@@ -30,14 +34,60 @@ import domain2D as dom
 
 # ----------------------------------------------
 
+
+def force_line_to_extent(a, b, p_domain, coordnames):
+    """
+    The infinite line through points *a* and *b*
+    cuts the rectangular domain at the two points returned.
+
+    a, b are Point2D objects for the line endpoints.
+    """
+    x, y = coordnames
+    # line is a euclid.Line2 (infinite in both directions)
+    a_pt = euc.Point2(a[x],a[y])
+    b_pt = euc.Point2(b[x],b[y])
+    #plt.plot(np.array([a_pt, b_pt]).T[0],
+    #         np.array([a_pt, b_pt]).T[1], 'r')
+    line = euc.Line2(a_pt, b_pt)
+    # test each of four sides as finite line segments
+    combos = ( (0,0,0,1), (0,0,1,0), (1,1,0,1), (1,1,1,0) )
+    p1 = p2 = None
+    for xi1, yi1, xi2, yi2 in combos:
+        bd1 = euc.Point2(p_domain[x][xi1], p_domain[y][yi1])
+        bd2 = euc.Point2(p_domain[x][xi2], p_domain[y][yi2])
+        #plt.plot(np.array([bd1, bd2]).T[0],
+        #         np.array([bd1, bd2]).T[1], 'k')
+        border_seg = euc.LineSegment2(bd1, bd2)
+        pt = line.intersect(border_seg)
+        if pt is not None:
+            # intersection exists
+            # truncate or extend whichever point of line is closer to
+            # border segment
+            dist1 = border_seg.distance(line.p1)
+            dist2 = border_seg.distance(line.p2)
+            if dist1 > dist2:
+                if p2 is None:
+                    p2 = pt
+                else:
+                    p1 = pt
+            else:
+                if p1 is None:
+                    p1 = pt
+                else:
+                    p2 = pt
+    if p1 is not None and p2 is not None:
+        return Point2D(p1), Point2D(p2)
+    else:
+        raise ValueError("No intersection")
+
+
+
 class plotter2D(object):
 
     colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
 
     def __init__(self):
-        self.figs = {}
-        self._max_fig_num = 0
-        self.currFig = None
+        self.clean()
 
     def clean(self):
         """
@@ -45,24 +95,54 @@ class plotter2D(object):
         """
         self.figs = {}
         self._max_fig_num = 0
+        self.active_layer = None
+        self.currFig = None
+        # record whether ever called show()
+        self.shown = False
 
-    def autoScale(self, figure=None):
-        xScale = [0,1]
-        yScale = [0,1]
+    def auto_scale_domain(self, figure=None):
+        """
+        Set domain limits to that of the data in all layers
+        with the greatest extent.
+        """
+        # ISSUE: figure not used! It should select which
+        # data is used below, and the figure object should
+        # be selected to impose the extent on
 
-        for figName, fig in self.figs.iteritems():
-            for layerName, layer in fig.layers.iteritems():
-                for dName, d in layer['data'].iteritems():
-                    xScale[0] = min(min(d[0][0]), xScale[0])
-                    xScale[1] = max(max(d[0][0]), xScale[1])
-                    yScale[0] = min(min(d[0][1]), yScale[0])
-                    yScale[1] = max(max(d[0][1]), yScale[1])
+        # initial values
+        x_extent = [0,0]
+        y_extent = [0,0]
 
-        plt.xlim(xScale)
-        plt.ylim(yScale)
+        found_fig = False
+        for figName, fig in self.figs.items():
+            if figure != figName:
+                continue
+            else:
+                found_fig = True
+            for layerName, layer in fig.layers.items():
+                for dName, d in layer['data'].items():
+                    x_extent[0] = min(min(d[0][0]), x_extent[0])
+                    x_extent[1] = max(max(d[0][0]), x_extent[1])
+                    y_extent[0] = min(min(d[0][1]), y_extent[0])
+                    y_extent[1] = max(max(d[0][1]), y_extent[1])
+
+        if not found_fig:
+            raise ValueError("No such figure")
+        fig.domain = (x_extent, y_extent)
+        plt.figure(fig.fignum)
+        plt.xlim(x_extent)
+        plt.ylim(y_extent)
+
+    def set_active_layer(self, layer, figure=None):
+        """
+        Sets the active_layer attribute to be the named layer struct
+        in the (optionally) given figure (defaults to Master)
+        """
+        fig_struct, figure = plotter._resolveFig(figure)
+        self.active_layer = fig_struct.layers[layer]
 
 
-    # This method is never called!
+    # ISSUE: This method is never called!
 ##    def build(self, wait=False, figure=None, labels=None, autoscale=True):
 ##        """
 ##        Separate function for building figures to optimize simulation speeds.
@@ -96,7 +176,7 @@ class plotter2D(object):
 ##                ax.autoscale(enable=autoscale)
 ##            else:
 ##                shape = fig_struct.shape
-##                for ix, subplot in fig_struct.arrange.iteritems():
+##                for ix, subplot in fig_struct.arrange.items():
 ##                    ax = fig.add_subplot(shape[0], shape[1], shape[1]*(int(ix[0])-1)+int(ix[1]))
 ##                    try:
 ##                        axesLabels = subplot['axes']
@@ -135,7 +215,7 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
         arrPlots = fig_struct.arrange
 
-        for ixstr, spec in arrPlots.iteritems():
+        for ixstr, spec in arrPlots.items():
             if subplot is not None and subplot not in \
                               [ixstr, spec['name']]:
                 continue
@@ -144,21 +224,23 @@ class plotter2D(object):
                 lay = fig_struct.layers[layer]
                 if not lay.display or lay.kind != 'data':
                     continue
-                print "\nLAYER:", layer
-                print "  sub-plot: ", ixstr
-                print "  style", lay.style
-                print "  axes:", lay.axes_vars
-                print "  data:"
+                print("\nLAYER: %s" % str(layer))
+                print("  sub-plot: %s" % ixstr)
+                print("  style %s" % lay.style)
+                print("  axes: %s - %s" % (lay.axes_vars[0], lay.axes_vars[1]))
+                print("  data:")
                 for dname, dstruct in lay.data.items():
                     if not dstruct['display']:
                         continue
-                    print "     name:", dname, " style:", dstruct['style']
+                    print("     name: %s, style: %s" % (dname, dstruct['style']))
 
 
 
     ## Figure Management Tools ##
 
-    def addFig(self, label, title="", xlabel="", ylabel="", tdom=None, display=True):
+    # ISSUE: make compound method names with _ not camelCase
+    def addFig(self, label, title="", xlabel="", ylabel="", tdom=None,
+               domain=None, display=True):
         """
         User can add figures to plotter for data shown in different windows
 
@@ -189,6 +271,7 @@ class plotter2D(object):
         figAttr.window = None
         figAttr.autoscaling = True
         figAttr.tdom = tdom
+        figAttr.domain = domain
 
         self.figs.update({label: figAttr})
 
@@ -294,7 +377,7 @@ class plotter2D(object):
         # make copy of arrPlots in case change singleton layer names to lists
         arrPlots = copy(arrPlots)
 
-        for ixstr, spec in arrPlots.iteritems():
+        for ixstr, spec in arrPlots.items():
             if int(ixstr[0])*int(ixstr[1]) > shape[0]*shape[1]:
                 raise ValueError("Position does not exist in subplot arrangement.")
 
@@ -335,7 +418,7 @@ class plotter2D(object):
         """
         fig_struct, figure = self._resolveFig(figure)
 
-        # Check to see layer does not already exist #
+        # Check to see layer does not already exist
         if fig_struct.layers.has_key(layer_name):
             raise KeyError("Layer name already exists in figure!")
 
@@ -347,6 +430,7 @@ class plotter2D(object):
         layAttrs = args()
         layAttrs.data = {}
         layAttrs.display = True
+        # ISSUE: zindex ordering not actually used
         # default zindex based on order of layer declaration
         layAttrs.zindex = len(fig_struct.layers)+1
         layAttrs.style = style
@@ -358,7 +442,7 @@ class plotter2D(object):
         layAttrs.axes_vars = []
 
         for kw in kwargs:
-            # Check to see that parameter exists in layers #
+            # Check to see that parameter exists in layers
             ## Possibly change to account for different properties of specific artist objects?
             if not layAttrs.has_key(kw):
                 raise KeyError("Parameter is not a property of the layer.")
@@ -370,8 +454,10 @@ class plotter2D(object):
 
     def setLayer(self, label, figure=None, **kwargs):
         """
-        Allows users to arrange data sets in a figure
+        Arrange data sets in a figure's layer
         """
+        # figure will be the same before and after unless figure was
+        # None, in which case defaults to name of master figure
         fig_struct, figure = self._resolveFig(figure)
 
         # Check to see that layer exists
@@ -425,7 +511,7 @@ class plotter2D(object):
 
         # Check to see if data name already exists
         if d.has_key(name) and not force:
-            raise KeyError("Data name already exists in layer, %s" %name)
+            raise KeyError("Data name already exists in layer: %s" %name)
 
         # Create name if none is provided
         if name is None:
@@ -440,7 +526,7 @@ class plotter2D(object):
 
             name = strName
 
-        #print "Adding: %s >> %s" % (figure, name)
+        #print("Adding: %s >> %s" % (figure, name))
         d.update({name: {'data': data, 'style': style, 'display': disp}})
         self._updateTraj(layer, figure)
 
@@ -596,6 +682,21 @@ class plotter2D(object):
         self.addData([tdom, [y, y]], figure=figure, layer=layer, style=style, name=name)
         fig_struct.layers[layer].kind = 'hline'
 
+    def show(self):
+        """
+        Apply all figures' domain limits and refresh
+        """
+        for figName, fig in self.figs.items():
+            f = plt.figure(fig.fignum)
+            ax = f.gca()
+            xdom, ydom = fig.domain
+            ax.set_xlim(xdom)
+            ax.set_ylim(ydom)
+        plt.draw()
+        if self.shown:
+            plt.show()
+            self.shown = True
+
 
     def updateDynamic(self, time, dynamicFns, hard_reset=False):
         """Dynamic callback functions always accept time as first argument.
@@ -611,7 +712,7 @@ class plotter2D(object):
                     assert isinstance(dynamicFns, dict), "Dynamic functions must be a dictionary of layer-function pairs"
 
                     if dynamicFns.has_key(layer):
-                        #print "updateDynamic calling function:", dynamicFns[layer]
+                        #print("updateDynamic calling function: %s" % str(dynamicFns[layer]))
                         dynamicFns[layer](time, hard_reset)
 
 
@@ -642,7 +743,7 @@ class plotter2D(object):
         lay = fig_struct.layers[layer_name]
         lines = []
 
-        for dkey, dstruct in lay.data.iteritems():
+        for dkey, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
             # that may or may not already be updated *in place* and therefore
             # don't need to be redrawn
@@ -761,7 +862,7 @@ class diagnosticGUI(object):
         self.times = points['t']
 
 
-    def buildPlotter2D(self, figsize=None):
+    def buildPlotter2D(self, figsize=None, with_times=True):
         """
         Create time bar widget.
         Create capture points widget.
@@ -790,24 +891,25 @@ class diagnosticGUI(object):
             self.masterWin = fig_handle
 
             ## Time bar controls time lines in figures
-            sliderRange = self.times
-            slide = plt.axes([0.25, 0.02, 0.65, 0.03])
-            tMin = min(sliderRange)
-            tMax = max(sliderRange)
-            if self.t is None:
-                self.set_time( (tMin + tMax)/2. )
-            self.widgets['timeBar'] = Slider(slide, 'Time', tMin, tMax,
-                                            valinit=self.t, color='r',
-                                            dragging=False, valfmt='%1.4f')
+            if with_times:
+                sliderRange = self.times
+                slide = plt.axes([0.25, 0.02, 0.65, 0.03])
+                tMin = min(sliderRange)
+                tMax = max(sliderRange)
+                if self.t is None:
+                    self.set_time( (tMin + tMax)/2. )
+                self.widgets['timeBar'] = Slider(slide, 'Time', tMin, tMax,
+                                                valinit=self.t, color='r',
+                                                dragging=False, valfmt='%1.4f')
 
-            # button axes are in figure coords: (left, bottom, width, height)
+                # button axes are in figure coords: (left, bottom, width, height)
 
-            ## +/- dt buttons
-            m_dt_Button = Button(plt.axes([0.16, 0.02, 0.017, 0.03]), '-dt')
-            self.widgets['minus_dt'] = m_dt_Button
+                ## +/- dt buttons
+                m_dt_Button = Button(plt.axes([0.16, 0.02, 0.017, 0.03]), '-dt')
+                self.widgets['minus_dt'] = m_dt_Button
 
-            p_dt_Button = Button(plt.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
-            self.widgets['plus_dt'] = p_dt_Button
+                p_dt_Button = Button(plt.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
+                self.widgets['plus_dt'] = p_dt_Button
 
             ## Capture point button in lower left
             captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
@@ -828,13 +930,16 @@ class diagnosticGUI(object):
                     ixstr = str(i+1) + str(j+1)
                     try:
                         subplot_struct = fig_struct.arrange[ixstr]
-                    except KeyError:
+                    except (KeyError, TypeError):
+                        # type error if arrange is empty list (e.g. for shape=[1,1])
                         continue
                     layer_info = subplot_struct['layers']
                     if not isinstance(layer_info, list):
                         # singleton string layer name
                         layer_info = [layer_info]
 
+                    # ISSUE: 'scale' should probably be 'domain' or 'extent'
+                    # and the titling and labeling should happen in plotter2D
                     try:
                         scale = subplot_struct['scale']
                     except KeyError:
@@ -866,6 +971,7 @@ class diagnosticGUI(object):
                                                          linewidth=3, linestyle='--'))
                         self.timePlots.extend(layer_info)
 
+                    # ISSUE: these should be built into plotter2D's figure domains instead
                     if scale is not None:
                         # scale may be [None, None], [None, [ylo, yhi]], etc.
                         try:
@@ -877,15 +983,17 @@ class diagnosticGUI(object):
                         except TypeError:
                             pass
 
+            # ISSUE: This should probably be moved to plotter2D
             fig_handle.canvas.draw()
 
         # activate callbacks
-        self.widgets['timeBar'].on_changed(self.updatePlots)
         self.widgets['capturePoint'].on_clicked(self.capturePoint)
         self.widgets['refresh'].on_clicked(self.refresh)
-        self.widgets['minus_dt'].on_clicked(self.minus_dt)
-        self.widgets['plus_dt'].on_clicked(self.plus_dt)
         self.widgets['goBack'].on_clicked(self.goBack)
+        if with_times:
+            self.widgets['timeBar'].on_changed(self.updatePlots)
+            self.widgets['minus_dt'].on_clicked(self.minus_dt)
+            self.widgets['plus_dt'].on_clicked(self.plus_dt)
 
         # activate general mouse click callbacks
         evMouseDown = fig_handle.canvas.mpl_connect('button_press_event', self.mouseDownFn)
@@ -914,7 +1022,7 @@ class diagnosticGUI(object):
         arrPlots = fig_struct.arrange
         subplot_struct = None
         if isinstance(subplot, str):
-            for ixstr, spec in arrPlots.iteritems():
+            for ixstr, spec in arrPlots.items():
                 if subplot in [ixstr, spec['name']]:
                     subplot_struct = fig_struct.arrange[ixstr]
                     ax = subplot_struct['axes_obj']
@@ -998,7 +1106,7 @@ class diagnosticGUI(object):
         self.clipboardPt = Point2D(ev.xdata, ev.ydata,
                                    xname=layer_struct.axes_vars[0],
                                    yname=layer_struct.axes_vars[1])
-        print "Clipboard now contains:", self.clipboardPt
+        print("Clipboard now contains: %s" % str(self.clipboardPt))
 
 
     def capturePoint(self, ev):
@@ -1033,11 +1141,11 @@ class diagnosticGUI(object):
         if self.verbose >= 1:
             # print point information to stdout console
             for figName, pt in pts_dict.items():
-                print "\n\n=============================="
-                print "Figure: %s" % figName
-                print "@ time = %.3f" % pt['t']
-                print pt
-            print "\n"
+                print("\n\n==============================")
+                print("Figure: %s" % figName)
+                print("@ time = %.3f" % pt['t'])
+                print(pt)
+            print("\n")
 
         self.capturedPts = pts_dict
 
@@ -1234,9 +1342,66 @@ class line_GUI(context_object):
                                               targetlang=targetlang
                                               )]
 
-class tracker_plotter(object):
+class tracker_GUI(object):
     """
-    Auto-updating plots that are connected to a diagnostic GUI simulator.
+    Abstract base class
+    """
+    pass
+
+
+class tracker_textconsole(tracker_GUI):
+    """
+    Auto-updating text consoles that are connected to a diagnostic GUI.
+    """
+    def __init__(self):
+        self.figs = {}
+        self.sim = None
+        self.calc_context = None
+
+    def __call__(self, calc_context, fignum, attribute_name):
+        self.sim = calc_context.sim
+        self.calc_context = calc_context
+        old_toolbar = plt.rcParams['toolbar']
+        plt.rcParams['toolbar'] = 'None'
+        fig = plt.figure(fignum, figsize=(2,6)) #, frameon=False)
+        plt.rcParams['toolbar'] = old_toolbar
+        if fignum in self.figs:
+            self.figs[fignum].tracked.append(attribute_name)
+        else:
+            self.figs[fignum] = args(figure=fig, tracked=[attribute_name])
+        self.sim.tracked_objects.append(self)
+
+    def show(self):
+        for fignum, figdata in self.figs.items():
+            fig = plt.figure(fignum)
+            ax = plt.axes([0., 0., 1., 1.], frameon=False, xticks=[],yticks=[])
+            #figdata.figure.clf()
+            ax.cla()
+            ax.set_frame_on(False)
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+            wspace = self.calc_context.workspace
+            for tracked_attr in figdata.tracked:
+                for i, (obj_name, obj) in enumerate(wspace.__dict__.items()):
+                    if obj_name[0] == '_':
+                        # internal name, ignore
+                        continue
+                    try:
+                        data = getattr(obj, tracked_attr)
+                    except Exception, e:
+                        print("No attribute: '%s' in object in workspace '%s'" % (tracked_attr, wspace._name))
+                        raise
+                    plt.text(0.05, 0.05+i*0.04, '%s: %s = %.4g' % (obj_name, tracked_attr, data))
+            plt.title('%s measures of %s (workspace: %s)'%(self.calc_context.sim.name, tracked_attr,
+                                                           _escape_underscore(self.calc_context.workspace._name)))
+            fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
+        plt.show()
+
+
+
+class tracker_plotter(tracker_GUI):
+    """
+    Auto-updating plots that are connected to a diagnostic GUI.
     """
     def __init__(self):
         self.figs = {}
@@ -1280,16 +1445,11 @@ class tracker_plotter(object):
             fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
         plt.show()
 
-def _escape_underscore(text):
-    """
-    Internal utility to escape any TeX-related underscore ('_') characters in mpl strings
-    """
-    return text.replace('_', '\_')
 
 class tracker_manager(object):
     """
-    Track different quantities from different calc contexts in different figures.
-    Cannot re-use same figure with different contexts.
+    Track different quantities from different calc contexts in different
+    figures. Cannot re-use same figure with different contexts.
     """
     def __init__(self):
         self.tracked = {}
@@ -1297,27 +1457,75 @@ class tracker_manager(object):
         # contexts are deleted or replaced
         self.all_figs = []
 
-    def __call__(self, calc_context, fignum, xstr, ystr, style):
+    def __call__(self, calc_context, fignum, plot_metadata=None,
+                 text_metadata=None):
+        """
+        plot_metadata (default None) = (xstr, ystr, style)
+        *or*
+        text_metadata (default None) = attribute_name
+
+        If text_metadata used, the tracker object is assumed to be a
+        textconsole type that accesses declared python objects to access an
+        attribute
+
+        """
+        valid_input = plot_metadata is None or text_metadata is None
+        if not valid_input:
+            raise ValueError("Only use one of plot or text metadata arguments")
+        try:
+            xstr, ystr, style = plot_metadata
+        except TypeError:
+            # None is not iterable
+            track_plot = False
+            attribute_name = text_metadata
+        else:
+            track_plot = True
         if calc_context in self.tracked:
-            self.tracked[calc_context](calc_context, fignum, xstr, ystr, style)
+            if track_plot:
+                # tracker_plotter type
+                self.tracked[calc_context](calc_context, fignum, xstr, ystr, style)
+            else:
+                # tracker_textconsole type
+                self.tracked[calc_context](calc_context, fignum, attribute_name)
             if fignum not in self.all_figs:
                 self.all_figs.append(fignum)
         else:
-            tp = tracker_plotter()
-            if fignum not in self.all_figs:
-                tp(calc_context, fignum, xstr, ystr, style)
-                self.tracked[calc_context] = tp
-            else:
+            if fignum in self.all_figs:
                 raise ValueError("Figure number %i already in use" % fignum)
+            if track_plot:
+                tp = tracker_plotter()
+                tp(calc_context, fignum, xstr, ystr, style)
+            else:
+                tp = tracker_textconsole()
+                tp(calc_context, fignum, attribute_name)
+            self.tracked[calc_context] = tp
+
 
     def show(self):
         for tp in self.tracked.values():
             tp.show()
 
 
+##def track_attribute(attr_name):
+##    """
+##    Create decorator to track named attribute used in a calculation
+##    """
+##    def decorator(fn):
+##        obj =
+##        tracker.track_list = [getattr(obj, attr_name)]
+##        return fn
+##    return decorator
+
+
+def _escape_underscore(text):
+    """
+    Internal utility to escape any TeX-related underscore ('_') characters in mpl strings
+    """
+    return text.replace('_', '\_')
+
 # ---------------------------------------------------------
 
-global gui, track_plot
+global gui, tracker
 
 # singleton pattern
 
@@ -1326,6 +1534,6 @@ plotter = plotter2D()
 
 gui = diagnosticGUI(plotter)
 
-track_plot = tracker_manager()
+tracker = tracker_manager()
 
 
