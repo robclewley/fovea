@@ -15,7 +15,7 @@ from bombardier import *
 import bombardier
 import fovea
 import fovea.graphics as gx
-from fovea.graphics import track_plot
+from fovea.graphics import tracker
 
 import yaml
 with open('bodies_setup.yaml') as f:
@@ -123,9 +123,9 @@ con2.attach((arc, contrib_1to2, contrib_1toall,
 #print(con2.arclength())
 #print(con2.contrib_1to2())
 
-track_plot(con2, 10, 'arclength', 'contrib_1to2', 'k--')
-track_plot(con2, 10, 'arclength', 'contrib_1toall', 'k:')
-track_plot.show()
+tracker(con2, 10, 'arclength', 'contrib_1to2', 'k--')
+tracker(con2, 10, 'arclength', 'contrib_1toall', 'k:')
+tracker.show()
 
 """
 Task: Find zone in which Body 1 dominates
@@ -173,8 +173,8 @@ w = con2_vs1.workspace
 dist_to_1_vs_peri = fovea.make_measure('dist_to_1_vs_peri', 'pp.dist_vectorized(sim.pos[0], sim.pts[["x","y"]]) - workspace1.peri', workspace1=w)
 con2_vs1.attach(dist_to_1_vs_peri)
 
-track_plot(con2_vs1, 11, 'arclength', 'dist_to_1_vs_peri', 'k-')
-track_plot.show()
+tracker(con2_vs1, 11, 'arclength', 'dist_to_1_vs_peri', 'k-')
+tracker.show()
 print("Mismatch of pericenter prediction without reduction: %.5f" % abs(min(w.dist_to_1_vs_peri)))
 game2.current_domain_handler.assign_criterion_func(body1_dominant_at_point)
 

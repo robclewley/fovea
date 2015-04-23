@@ -25,7 +25,7 @@ from bombardier import *
 import bombardier
 import fovea
 import fovea.graphics as gx
-from fovea.graphics import track_plot
+from fovea.graphics import tracker
 
 import yaml
 with open('bodies_setup.yaml') as f:
