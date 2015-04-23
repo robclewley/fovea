@@ -114,7 +114,7 @@ class PPcallback_m(PPcallback):
             preComputed = False
             force = False
             # REPLACE WITH A PROPER CACHE STRUCTURE
-            for key, val in dynamicData.iteritems():
+            for key, val in dynamicData.items():
                 # dynamicData.keys are 'yNull_<time>' or 'xNull' or keys from horiz_PP etc.
                 # re-use computed nullclines if time is in "cache", i.e. it shows up in the keys
                 if key[6:] == str(time):
@@ -293,7 +293,7 @@ class PPcallback_n(PPcallback):
             preComputed = False
             force = False
             # REPLACE WITH A PROPER CACHE STRUCTURE
-            for key, val in dynamicData.iteritems():
+            for key, val in dynamicData.items():
                 # dynamicData.keys are 'yNull_<time>' or 'xNull' or keys from horiz_PP etc.
                 # re-use computed nullclines if time is in "cache", i.e. it shows up in the keys
                 if key[6:] == str(time):

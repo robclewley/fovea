@@ -99,7 +99,7 @@ class PPcallback_m(PPcallback):
             preComputed = False
             force = False
             # REPLACE WITH A PROPER CACHE STRUCTURE
-            for key, val in dynamicData.iteritems():
+            for key, val in dynamicData.items():
                 # dynamicData.keys are 'yNull_<time>' or 'xNull' or keys from horiz_PP etc.
                 # re-use computed nullclines if time is in "cache", i.e. it shows up in the keys
                 if key[6:] == str(time):
@@ -248,7 +248,7 @@ class PPcallback_n(PPcallback):
             preComputed = False
             force = False
             # REPLACE WITH A PROPER CACHE STRUCTURE
-            for key, val in dynamicData.iteritems():
+            for key, val in dynamicData.items():
                 # dynamicData.keys are 'yNull_<time>' or 'xNull' or keys from horiz_PP etc.
                 # re-use computed nullclines if time is in "cache", i.e. it shows up in the keys
                 if key[6:] == str(time):
@@ -536,6 +536,7 @@ pp2_name = 'K-V Phaseplane'
 pp2_dom = [[0.,1], [-75,50]]
 pp2_vars = ['n', 'V']
 
+# ISSUE: Rename 'scale' to 'domain' or 'extent'
 dPlot21 = {'name': pp1_name,
            'scale': pp1_dom,
            'layers': ['nullclines_mV', 'horiz_PP', 'points_mV', 'state_vel_mV', 'vfp_mV'],
