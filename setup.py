@@ -21,8 +21,6 @@ def read(fname):
 if sys.version_info[:2] < (2, 7) or (3, 0) <= sys.version_info[0:2] < (3, 3):
     raise RuntimeError("Python version 2.7 or >= 3.3 required.")
 
-
-
 setup(
     name="fovea",
     version=__version__,
@@ -31,7 +29,10 @@ setup(
         "pydstool>=0.90",
         "shapely>=1.2",
         "descartes>=1.0",
-        "pyyaml>=3.11"
+        "pyyaml>=3.11",
+        "euclid>=0.01",
+        "structlog>=15.1",
+        "tinydb>=2.2"
     ],
     author="Rob Clewley",
     author_email="rob.clewley@gmail.com",
