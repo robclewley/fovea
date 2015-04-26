@@ -11,11 +11,12 @@ import fovea.graphics as gx
 from fovea.graphics import tracker
 from fovea.graphics import gui
 
-#from fovea.diagnostics import diagnostic_manager
 import pp_func
 global dm
+# reuse existing objects
 dm = pp_func.dm
 plotter = gui.plotter
+import tinydb as tdb
 
 # user selection
 print("Trying to use Radau integrator, but use Vode")
@@ -119,7 +120,8 @@ def plot_PP_fp(fp, plotter_layer, coords=None, do_evecs=True, markersize=10):
 
     Optional do_evecs (default True) draws eigenvectors
     """
-    layer_struct = plotter.active_layer
+    figure, layer = plotter.active_layer
+    fig_struct, layer_struct = plotter.active_layer_structs
 
     if coords is None:
         x, y = layer_struct.axes_vars #fp.fp_coords # not stored in used order, just alphabetic order
@@ -136,8 +138,10 @@ def plot_PP_fp(fp, plotter_layer, coords=None, do_evecs=True, markersize=10):
         style = 'ko'
 
     # Add point and eigenvectors
+    name = 'fp'
+    dm.log.msg('Plot FP', name=name, layer=plotter_layer)
     plotter.addPoint(pp.Point2D(saddle.point[x], saddle.point[y]),
-                     style=style, layer=plotter_layer, name='fp')
+                     style=style, layer=plotter_layer, name=name)
 
     if do_evecs:
         for i, evec in enumerate(fp.evecs):
@@ -147,22 +151,23 @@ def plot_PP_fp(fp, plotter_layer, coords=None, do_evecs=True, markersize=10):
                 # this labeling will only work for a saddle
                 if np.real(evalue) < 0:
                     name = 'evec_s'
-                    style = 'g:'
+                    style = 'g-.'
                 else:
                     name = 'evec_u'
-                    style = 'r:'
+                    style = 'r-.'
             else:
                 if np.real(evalue) < 0:
                     name = 'evec_s'
-                    style = 'g:'
+                    style = 'g-.'
                 else:
                     name = 'evec_u'
-                    style = 'r:'
+                    style = 'r-.'
             p1, p2 = fovea.graphics.force_line_to_extent(fp_pt, fp_pt+pp.Point2D(evec, xname=x, yname=y),
                                                          dict(zip(layer_struct.axes_vars,layer_struct.scale)),
                                                          layer_struct.axes_vars)
             line = np.array((p1, p2))
             name = dm.get_unique_name(name)
+            dm.log.msg('Plot evec', name=name, layer=plotter_layer)
             plotter.addData(line.T, style=style, layer=plotter_layer, name=name)
 
 
@@ -310,7 +315,6 @@ plot_PP_fp(saddle, 'fp_data', do_evecs=True, markersize=7)
 
 # you may not need to run these commands on your system
 gui.buildPlotter2D((8,8), with_times=False)
-plotter.show()
 
 # magBound change ensures quicker determination of divergence during
 # manifold computations. max_pts must be larger when we are further
@@ -362,7 +366,8 @@ else:
 max_pts = 1
 
 
-#fig_struct = plotter.figs['Master']
+plotter.set_active_layer('manifold_metadata')
+
 
 # first stage (only called once)
 print "  First stage..."
@@ -377,6 +382,13 @@ def test(ic_ds, ds_perp, ds_gamma, eps, ev_dirn, tmax):
     return man_new
 
 man_new = test(0.01, 0.001, 0.01, 1e-3, 1, 10)
+
+print(dm.db.search(tdb.where('event')=="Added plot data"))
+
+plotter.buildLayers(['manifold_metadata'], plt.figure(plotter.figs['Master'].fignum).gca())
+plotter.show()
+print(plotter.shown)
+plt.show()
 
 ##man_new = pp.find_saddle_manifolds(saddle, 'phi', ds=0.004, ds_gamma=0.02,
 ##                ds_perp=0.005, tmax=60, max_arclen=max_arclen, eps=2e-5,
