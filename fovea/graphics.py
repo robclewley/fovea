@@ -23,14 +23,13 @@ import euclid as euc
 
 from PyDSTool import args, numeric_to_traj, Point
 import PyDSTool.Toolbox.phaseplane as pp
-from PyDSTool.Toolbox.phaseplane import Point2D
 # for potentially generalizable functions and classes to use
 import PyDSTool as dst
 
 # local imports
 from common import *
 import domain2D as dom
-
+from diagnostics import get_unique_name
 
 # ----------------------------------------------
 
@@ -76,7 +75,7 @@ def force_line_to_extent(a, b, p_domain, coordnames):
                 else:
                     p2 = pt
     if p1 is not None and p2 is not None:
-        return Point2D(p1), Point2D(p2)
+        return pp.Point2D(p1), pp.Point2D(p2)
     else:
         raise ValueError("No intersection")
 
@@ -96,6 +95,7 @@ class plotter2D(object):
         self.figs = {}
         self._max_fig_num = 0
         self.active_layer = None
+        self.active_layer_structs = None
         self.currFig = None
         # record whether ever called show()
         self.shown = False
@@ -135,11 +135,18 @@ class plotter2D(object):
 
     def set_active_layer(self, layer, figure=None):
         """
-        Sets the active_layer attribute to be the named layer struct
-        in the (optionally) given figure (defaults to Master)
+        Sets the active_layer attribute to be a pair
+        of the given figure name (optional, defaults to Master)
+        and the named layer struct.
         """
         fig_struct, figure = plotter._resolveFig(figure)
-        self.active_layer = fig_struct.layers[layer]
+        try:
+            layer_struct = fig_struct.layers[layer]
+        except KeyError:
+            raise KeyError("Unknown layer: %s" % layer)
+        else:
+            self.active_layer = (figure, layer)
+            self.active_layer_structs = (fig_struct, layer_struct)
 
 
     # ISSUE: This method is never called!
@@ -474,10 +481,12 @@ class plotter2D(object):
 
 
     def addData(self, data, figure=None, layer=None, style=None, name=None, disp=True,
-                force=False):
+                force=False, log=None):
         """
         User tool to add data to a layer.
         Use force option only if known that existing data must be overwritten.
+        Add a diagnostic manager's log attribute to the optional *log* argument
+        to have the figure, layer, and data name recorded in the log.
         """
 
         # Check to see that data is a list or array
@@ -493,21 +502,23 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
 
         if layer is None:
-            layer = "layer"+str(len(fig_struct.layers)+1)
-            self.addLayer(figure, layer)
-        elif not fig_struct.layers.has_key(layer):
-            raise KeyError("Layer has not been created")
+            layer = self.active_layer[1]
+            # Old behavior: make a new, numbered layer
+            #"layer"+str(len(fig_struct.layers)+1)
+            #self.addLayer(layer, figure)
+        else:
+            layer_struct = self._resolveLayer(figure, layer)
 
         # inherit default style from layer if not given
         if style is None:
-            style = fig_struct.layers[layer].style
+            style = layer_struct.style
 
         # d is a dictionary mapping 'name' to a dictionary of fields for the
         # numerical plot data (key 'data'), style (key 'style'), and display
         # boolean (key 'display').
         #
         # The numerical data for d is given by the method argument also called data
-        d = fig_struct.layers[layer].data
+        d = layer_struct.data
 
         # Check to see if data name already exists
         if d.has_key(name) and not force:
@@ -515,20 +526,13 @@ class plotter2D(object):
 
         # Create name if none is provided
         if name is None:
-            i = 1
-            flag = True
-            while flag:
-                strName = str(layer)+str(i)
-                if d.has_key(strName):
-                    i = i+1
-                else:
-                    flag = False
-
-            name = strName
+            name = get_unique_name(figure+'_'+layer)
 
         #print("Adding: %s >> %s" % (figure, name))
+        if log:
+            log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': disp}})
-        self._updateTraj(layer, figure)
+        self._updateTraj(figure, layer)
 
 
     def setPoint(self, name, pt, layer, figure=None):
@@ -538,7 +542,6 @@ class plotter2D(object):
         Figure defaults to currFig if not specified.
         """
         fig_struct, figure = self._resolveFig(figure)
-
         pt_struct = fig_struct.layers[layer].data[name]
         pt_struct['data'] = [[pt.x], [pt.y]]
 
@@ -553,32 +556,34 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
 
         # Check to see that layer exists
-        if not fig_struct.layers.has_key(layer):
+        try:
+            layer_struct = fig_struct.layers[layer]
+        except KeyError:
             raise KeyError("Layer does not exist in figure!")
 
         for kw in kwargs:
             # Possibly change to account for different properties of specific artist objects?
             try:
                 # for dict updates, e.g. data={<line_name>: {'data': [<array_data>]}}
-                fig_struct.layers[layer][kw].update(kwargs[kw]) # = kwargs[kw]
+                layers_struct[kw].update(kwargs[kw]) # = kwargs[kw]
             except AttributeError:
                 # for non-dict updates, e.g. display=True
-                fig_struct.layers[layer][kw] = kwargs[kw]
+                layer_struct[kw] = kwargs[kw]
             except KeyError:
                 raise KeyError("Parameter '%s' is not a property of the layer." %kw)
 
-        self._updateTraj(layer, figure)
+        self._updateTraj(figure, layer)
 
 
 
-    def _updateTraj(self, layer_name, figure_name):
+    def _updateTraj(self, figure_name, layer_name):
         fig_struct = self.figs[figure_name]
-        layer = fig_struct.layers[layer_name]
-        #dstruct = layer.data  ???
-        for name, dstruct in layer.data.items():
+        layer_struct = fig_struct.layers[layer_name]
+        #dstruct = layer.data
+        for name, dstruct in layer_struct.data.items():
             # catch for when the data is individual points
             try:
-                layer.trajs[name] = numeric_to_traj([dstruct['data'][1]],
+                layer_struct.trajs[name] = numeric_to_traj([dstruct['data'][1]],
                                         layer_name+'.'+name,
                                         coordnames=['y'],
                                         indepvar=dstruct['data'][0],
@@ -587,9 +592,9 @@ class plotter2D(object):
                 pass
 
 
-    def appendData(self, data, layer, name, figure=None):
+    def appendData(self, data, layer, name, figure=None, log=None):
         """
-        Doc string?
+        ISSUE: Doc string?
         """
         fig_struct, figure = self._resolveFig(figure)
 
@@ -603,7 +608,7 @@ class plotter2D(object):
         except KeyError:
             raise ValueError("Dataset %s does not exist in layer" % name)
 
-        if isinstance(data, PyDSTool.Toolbox.phaseplane.Point2D):
+        if isinstance(data, pp.Point2D):
             x = data.x
             y = data.y
         else:
@@ -617,44 +622,54 @@ class plotter2D(object):
         dataset['data'][0].append(x)
         dataset['data'][1].append(y)
 
+        if log:
+            log.msg("Appended plot data", figure=figure, layer=layer,
+                        name=name)
+
         self._updateTraj(layer, figure)
 
 
-    def addLineByPoints(self, pts, figure=None, layer=None, style=None, name=None):
+    def addLineByPoints(self, pts, figure=None, layer=None, style=None,
+                        name=None, log=None):
         """
         Add line based on two given Point2D points
         """
         pt1, pt2 = pts
         try:
-            self.addData([[pt1.x, pt2.x], [pt1.y, pt2.y]], figure=figure, layer=layer, style=style, name=name)
+            self.addData([[pt1.x, pt2.x], [pt1.y, pt2.y]], figure=figure, layer=layer, style=style, name=name,
+                         log=log)
         except AttributeError:
             raise ValueError("First argument must be [Point2D, Point2D]")
 
 
-    def addPoint(self, pt, figure=None, layer=None, style=None, name=None):
+    def addPoint(self, pt, figure=None, layer=None, style=None, name=None,
+                 log=None):
         """
         Add single Point2D point
         """
         self.addData([[pt.x], [pt.y]], figure=figure, layer=layer, style=style,
-                     name=name)
+                     name=name, log=log)
 
 
-    def addVLine(self, x, figure=None, layer=None, style=None, name=None):
+    def addVLine(self, x, figure=None, layer=None, style=None, name=None,
+                 log=None):
         """
         Add vertical line
         """
         fig_struct, figure = self._resolveFig(figure)
-
-        if fig_struct.layers[layer].scale[1] is None:
-            # RC: Not good to assume [0, 1]
-            self.addData([[x, x], [0, 1]], figure=figure, layer=layer, style=style, name=name)
-            fig_struct.layers[layer].kind = 'vline'
+        layer_struct = fig_struct.layers[layer]
+        if layer_struct.scale[1] is None:
+            # ISSUE: Not good to assume [0, 1] as default. What to do?
+            self.addData([[x, x], [0, 1]], figure=figure, layer=layer,
+                         style=style, name=name, log=log)
         else:
-            self.addData([[x, x], fig_struct.layers[layer].scale[1]], figure=figure, layer=layer, style=style, name=name)
-            fig_struct.layers[layer].kind = 'vline'
+            self.addData([[x, x], layer_struct.scale[1]], figure=figure,
+                         layer=layer, style=style, name=name, log=log)
+        layer_struct.kind = 'vline'
 
 
-    def addHLine(self, y, figure=None, layer=None, style=None, name=None):
+    def addHLine(self, y, figure=None, layer=None, style=None, name=None,
+                 log=None):
         """
         Add horizontal line.
 
@@ -662,8 +677,8 @@ class plotter2D(object):
         always spans the x axis with the default coords settings.
         """
         fig_struct, figure = self._resolveFig(figure)
-
-        sc = fig_struct.layers[layer].scale
+        layer_struct = fig_struct.layers[layer]
+        sc = layer_struct.scale
         if sc is None:
             if self.figs[figure].tdom is None:
                 tdom = sc[0]
@@ -672,15 +687,17 @@ class plotter2D(object):
         else:
             if sc[0] is None:
                 # try defaulting to figure tdom
-                if self.figs[figure].tdom is None:
-                    # RC: Not good to assume [0, 100]
+                if fig_struct.tdom is None:
+                    # ISSUE: Not good to assume [0, 100] by default. What to do?
                     tdom = [0, 100]
                 else:
                     tdom = self.figs[figure].tdom
             else:
                 tdom = sc[0]
-        self.addData([tdom, [y, y]], figure=figure, layer=layer, style=style, name=name)
-        fig_struct.layers[layer].kind = 'hline'
+        self.addData([tdom, [y, y]], figure=figure, layer=layer,
+                     style=style, name=name, log=log)
+        layer_struct.kind = 'hline'
+
 
     def show(self):
         """
@@ -731,6 +748,20 @@ class plotter2D(object):
             raise ValueError("Figure %s does not exist"%figure)
 
         return fig_struct, figure
+
+
+    def _resolveLayer(self, figure, layer):
+        """Internal utility to find the named layer in the given figure, and return its
+        struct.
+        """
+        try:
+            fig_struct = self.figs[figure]
+        except KeyError:
+            raise KeyError("Invalid figure name: %s" % figure)
+        try:
+            return fig_struct.layers[layer]
+        except KeyError:
+            raise KeyError("Invalid layer name: %s" % layer)
 
 
     def _buildLayer_(self, figure_name, layer_name, ax, rescale=None):
@@ -1003,7 +1034,7 @@ class diagnosticGUI(object):
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
 
 
-    def buildLayers(self, layer_list, ax, rescale, figure=None):
+    def buildLayers(self, layer_list, ax, rescale=None, figure=None):
         """
         Convenience function to group layer refresh/build calls
         """
@@ -1103,7 +1134,7 @@ class diagnosticGUI(object):
         fig_struct = self.plotter.figs[figName]
         # all layers share the same axes, so just get the first
         layer_struct = fig_struct.layers[layer_info[0]]
-        self.clipboardPt = Point2D(ev.xdata, ev.ydata,
+        self.clipboardPt = pp.Point2D(ev.xdata, ev.ydata,
                                    xname=layer_struct.axes_vars[0],
                                    yname=layer_struct.axes_vars[1])
         print("Clipboard now contains: %s" % str(self.clipboardPt))
