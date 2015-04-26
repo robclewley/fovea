@@ -11,9 +11,20 @@ from tinydb.storages import MemoryStorage
 import datetime
 import time
 import hashlib
+import sys
 
+__all__ = ['diagnostic_manager', 'get_unique_name']
 
-__all__ = ['diagnostic_manager']
+def get_unique_name(name):
+    try:
+        count = name_registry[name]
+    except KeyError:
+        name_registry[name] = 0
+        out_name = name
+    else:
+        out_name = name + '_%i' % (count + 1)
+        name_registry[name] = count + 1
+    return out_name
 
 
 class diagnostic_manager(object):
@@ -29,16 +40,19 @@ class diagnostic_manager(object):
         self.log_items_digest = {}
         self.name_to_digest = {}
 
+    def get_events(self):
+        """
+        Convenience method to fetch "invisible" event_list obscured
+        inside the _logger attribute (due to mixin-like inheritance magic
+        in structlog)
+        """
+        return self.log._logger.event_list
+
     def get_unique_name(self, name):
-        try:
-            count = name_registry[name]
-        except KeyError:
-            name_registry[name] = 0
-            out_name = name
-        else:
-            out_name = name + '_%i' % (count + 1)
-            name_registry[name] = count + 1
-        return out_name
+        """
+        Convenience method for access to function
+        """
+        return get_unique_name(name)
 
     def attach_obj(self, obj, name):
         # sha the name and obj repr
