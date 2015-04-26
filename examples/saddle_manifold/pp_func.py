@@ -130,7 +130,8 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
 
     """
     if verboselevel > 1:
-        layer_struct = plotter.active_layer
+        figure_name, layer_name = plotter.active_layer
+        _, layer_struct = plotter.active_layer_structs
         assert layer_struct is not None
     assert fp.classification == 'saddle' and not fp.degenerate
     if fp.evals[0] < 0:
@@ -184,7 +185,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
 
     def test_fn(x, dircode):
         if verboselevel>1:
-            dm.log.msg("Test_point", x=x[xname], y=x[yname], direction=dircode)
+            dm.log.msg("Integrate from test point", x=x[xname], y=x[yname], direction=dircode)
         gen.set(ics=x)
         try:
             test = gen.compute('test', dirn=dircode)
@@ -197,39 +198,49 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
         if verboselevel>1:
             pts=test.sample(coords=x.coordnames)
             # only show first 25 points unless Gamma bd not met
-            plotter.addData((pts[xname][:25],pts[yname][:25]),'b-')
+            plotter.addData((pts[xname][:25],pts[yname][:25]), style='b-',
+                            layer=layer_name,
+                            name=dm.get_unique_name('test_traj_first25_'))
 
         if events['Gamma_out_plus'] is None:
             if events['Gamma_out_minus'] is None:
                 if verboselevel>1:
-                    pts=test.sample(coords=x.coordnames)
-                    print("Did not reach Gamma surfaces")
-                    print("Last computed point was\n", pts[-1])
-                    print("...after time", pts['t'][-1])
-                    plotter.addData((pts[xname],pts[yname]),'b-')
+                    pts = test.sample(coords=x.coordnames)
+                    dm.log.msg("Error", err_msg="Did not reach Gamma surfaces",
+                               status="fail", last_computed_point=pts[-1],
+                               last_computed_time=pts['t'][-1])
+                    plotter.addData((pts[xname],pts[yname]), style='b-',
+                                    layer=layer_name,
+                                    name=dm.get_unique_name('test_traj_full'),
+                                    log=dm.log)
                 raise RuntimeError("Did not reach Gamma surfaces")
             else:
                 # hit Gamma_out_minus
                 if verboselevel>1:
-                    print("Reached Gamma minus at t=", events['Gamma_out_minus']['t'][0])
+                    dm.log.msg("Reached Gamma minus", t=events['Gamma_out_minus']['t'][0],
+                               last_computed_point=pts[-1],
+                               last_computed_time=pts['t'][-1])
                 sgn = -1
         else:
             if events['Gamma_out_minus'] is None:
                 # hit Gamma_out_plus
                 if verboselevel>1:
-                    print("Reached Gamma plus at t=", events['Gamma_out_plus']['t'][0])
-                    print("Last computed point was\n", pts[-1])
-                    print("...after time", pts['t'][-1])
+                    dm.log.msg("Reached Gamma plus", t=events['Gamma_out_plus']['t'][0],
+                               last_computed_point=pts[-1],
+                               last_computed_time=pts['t'][-1])
                 sgn = 1
             else:
+                # both were non-None, i.e. both events happened: impossibru!
                 if verboselevel>1:
-                    pts=test.sample(coords=x.coordnames)
-                    print("Did not reach Gamma surfaces")
-                    print("Last computed point was\n", pts[-1])
-                    print("...after time", pts['t'][-1])
+                    pts = test.sample(coords=x.coordnames)
+                    dm.log.msg("Error", err_msg="Both Gamma surfaces reached",
+                               status="fail", last_computed_point=pts[-1],
+                               last_computed_time=pts['t'][-1])
                     plotter.addData((pts[xname],pts[yname]), style='b-',
-                                    layer=layer_struct.name, name='gamma_fail_plus')
-                raise RuntimeError("Did not reach Gamma surfaces")
+                                    layer=layer_name,
+                                    name=dm.get_unique_name('universe_fail'),
+                                    log=dm.log)
+                raise RuntimeError("Both Gamma surfaces reached, impossibly")
         return sgn
 
     def onto_manifold(x_ic, dn, normal_dir, dircode='f'):
@@ -241,15 +252,27 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             if verboselevel>1:
                 xp = x_ic+dn*normal_dir
                 xm = x_ic-dn*normal_dir
-                plot(xp[xname], xp[yname], 'gx')
-                plot(xm[xname], xm[yname], 'gx')
+                dm.log.msg("Error", err_msg="onto_manifold bisection fail",
+                           status="fail", point_p=xp, point_m=xm)
+                plotter.addData([xp[xname],xp[yname]], style='gx',
+                                 layer=layer_name,
+                                 name=dm.get_unique_name('xp'), log=dm.log)
+                plotter.addData([xm[xname],xm[yname]], style='gx',
+                                 layer=layer_name,
+                                 name=dm.get_unique_name('xm'), log=dm.log)
             raise RuntimeError("ds_perp too small? +/- initial displacement did not straddle manifold")
         except RuntimeError:
             if verboselevel>1:
                 xp = x_ic+dn*normal_dir
                 xm = x_ic-dn*normal_dir
-                plot(xp[xname], xp[yname], 'gx')
-                plot(xm[xname], xm[yname], 'gx')
+                dm.log.msg("Error", err_msg="onto_manifold bisection fail",
+                           status="fail", point_p=xp, point_m=xm)
+                plotter.addData([xp[xname],xp[yname]], style='gx',
+                                 layer=layer_struct.name,
+                                 name=dm.get_unique_name('xp'), log=dm.log)
+                plotter.addData([xm[xname],xm[yname]], style='gx',
+                                 layer=layer_struct.name,
+                                 name=dm.get_unique_name('xm'), log=dm.log)
             raise
 
     gen.eventstruct['Gamma_out_plus'].activeFlag=True  # terminal
