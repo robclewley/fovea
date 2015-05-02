@@ -260,6 +260,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                 plotter.addData([xm[xname],xm[yname]], style='gx',
                                  layer=layer_name,
                                  name=dm.get_unique_name('xm'), log=dm.log)
+                plotter.show()
             raise RuntimeError("ds_perp too small? +/- initial displacement did not straddle manifold")
         except RuntimeError:
             if verboselevel>1:
@@ -273,6 +274,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                 plotter.addData([xm[xname],xm[yname]], style='gx',
                                  layer=layer_struct.name,
                                  name=dm.get_unique_name('xm'), log=dm.log)
+                plotter.show()
             raise
 
     gen.eventstruct['Gamma_out_plus'].activeFlag=True  # terminal
@@ -322,6 +324,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             else:
                 figure(fignum)
             # plot event surfaces for gamma plus and minus exit events
+            # ISSUE: Convert to plotter.addData
             plot([p0_plus[xname]-dsscaled*evec_perp[xname],p0_plus[xname]+dsscaled*evec_perp[xname]],
                  [p0_plus[yname]-dsscaled*evec_perp[yname],p0_plus[yname]+dsscaled*evec_perp[yname]], 'k-', linewidth=2)
             plot([p0_minus[xname]-dsscaled*evec_perp[xname],p0_minus[xname]+dsscaled*evec_perp[xname]],
@@ -337,6 +340,8 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             f_ic = -w_sgn * evec_other
             dirn_fix = 1 # not used for this case
             if verboselevel>0:
+                # ISSUE: Convert to log entry
+                print("f_ic from evec_other")
                 print("evec_other " + str(evec_other))
                 print("f_ic = " + str(f_ic))
             curve_len = 0
@@ -369,16 +374,19 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             else:
                 dirn_fix = 1
             if verboselevel>0:
+                # ISSUE: Convert to log entry
                 print("f_ic = " + str(f_ic))
         for sgn in directions:
             piece = {}
             if verboselevel>0:
+                # ISSUE: Convert to log entry
                 print("Starting direction", sgn)
             # PREDICTION
             x0_ic = ic+w_sgn*sgn*ic_ds*f_ic/norm(f_ic, normord)
             if verboselevel>1:
                 figure(fignum)
                 # show starting point (initial estimate) as green circle
+                # ISSUE: Convert to plotter.addData
                 plot(x0_ic[xname], x0_ic[yname], 'go', linewidth=1)
             # put x0 initial estimate onto stable manifold
             f_alpha = dirn_fix * gen.Rhs(0, x0_ic, gen.pars)  # array in alpha order
@@ -387,13 +395,13 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             norm_to_flow = get_perp(f/normf)
             if verboselevel>1:
                 # show flow direction from IC as solid red line
-                plot([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
+                plotter.addData([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
                      [x0_ic[yname], x0_ic[yname]+dsscaled*f[yname]/normf],
-                     'r-')
+                     style='r-', name=dm.get_unique_name('flow_fwd'), log=dm.log)
                 # show normal to flow direction from IC as dotted red line
-                plot([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
+                plotter.addData([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
                      [x0_ic[yname], x0_ic[yname]+dsscaled*norm_to_flow[yname]],
-                     'r:')
+                     style='r:', name=dm.get_unique_name('flow_perp'), log=dm.log)
             ds_perp_default = ds_perp
             # CORRECTION
             while ds_perp > ds_perp_eps:
@@ -423,6 +431,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             # position on manifold
             while curve_len < max_arclen and num_pts < max_pts:
                 if verboselevel>0:
+                    # ISSUE: Convert to plotter.addData
                     figure(fignum)
                     plot(last_x[xname], last_x[yname], col+'.', linewidth=1)
                 if check_other_pts and sometrue([norm(last_x - pt, normord) < ds \
