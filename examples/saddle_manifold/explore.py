@@ -111,7 +111,7 @@ def build_sys():
     DSargs.events = [ev_plus, ev_minus]
 
     # an instance of the 'Generator' class.
-    print "Initializing generator..."
+    print("Initializing generator...")
     return gentype(DSargs)
 
 
@@ -238,8 +238,8 @@ def plot_PP_vf_custom(gen, xname, yname, N=20, subdomain=None, scale_exp=0):
 
     ax = plt.gca()
 
-    print "xdom: ", xdom
-    print "ydom: ", ydom
+    print("xdom: ", xdom)
+    print("ydom: ", ydom)
     ax.set_xlim(xdom)
     ax.set_ylim(ydom)
     plt.draw()
@@ -260,11 +260,13 @@ def test_traj(ic, tend=20):
 
 ode_sys = build_sys()
 
+# domain of interest
+DOI = ([-3.25,-3],[-0.075,0.075])
 plotter.clean()
 plotter.addFig('Master',
                title='Manifold Computation Diagnostic',
                xlabel='phi', ylabel='nu', # redundant vs. arrangeFig options below?
-               domain=([-4,-2],[-1,1]))
+               domain=DOI)
 
 plotter.addLayer('fp_data')
 plotter.addLayer('vf_data')
@@ -280,7 +282,7 @@ if all_plots:
     plot_PP_vf_custom(ode_sys, 'vf_data', scale_exp=-0.25)
 
 plotter.arrangeFig([1,1], {'11': {'name': 'PP',
-                                  'scale': ([-4,-2],[-1,1]),
+                                  'scale': DOI,
                                   'layers': ['fp_data', 'manifold_data', 'manifold_metadata'],
                                   'axes_vars': ['phi', 'nu']}
                            })
@@ -313,7 +315,6 @@ saddle = fps[1]
 plotter.set_active_layer('fp_data')
 plot_PP_fp(saddle, 'fp_data', do_evecs=True, markersize=7)
 
-# you may not need to run these commands on your system
 gui.buildPlotter2D((8,8), with_times=False)
 
 # magBound change ensures quicker determination of divergence during
@@ -370,7 +371,9 @@ plotter.set_active_layer('manifold_metadata')
 
 
 # first stage (only called once)
-print "  First stage..."
+print("  First stage...")
+
+print("Note: f_ic does not seem to correspond to eigenvector direction")
 ode_sys.set(algparams={'max_pts': 20000})
 def test(ic_ds, ds_perp, ds_gamma, eps, ev_dirn, tmax):
     # for first, single step, ds is irrelevant: only ic_ds is important
@@ -385,7 +388,6 @@ man_new = test(0.01, 0.001, 0.01, 1e-3, 1, 10)
 
 print(dm.db.search(tdb.where('event')=="Added plot data"))
 
-plotter.buildLayers(['manifold_metadata'], plt.figure(plotter.figs['Master'].fignum).gca())
 plotter.show()
 print(plotter.shown)
 plt.show()
