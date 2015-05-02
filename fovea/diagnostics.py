@@ -28,11 +28,12 @@ def get_unique_name(name):
 
 
 class diagnostic_manager(object):
-    def __init__(self, name):
+    def __init__(self, name, dbfilepath=None):
         self.name = name
         self.global_count = 0
-        self.log = wrap_logger(FoveaPrintLogger(), wrapper_class=SemanticLogger,
-                  processors=[ev_store, KeyValueRenderer()],
+        self.log = wrap_logger(FoveaPrintLogger(dbfilepath=dbfilepath),
+                       wrapper_class=SemanticLogger,
+                       processors=[ev_store, KeyValueRenderer()],
                   ) #JSONRenderer(indent=1, sort_keys=True)])
         # reference to the database
         self.db = self.log._logger.db
