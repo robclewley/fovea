@@ -1,0 +1,119 @@
+"""
+Bisection, Secant & Newton Raphson Method.
+**For test purposes only**
+
+Gist at: https://gist.github.com/robclewley/ca3df340d39f6501f124
+"""
+
+import math
+"""
+* Variable Description:
+*
+* f      : Given function
+* f_     : Derivative of f
+* [a, b] : End point values
+* TOL    : Tolerance
+* NMAX   : Max number of iterations
+"""
+
+# -----------------------------------------
+# Diagnostic imports
+import tinydb as tdb
+import fovea
+import fovea.graphics as gx
+from fovea.graphics import tracker
+from fovea.graphics import gui
+from fovea.diagnostics import diagnostic_manager
+
+global dm
+dm = diagnostic_manager('rootfinding', 'bisect1.log')
+plotter = gui.plotter
+# -----------------------------------------
+
+
+def bisection(f, a, b, TOL=0.001, NMAX=100):
+    """
+    Takes a function f, start values [a,b], tolerance value(optional) TOL and
+    max number of iterations(optional) NMAX and returns the root of the equation
+    using the bisection method.
+    """
+    n=1
+    while n<=NMAX:
+        dm.log = dm.log.bind(n=n)
+        c = (a+b)/2.0
+        dm.log.msg('Bisect loop', a=a, b=b, c=c)
+        if f(c)==0 or (b-a)/2.0 < TOL:
+            dm.log.msg('Success', fval=f(c), err=(b-a)/2.0)
+            dm.log = dm.log.unbind('n')
+            return c
+        else:
+            n = n+1
+            if f(c)*f(a) > 0:
+                dm.log.msg('Same sign')
+                a=c
+            else:
+                dm.log.msg('Opposite sign')
+                b=c
+            dm.log.msg('Step', err=(b-a)/2.0)
+    dm.log.msg('Failure', status='fail', fval=f(c), err=(b-a)/2.0)
+    dm.log = dm.log.unbind('n')
+    return False
+
+def secant(f,x0,x1, TOL=0.001, NMAX=100):
+    """
+    Takes a function f, start values [x0,x1], tolerance value(optional) TOL and
+    max number of iterations(optional) NMAX and returns the root of the equation
+    using the secant method.
+    """
+    n=1
+    while n<=NMAX:
+        x2 = x1 - f(x1)*((x1-x0)/(f(x0)-f(x1)))
+        if x2-x1 < TOL:
+            return x2
+        else:
+            x0 = x1
+            x1 = x2
+    return False
+
+def newtonraphson(f, f_, x0, TOL=0.001, NMAX=100):
+    """
+    Takes a function f, its derivative f_, initial value x0, tolerance value(optional) TOL and
+    max number of iterations(optional) NMAX and returns the root of the equation
+    using the newton-raphson method.
+    """
+    n=1
+    while n<=NMAX:
+        x1 = x0 - (f(x0)/f_(x0))
+        if x1 - x0 < TOL:
+            return x1
+        else:
+            x0 = x1
+    return False
+
+if __name__ == "__main__":
+
+    def func(x):
+        """
+        Function x^3 - x -2
+        We will calculate the root of this function using different methods.
+        """
+        return math.pow(x,3) - x -2
+
+    def func_(x):
+        """
+        Derivative of the function f(x) = x^3 - x -2
+        This will be used in Newton-Rahson method.
+        """
+        return 3*math.pow(x,2)-1
+
+    #Invoking Bisection Method
+    res = bisection(func,1,2)
+    print res
+
+    #Invoking Secant Method
+    res = bisection(func,1,2)
+    print res
+
+    #Invoking Newton Raphson Method
+    res = newtonraphson(func,func_,1)
+    print res
