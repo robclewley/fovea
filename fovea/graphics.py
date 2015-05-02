@@ -412,9 +412,12 @@ class plotter2D(object):
         fig_struct.arrange = arrPlots
 
 
-    def addLayer(self, layer_name, figure=None, **kwargs):
+    def addLayer(self, layer_name, figure=None, set_to_active=True,
+                 **kwargs):
         """
-        User method to add data sets to a layer in a figure
+        User method to add data sets to a layer in a figure.
+        By default, the latest added layer becomes the 'active' layer,
+        unless set_to_active=False.
 
         figure  name
         layer   name
@@ -450,13 +453,15 @@ class plotter2D(object):
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
-            ## Possibly change to account for different properties of specific artist objects?
+            # ISSUE: Possibly change to account for different properties of
+            # specific artist objects?
             if not layAttrs.has_key(kw):
                 raise KeyError("Parameter is not a property of the layer.")
-
             layAttrs[kw] = kwargs[kw]
 
         fig_struct.layers[layer_name] = layAttrs
+        if set_to_active:
+            self.set_active_layer(layer_name, figure=figure)
 
 
     def setLayer(self, label, figure=None, **kwargs):
@@ -473,18 +478,22 @@ class plotter2D(object):
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
-            ## Possibly change to account for different properties of specific artist objects?
+            # ISSUE: Possibly change to account for different properties of
+            # specific artist objects?
             if not fig_struct.layers[label].has_key(kw):
                 raise KeyError("Parameter is not a property of the layer.")
 
             fig_struct.layers[label][kw] = kwargs[kw]
 
 
-    def addData(self, data, figure=None, layer=None, style=None, name=None, disp=True,
-                force=False, log=None):
+    def addData(self, data, figure=None, layer=None, style=None, name=None,
+                disp=True, force=False, log=None):
         """
-        User tool to add data to a layer.
-        Use force option only if known that existing data must be overwritten.
+        User tool to add data to a named layer (defaults to current active layer).
+        *data* consists of a pair of sequences of x, y data values, in the same
+        format as would be passed to matplotlib's plot.
+
+        Use *force* option only if known that existing data must be overwritten.
         Add a diagnostic manager's log attribute to the optional *log* argument
         to have the figure, layer, and data name recorded in the log.
         """
@@ -497,7 +506,7 @@ class plotter2D(object):
 
         # Check to see that there is an x- and y- dataset
         if size[0] != 2:
-            raise ValueError("Data must contain 2 lists of data points")
+            raise ValueError("Data must contain 2 seqs of data points")
 
         fig_struct, figure = self._resolveFig(figure)
 
@@ -699,10 +708,28 @@ class plotter2D(object):
         layer_struct.kind = 'hline'
 
 
-    def show(self):
+    def show(self, rebuild='current'):
         """
-        Apply all figures' domain limits and refresh
+        Apply all figures' domain limits and refresh. By default, will rebuild
+        'current' (or set to None or 'all') layers and figures first, in case
+        of newly added/altered data content.
         """
+        if rebuild == 'current':
+            fig_struct, fig_name = self._resolveFig(None)
+            layers = {fig_name: fig_struct.layers.keys()}
+            figures = [fig_name]
+        elif rebuild == 'all':
+            layers = {}
+            figures = []
+            for fig_name, fig_struct in self.figs.items():
+                figures.append(fig_name)
+                layers[fig_name] = fig_struct.layers.keys()
+        if rebuild is not None:
+            for fig_name in figures:
+                self.buildLayers(layers[fig_name],
+                       plt.figure(plotter.figs[fig_name].fignum).gca())
+        # ISSUE: should consolidate this with layer.scale attribute
+        # and move all to buildLayer method?
         for figName, fig in self.figs.items():
             f = plt.figure(fig.fignum)
             ax = f.gca()
@@ -713,6 +740,15 @@ class plotter2D(object):
         if self.shown:
             plt.show()
             self.shown = True
+
+    def buildLayers(self, layer_list, ax, rescale=None, figure=None):
+        """
+        Convenience function to group layer refresh/build calls. Current figure for
+        given list of layer names is assumed unless optionally specified.
+        """
+        fig_struct, figure = self._resolveFig(figure)
+        for layer_name in layer_list:
+            self.buildLayer(figure, layer_name, ax, rescale)
 
 
     def updateDynamic(self, time, dynamicFns, hard_reset=False):
@@ -764,7 +800,7 @@ class plotter2D(object):
             raise KeyError("Invalid layer name: %s" % layer)
 
 
-    def _buildLayer_(self, figure_name, layer_name, ax, rescale=None):
+    def buildLayer(self, figure_name, layer_name, ax, rescale=None):
         """
         Consolidates layer information into matplotlib.artist objects
         rescale (pair of pairs) may be set if the axes' current scalings
@@ -885,12 +921,32 @@ class diagnosticGUI(object):
                              'control': 1}
         self._last_ix = None
 
+    def addDataTraj(self, traj, points=None):
+        """User provides the trajectory (or other curve object) for the
+        data to be investigated. In case trajectory is not defined by
+        a standard mesh, a user-defined sampling of points can be
+        optionally provided.
+        """
+        self.traj = traj
+        if points is None:
+            self.points = traj.sample()
+        else:
+            self.points = points
+        try:
+            self.times = points['t']
+        except KeyError:
+            # trajectory is not parameterized by 't'
+            self.times = None
 
     def addDataPoints(self, points):
         """User provides the pointset for the data to be investigated
         """
+        self.traj = None
         self.points = points
-        self.times = points['t']
+        try:
+            self.times = points['t']
+        except KeyError:
+            self.times = None
 
 
     def buildPlotter2D(self, figsize=None, with_times=True):
@@ -987,7 +1043,7 @@ class diagnosticGUI(object):
 
                     if len(layer_info) > 0:
                         for layName in layer_info:
-                            self.plotter._buildLayer_(figName, layName, ax)
+                            self.plotter.buildLayer(figName, layName, ax)
                             if self.dynamicPlotFns.has_key(layName):
                                 self.dynamicPlots[layName] = ax
                                 # initialize the layer's dynamic stuff
@@ -1032,15 +1088,6 @@ class diagnosticGUI(object):
         evMouseMove = fig_handle.canvas.mpl_connect('motion_notify_event', self.mouseMoveFn)
         evKeyOn = fig_handle.canvas.mpl_connect('key_press_event', self.modifier_key_on)
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
-
-
-    def buildLayers(self, layer_list, ax, rescale=None, figure=None):
-        """
-        Convenience function to group layer refresh/build calls
-        """
-        fig_struct, figure = self.plotter._resolveFig(figure)
-        for layer_name in layer_list:
-            self.plotter._buildLayer_(figure, layer_name, ax, rescale)
 
 
     def clearAxes(self, subplot, figure=None):
