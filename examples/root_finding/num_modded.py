@@ -27,9 +27,31 @@ from fovea.diagnostics import diagnostic_manager
 from PyDSTool.Toolbox import phaseplane as pp
 
 global dm
-dm = diagnostic_manager('rootfinding', 'bisect1_log.json')
+# ISSUE: for now, have to update filename for log output depending on
+# what function is being logged
+dm = diagnostic_manager('rootfinding', 'secant1_log.json')
 plotter = gui.plotter
 # -----------------------------------------
+
+def plot_pt(x, f, n, name, col, layer_root, marker='o'):
+    """
+    Internal diagnostic helper function.
+    """
+    pt = pp.Point2D(x, f(x))
+    plotter.addPoint(pt, style=col+marker, name=name+'_%d'%n,
+                     layer=layer_root+'_data_%d'%n, log=dm.log)
+    fs = plotter.figs['Master']
+    ax = fs.arrange['11']['axes_obj']
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    x_ext = xlim[1]-xlim[0]
+    y_ext = ylim[1]-ylim[0]
+    # add marker text at a distance proportional to size of
+    # current axis extent
+    plotter.addText(pt[0]-0.05*x_ext, pt[1]+0.02*y_ext, name,
+                    use_axis_coords=False, name=name+'_%d'%n,
+                    layer=layer_root+'_text_%d'%n, style=col)
+    return pt
 
 
 def bisection(f, a, b, TOL=0.001, NMAX=100):
@@ -38,26 +60,6 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
     max number of iterations(optional) NMAX and returns the root of the equation
     using the bisection method.
     """
-    def plot_pt(x, n, name, col, marker='o'):
-        """
-        Internal diagnostic helper function.
-        """
-        pt = pp.Point2D(x, f(x))
-        plotter.addPoint(pt, style=col+marker, name=name+'_%d'%n,
-                         layer='bisect_data_%d'%n, log=dm.log)
-        fs = plotter.figs['Master']
-        ax = fs.arrange['11']['axes_obj']
-        xlim = ax.get_xlim()
-        ylim = ax.get_ylim()
-        x_ext = xlim[1]-xlim[0]
-        y_ext = ylim[1]-ylim[0]
-        # add marker text at a distance proportional to size of
-        # current axis extent
-        plotter.addText(pt[0]-0.05*x_ext, pt[1]+0.02*y_ext, name,
-                        use_axis_coords=False, name=name+'_%d'%n,
-                        layer='bisect_text_%d'%n, style=col)
-        return pt
-
     n=1
 
     plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
@@ -75,13 +77,14 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
         plotter.addLayer('bisect_text_%d'%n, kind='text')
         c = (a+b)/2.0
         dm.log.msg('Bisect loop', a=a, b=b, c=c)
-        a_pt = plot_pt(a, n, 'a', 'r', 'o')
-        b_pt = plot_pt(b, n, 'b', 'g', 'o')
-        c_pt = plot_pt(c, n, 'c', 'k', 'x')
+        a_pt = plot_pt(a, f, n, 'a', 'r', 'bisect', 'o')
+        b_pt = plot_pt(b, f, n, 'b', 'g', 'bisect', 'o')
+        c_pt = plot_pt(c, f, n, 'c', 'k', 'bisect', 'x')
 
         if f(c)==0 or (b-a)/2.0 < TOL:
             dm.log.msg('Success', fval=f(c), err=(b-a)/2.0)
             dm.log = dm.log.unbind('n')
+            plotter.show(rebuild=rebuild)
             return c
         else:
             n = n+1
@@ -92,10 +95,11 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
                 dm.log.msg('Opposite sign')
                 b=c
             dm.log.msg('Step', err=(b-a)/2.0)
-        plotter.show(rebuild=rebuild, wait=True)
+            plotter.show(rebuild=rebuild, wait=True)
     dm.log.msg('Failure', status='fail', fval=f(c), err=(b-a)/2.0)
     dm.log = dm.log.unbind('n')
     return False
+
 
 def secant(f,x0,x1, TOL=0.001, NMAX=100):
     """
@@ -104,14 +108,46 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
     using the secant method.
     """
     n=1
+
+    plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
+                    name='n_value', layer='meta_data', style='k')
+
     while n<=NMAX:
-        x2 = x1 - f(x1)*((x1-x0)/(f(x0)-f(x1)))
-        if x2-x1 < TOL:
+        dm.log = dm.log.bind(n=n)
+        plotter.setText('n_value', 'n=%d'%n, 'meta_data')
+        if n == 1:
+            rebuild = True
+        else:
+            plotter.toggleDisplay(layer='secant_text_%d'%(n-1))
+            plotter.toggleDisplay(layer='secant_data_%d'%(n-1))
+            rebuild = False
+        plotter.addLayer('secant_data_%d'%n)
+        plotter.addLayer('secant_text_%d'%n, kind='text')
+        x2 = x1 - f(x1)*((x1-x0)/(f(x1)-f(x0)))
+        x0_pt = plot_pt(x0, f, n, 'x0', 'r', 'secant', 'o')
+        x1_pt = plot_pt(x1, f, n, 'x1', 'g', 'secant', 'o')
+        x2_pt = plot_pt(x2, f, n, 'x2', 'k', 'secant', 'x')
+        plotter.addLineByPoints((x0_pt, x1_pt), layer='secant_data_%d'%n,
+                                name='line_%d'%n, style='b-', log=dm.log)
+        dm.log.msg('Secant loop', x0=x0, x1=x1, x2=x2)
+        if abs(x2-x1) < TOL:
+            dm.log.msg('Success', fval=f(x2), err=abs(x2-x1))
+            dm.log = dm.log.unbind('n')
+            plotter.show(rebuild=rebuild)
             return x2
         else:
+            # The missing increment was discovered when
+            # layer with same name ('secant_data_1') tried to be
+            # recreated!
+            n = n+1
+            dm.log.msg('Step: x1->x0, x2->x1', err=abs(x2-x1))
             x0 = x1
             x1 = x2
+            plotter.show(rebuild=rebuild, wait=True)
+    dm.log.msg('Failure', status='fail', fval=f(x1), err=abs(x2-x1))
+    dm.log = dm.log.unbind('n')
     return False
+
 
 def newtonraphson(f, f_, x0, TOL=0.001, NMAX=100):
     """

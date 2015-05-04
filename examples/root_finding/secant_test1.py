@@ -1,7 +1,8 @@
 import math
 
-from num_modded import bisection, plotter, gui, dm
+from num_modded import secant, plotter, gui, dm
 from fovea import *
+
 
 from test_funcs import f1
 
@@ -21,7 +22,7 @@ plotter.addLayer('fn_data')
 plotter.addLayer('meta_data', kind='text')
 
 plotter.arrangeFig([1,1], {'11':
-                           {'name': 'Bisection method',
+                           {'name': 'Secant method',
                             'scale': DOI,
                             'layers': '*',  # all layers will be selected
                             'axes_vars': ['x', 'y']}
@@ -36,7 +37,7 @@ ys = f1(xs)
 plotter.addData([xs, ys], layer='fn_data', style='k-')
 plt.show()
 
-root = bisection(f1, 0.1, 2)
+root = secant(f1, 1.05, 2)
 
 # demonstration of database log
 db = dm.log.get_DB()
