@@ -113,11 +113,9 @@ class SemanticLogger(BoundLoggerBase):
         return self._logger.event_list
 
     def get_DB(self):
-        """Return the connection and cursor for the SQL database
+        """Return the connection and cursor for the database
         """
-        con = self._logger.db
-        cur = con.cursor()
-        return con, cur
+        return self._logger.db
 
 
 class FoveaPrintLogger(object):
