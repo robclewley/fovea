@@ -32,7 +32,7 @@ setup(
         "pyyaml>=3.11",
         "euclid>=0.01",
         "structlog>=15.1",
-        "tinydb>=2.2"
+        "tinydb>=2.0"
     ],
     author="Rob Clewley",
     author_email="rob.clewley@gmail.com",
