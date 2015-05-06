@@ -743,7 +743,7 @@ class plotter2D(object):
                      name=name, display=display, log=log)
 
 
-    def addVLine(self, x, figure=None, layer=None, style=None, name=None,
+    def addVLine(self, x, figure=None, layer=None, style=None, name='vline',
                  log=None):
         """
         Add vertical line.
@@ -761,10 +761,9 @@ class plotter2D(object):
                 ydom = sc[1]
         self.addData([[x, x], ydom], figure=figure, layer=layer,
                          style=style, name=name, log=log)
-        layer_struct.kind = 'vline'
 
 
-    def addHLine(self, y, figure=None, layer=None, style=None, name=None,
+    def addHLine(self, y, figure=None, layer=None, style=None, name='hline',
                  log=None):
         """
         Add horizontal line.
@@ -783,7 +782,6 @@ class plotter2D(object):
                 xdom = sc[0]
         self.addData([xdom, [y, y]], figure=figure, layer=layer,
                      style=style, name=name, log=log)
-        layer_struct.kind = 'hline'
 
 
     def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None,
