@@ -6,7 +6,8 @@ from structlog import BoundLoggerBase, PrintLogger, wrap_logger
 from structlog.processors import JSONRenderer, KeyValueRenderer
 from pprint import pprint
 from tinydb import TinyDB, where
-from tinydb.storages import MemoryStorage
+from tinydb.storages import MemoryStorage, JSONStorage
+from tinydb.middlewares import CachingMiddleware
 
 from collections import OrderedDict
 from PyDSTool import info  # use for viewing log dicts
@@ -17,7 +18,8 @@ import time
 import hashlib
 import sys, os
 
-__all__ = ['diagnostic_manager', 'get_unique_name', 'info', 'load_log']
+__all__ = ['diagnostic_manager', 'get_unique_name', 'info', 'load_log',
+           'where', 'filter_log']
 
 
 global name_registry
@@ -221,6 +223,27 @@ class FoveaPrintLogger(object):
     err = debug = info = warning = error = critical = log = msg
 
 
+def filter_log(logdict, event, invert=False):
+    """
+    Filter a dictionary of log entries (loaded by load_log)
+    by the named event, inverting (logical NOT) if the optional
+    invert argument is True.
+    """
+    d = {}
+    for id, val in logdict.items():
+        if val['event'] == event:
+            if invert:
+                continue
+            else:
+                d[id] = val
+        else:
+            if invert:
+                d[id] = val
+            else:
+                continue
+    return OrderedDict(d)
+
+
 def load_log(logpath):
     """
     Load and format stored JSON log to use integer keys in an
@@ -252,6 +275,6 @@ def make_DB(filepath=None):
     none is provided.
     """
     if filepath:
-        return TinyDB(filepath)
+        return TinyDB(filepath, storage=CachingMiddleware(JSONStorage))
     else:
         return TinyDB(storage=MemoryStorage)
