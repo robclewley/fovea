@@ -2,6 +2,7 @@
 import graphics
 import common
 import domain2D
+from diagnostics import *
 from calc_context import calc_context, general_context, make_measure, prep
 from matplotlib import pyplot as plt
 import numpy as npy
