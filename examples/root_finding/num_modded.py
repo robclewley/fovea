@@ -60,7 +60,7 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
     using the bisection method.
     """
     n=1
-
+    dm.log.msg('Call args', a=a, b=b, TOL=TOL, NMAX=NMAX)
     plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
                     name='n_value', layer='meta_data', style='k')
     while n<=NMAX:
@@ -107,7 +107,7 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
     using the secant method.
     """
     n=1
-
+    dm.log.msg('Call args', x0=x0, x1=x1, TOL=TOL, NMAX=NMAX)
     plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
                     name='n_value', layer='meta_data', style='k')
 
