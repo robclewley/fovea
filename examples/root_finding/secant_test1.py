@@ -11,12 +11,17 @@ from test_funcs import f1
 
 # domain of interest
 DOI = ([0,2.1],[-2.5,2])
+#DOI = ([0,6],[-2.5,30])
 
 plotter.clean()
 plotter.addFig('Master',
                title='Root Finding Diagnostic',
                xlabel='x', ylabel='y',
                domain=DOI)
+
+dm.use_dir('secant1_success')
+dm.make_log('secant1_log.json')
+plotter.dm = dm
 
 plotter.addLayer('fn_data')
 plotter.addLayer('meta_data', kind='text')
@@ -38,6 +43,7 @@ plotter.addData([xs, ys], layer='fn_data', style='k-')
 plt.show()
 
 root = secant(f1, 1.05, 2)
+print("Root is x=%.4f"%root)
 
 # demonstration of database log
 db = dm.log.get_DB()

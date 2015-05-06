@@ -3,13 +3,13 @@ import math
 from num_modded import bisection, plotter, gui, dm
 from fovea import *
 
-from test_funcs import f1
+from test_funcs import f2
 
 
 # Boilerplate
 
 # domain of interest
-DOI = ([0,2.1],[-2.5,2])
+DOI = ([0,10],[-2,1.5])
 
 plotter.clean()
 plotter.addFig('Master',
@@ -17,8 +17,8 @@ plotter.addFig('Master',
                xlabel='x', ylabel='y',
                domain=DOI)
 
-dm.use_dir('bisect1_success')
-dm.make_log('bisect1_log.json')
+dm.use_dir('bisect2_success')
+dm.make_log('bisect2_log.json')
 plotter.dm = dm
 
 plotter.addLayer('fn_data')
@@ -35,14 +35,12 @@ gui.buildPlotter2D((8,8), with_times=False)
 
 plotter.addHLine(0, style='k:', layer='fn_data')
 plotter.addVLine(0, style='k:', layer='fn_data')
-
-# plot the function
 xs = npy.linspace(DOI[0][0], DOI[0][1], 500)
-ys = f1(xs)
+ys = f2(xs)
 plotter.addData([xs, ys], layer='fn_data', style='k-')
 plt.show()
 
-root = bisection(f1, 0.1, 2)
+root = bisection(f2, 0.5, 10)
 print("Root is x=%.4f"%root)
 
 # demonstration of database log

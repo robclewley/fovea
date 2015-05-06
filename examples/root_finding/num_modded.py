@@ -25,11 +25,10 @@ from fovea.graphics import tracker
 from fovea.graphics import gui
 from fovea.diagnostics import diagnostic_manager
 from PyDSTool.Toolbox import phaseplane as pp
+import numpy
 
 global dm
-# ISSUE: for now, have to update filename for log output depending on
-# what function is being logged
-dm = diagnostic_manager('rootfinding', 'secant1_log.json')
+dm = diagnostic_manager('rootfinding')
 plotter = gui.plotter
 # -----------------------------------------
 
@@ -84,7 +83,7 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
         if f(c)==0 or (b-a)/2.0 < TOL:
             dm.log.msg('Success', fval=f(c), err=(b-a)/2.0)
             dm.log = dm.log.unbind('n')
-            plotter.show(rebuild=rebuild)
+            plotter.show(rebuild=rebuild, wait=True)
             return c
         else:
             n = n+1
@@ -127,13 +126,26 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
         x0_pt = plot_pt(x0, f, n, 'x0', 'r', 'secant', 'o')
         x1_pt = plot_pt(x1, f, n, 'x1', 'g', 'secant', 'o')
         x2_pt = plot_pt(x2, f, n, 'x2', 'k', 'secant', 'x')
-        plotter.addLineByPoints((x0_pt, x1_pt), layer='secant_data_%d'%n,
-                                name='line_%d'%n, style='b-', log=dm.log)
+        fs = plotter.figs['Master']
+        fx2 = f(x2)
+        xleft = fs.domain[0][0]
+        xright = fs.domain[0][1]
+        gradient = (x1_pt[1]-x0_pt[1])/(x1_pt[0]-x0_pt[0])
+        yleft = gradient*(xleft-x1_pt[0]) + x1_pt[1]
+        yright = gradient*(xright-x1_pt[0]) + x1_pt[1]
+        plotter.addLineByPoints((pp.Point2D(xleft, yleft),
+                                 pp.Point2D(xright, yright)),
+                                layer='secant_data_%d'%n,
+                                name='secantline_%d'%n, style='b-', log=dm.log)
+        plotter.addLineByPoints((pp.Point2D(x2, 0),
+                                 pp.Point2D(x2, fx2)),
+                                layer='secant_data_%d'%n,
+                                name='vertline_%d'%n, style='r-', log=dm.log)
         dm.log.msg('Secant loop', x0=x0, x1=x1, x2=x2)
         if abs(x2-x1) < TOL:
-            dm.log.msg('Success', fval=f(x2), err=abs(x2-x1))
+            dm.log.msg('Success', fval=fx2, err=abs(x2-x1))
             dm.log = dm.log.unbind('n')
-            plotter.show(rebuild=rebuild)
+            plotter.show(rebuild=rebuild, wait=True)
             return x2
         else:
             # The missing increment was discovered when
