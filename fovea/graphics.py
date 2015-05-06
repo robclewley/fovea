@@ -12,6 +12,7 @@ Plotting styles can be given either as a string or as a dictionary of
 
 """
 
+import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RectangleSelector
@@ -86,8 +87,13 @@ class plotter2D(object):
     colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
 
     def __init__(self, dm=None):
+        """
+        Optionally pass in a diagnostic manager object as `dm`.
+        """
         self.clean()
         self.dm = dm
+        self.save_status = False
+        self.wait_status = False
 
     def clean(self):
         """
@@ -888,7 +894,7 @@ class plotter2D(object):
                 self.buildLayers(layer_info, ax, force=rebuild)
 
 
-    def show(self, update='current', rebuild=False, wait=False):
+    def show(self, update='current', rebuild=False, force_wait=None):
         """
         Apply all figures' domain limits and update/refresh with any
         latest data added or changed.
@@ -899,8 +905,8 @@ class plotter2D(object):
         Optional rebuild = True argument (default False) to clear whatever
         was selected by `update` and rebuild it from scratch.
 
-        Optional wait argument to pause execution until <RETURN> key pressed.
-         (Press "N" then <RETURN> or ^D to quit; press "S" then <RETURN>)
+        Optional force_wait argument to override current wait_status attribute
+        to either pause execution until <RETURN> key pressed or stop pausing.
         """
         if update == 'current':
             fig_struct, fig_name = self._resolveFig(None)
@@ -928,20 +934,34 @@ class plotter2D(object):
         if not self.shown:
             plt.show()
             self.shown = True
+
+        do_save = False # default
+        wait = self.wait_status
+        # force wait overrides, if set
+        if force_wait is not None:
+            wait = force_wait
         if wait:
-            key = raw_input('Press <RETURN> to continue, S <RETURN> to save '
-                       'figure and continue,\n or (^D or N <RETURN>) to quit: ')
+            print("Commands:\n=========")
+            print("N <RETURN>: Stop waiting on each iteration")
+            print("A <RETURN>: Stop waiting and save all figures on iterations")
+            print("S <RETURN>: Save this figure and continue")
+            key = raw_input('Enter command or <RETURN> to continue or ^D to quit: ')
             if key in ['N', 'n']:
-                raise RuntimeError("User stopped execution!")
+                self.wait_status = False
             elif key in ['S', 's']:
-                import os
-                if self.dm is not None:
-                    dirpath = self.dm._dirpath
-                else:
-                    dirpath = ''
-                f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
-                                                              start=1)+'.png'),
-                                       format='png')
+                do_save = True
+            elif key in ['A', 'a']:
+                self.save_status = True
+                self.wait_status = False
+
+        if self.save_status or do_save:
+            if self.dm is not None:
+                dirpath = self.dm._dirpath
+            else:
+                dirpath = ''
+            f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
+                                                            start=1)+'.png'),
+                      format='png')
 
 
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
@@ -1266,7 +1286,7 @@ class diagnosticGUI(object):
             backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
             self.widgets['goBack'] = backButton
 
-            self.plotter.show(update='all', rebuild=True)
+            self.plotter.show(update='all', rebuild=True, force_wait=False)
 
             # Build up each subplot, left to right, top to bottom
             shape = fig_struct.shape
