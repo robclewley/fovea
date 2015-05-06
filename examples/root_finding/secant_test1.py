@@ -6,9 +6,6 @@ from fovea import *
 
 from test_funcs import f1
 
-
-# Boilerplate
-
 # domain of interest
 DOI = ([0,2.1],[-2.5,2])
 #DOI = ([0,6],[-2.5,30])
@@ -19,9 +16,11 @@ plotter.addFig('Master',
                xlabel='x', ylabel='y',
                domain=DOI)
 
-dm.use_dir('secant1_success')
-dm.make_log('secant1_log.json')
+dm.use_dir('secant1_fail2')
+dm.make_log('log.json')
 plotter.dm = dm
+# default to wait for user input on each iteration
+plotter.wait_status = True
 
 plotter.addLayer('fn_data')
 plotter.addLayer('meta_data', kind='text')
@@ -40,7 +39,6 @@ plotter.addVLine(0, style='k:', layer='fn_data')
 xs = npy.linspace(DOI[0][0], DOI[0][1], 500)
 ys = f1(xs)
 plotter.addData([xs, ys], layer='fn_data', style='k-')
-plt.show()
 
 root = secant(f1, 1.05, 2)
 print("Root is x=%.4f"%root)

@@ -5,9 +5,6 @@ from fovea import *
 
 from test_funcs import f2
 
-
-# Boilerplate
-
 # domain of interest
 DOI = ([0,10],[-2,1.5])
 
@@ -18,8 +15,10 @@ plotter.addFig('Master',
                domain=DOI)
 
 dm.use_dir('bisect2_success')
-dm.make_log('bisect2_log.json')
+dm.make_log('log.json')
 plotter.dm = dm
+# default to wait for user input on each iteration
+plotter.wait_status = True
 
 plotter.addLayer('fn_data')
 plotter.addLayer('meta_data', kind='text')
@@ -38,7 +37,6 @@ plotter.addVLine(0, style='k:', layer='fn_data')
 xs = npy.linspace(DOI[0][0], DOI[0][1], 500)
 ys = f2(xs)
 plotter.addData([xs, ys], layer='fn_data', style='k-')
-plt.show()
 
 root = bisection(f2, 0.5, 10)
 print("Root is x=%.4f"%root)
