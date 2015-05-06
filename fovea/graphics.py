@@ -85,8 +85,9 @@ class plotter2D(object):
 
     colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
 
-    def __init__(self):
+    def __init__(self, dm=None):
         self.clean()
+        self.dm = dm
 
     def clean(self):
         """
@@ -899,7 +900,7 @@ class plotter2D(object):
         was selected by `update` and rebuild it from scratch.
 
         Optional wait argument to pause execution until <RETURN> key pressed.
-         (Press "N" then <RETURN> to quit)
+         (Press "N" then <RETURN> or ^D to quit; press "S" then <RETURN>)
         """
         if update == 'current':
             fig_struct, fig_name = self._resolveFig(None)
@@ -928,9 +929,19 @@ class plotter2D(object):
             plt.show()
             self.shown = True
         if wait:
-            key = raw_input('Press <RETURN> to continue: ')
-            if key == "N":
+            key = raw_input('Press <RETURN> to continue, S <RETURN> to save '
+                       'figure and continue,\n or (^D or N <RETURN>) to quit: ')
+            if key in ['N', 'n']:
                 raise RuntimeError("User stopped execution!")
+            elif key in ['S', 's']:
+                import os
+                if self.dm is not None:
+                    dirpath = self.dm._dirpath
+                else:
+                    dirpath = ''
+                f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
+                                                              start=1)+'.png'),
+                                       format='png')
 
 
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
@@ -1135,6 +1146,10 @@ class diagnosticGUI(object):
         # masterWin is the figure handle for main GUI window
         self.masterWin = None
 
+        # default: does not expect time-parameterized trajectories
+        # in main window
+        self._with_times = False
+
         self.timePlots = []
         self.timeLines = []
 
@@ -1199,6 +1214,7 @@ class diagnosticGUI(object):
 
         plt.close('all')
         self.masterWin = None
+        self._with_times = with_times
 
         for figName, fig_struct in self.plotter.figs.items():
             if figsize is not None:
@@ -1354,7 +1370,7 @@ class diagnosticGUI(object):
         # if in a time-based sub-plot and not dragging
         do_get = False
         if not self._mouseDrag:
-            do_get = True
+            do_get = True and self._with_times
             # check widget axes
             for w in self.widgets.values():
                 if ev.inaxes == w.ax:
