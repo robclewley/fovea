@@ -83,7 +83,7 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
         if f(c)==0 or (b-a)/2.0 < TOL:
             dm.log.msg('Success', fval=f(c), err=(b-a)/2.0)
             dm.log = dm.log.unbind('n')
-            plotter.show(rebuild=rebuild, wait=True)
+            plotter.show(rebuild=rebuild)
             return c
         else:
             n = n+1
@@ -94,7 +94,7 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
                 dm.log.msg('Opposite sign')
                 b=c
             dm.log.msg('Step', err=(b-a)/2.0)
-            plotter.show(rebuild=rebuild, wait=True)
+            plotter.show(rebuild=rebuild)
     dm.log.msg('Failure', status='fail', fval=f(c), err=(b-a)/2.0)
     dm.log = dm.log.unbind('n')
     return False
@@ -145,7 +145,7 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
         if abs(x2-x1) < TOL:
             dm.log.msg('Success', fval=fx2, err=abs(x2-x1))
             dm.log = dm.log.unbind('n')
-            plotter.show(rebuild=rebuild, wait=True)
+            plotter.show(rebuild=rebuild)
             return x2
         else:
             # The missing increment was discovered when
@@ -155,7 +155,7 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
             dm.log.msg('Step: x1->x0, x2->x1', err=abs(x2-x1))
             x0 = x1
             x1 = x2
-            plotter.show(rebuild=rebuild, wait=True)
+            plotter.show(rebuild=rebuild)
     dm.log.msg('Failure', status='fail', fval=f(x1), err=abs(x2-x1))
     dm.log = dm.log.unbind('n')
     return False
