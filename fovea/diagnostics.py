@@ -1,6 +1,8 @@
 """
 Structured logging, noSQL database, and diagnostic administration
 """
+from __future__ import division, absolute_import
+
 import structlog
 from structlog import BoundLoggerBase, PrintLogger, wrap_logger
 from structlog.processors import JSONRenderer, KeyValueRenderer

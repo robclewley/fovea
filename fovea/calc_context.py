@@ -1,3 +1,5 @@
+from __future__ import division, absolute_import
+
 import importlib
 import PyDSTool as dst
 import math, numpy, scipy

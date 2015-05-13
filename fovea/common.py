@@ -2,6 +2,7 @@
 Common utilities for fovea diagnostics.
 
 """
+from __future__ import division, absolute_import
 
 from numpy import tan
 import os, sys

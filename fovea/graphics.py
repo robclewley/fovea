@@ -11,6 +11,7 @@ Plotting styles can be given either as a string or as a dictionary of
   style kwargs suitable for plot command
 
 """
+from __future__ import division, absolute_import
 
 import os
 import matplotlib as mpl
@@ -28,9 +29,9 @@ import PyDSTool.Toolbox.phaseplane as pp
 import PyDSTool as dst
 
 # local imports
-from common import *
-import domain2D as dom
-from diagnostics import get_unique_name
+from fovea.common import *
+import fovea.domain2D as dom
+from fovea.diagnostics import get_unique_name
 
 # ----------------------------------------------
 

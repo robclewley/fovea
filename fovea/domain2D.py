@@ -4,8 +4,8 @@ Domain2D tools
 Depends on the Shapely and descartes packages
 
 """
+from __future__ import division, absolute_import
 
-from __future__ import division
 import PyDSTool.Toolbox.phaseplane as pp
 import PyDSTool as dst
 
