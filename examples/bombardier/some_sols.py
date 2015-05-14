@@ -32,4 +32,4 @@ game1.set( (pt['bearing'], pt['speed']),
 # balance line through first quartile of sol1
 bl = line_GUI(game1, -0.2,0.5,0.4,0.4)
 # need to ensure (x,y) on bl
-print project(game1, 0.1, 0.45, 3, bl)
+print(project(game1, 0.1, 0.45, 3, bl))

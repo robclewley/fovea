@@ -433,7 +433,7 @@ def instantiate(ic_args, alg_args, channel_list, name, targetGen, with_spike_ev=
                        target=targetGen, algparams=alg_args)
     test = desc.validate()
     if not test[0]:
-        print test[1]
+        print(test[1])
         raise AssertionError
     assert desc.isinstantiable()
 
@@ -538,7 +538,7 @@ def getHH_DSSRT(model, pts, name=None, header=None, verbose=0,
 
 
     if verbose >= 1:
-        print "Calculating DSSRT for: %s" % name
+        print("Calculating DSSRT for: %s" % name)
 
     gen = model.registry.values()[0]
 
@@ -557,7 +557,7 @@ def getHH_DSSRT(model, pts, name=None, header=None, verbose=0,
                     remain(list(sort(header)), ['t'])) and \
                     all(dssrt_data_tuple[0] == pts)
             except:
-                print "Re-run with force option True"
+                print("Re-run with force option True")
                 raise
 
 
@@ -730,7 +730,7 @@ def getHH_DSSRT(model, pts, name=None, header=None, verbose=0,
 
     ptsDSSRT, strDSSRT = make_generic_table(header, pts, model, da_reg_signed, da_rate_signed, table_lookup, repeat_header=65, verbose=verbose-1)
     saveObjects([pts, ptsDSSRT, strDSSRT, epochs_reg, epochs_rate], name+'_DSSRT.sav', force=True)
-    print "\n"
+    print("\n")
     return (ptsDSSRT, strDSSRT, epochs_reg, epochs_rate), (da_reg, da_rate, da_reg_signed, da_rate_signed)
 
 def make_mline(pt, angle):
@@ -746,7 +746,7 @@ def make_generic_table(header, pts, model, da_reg, da_rate, table_lookup_dict, r
 
     lenPts = len(pts)
     if verbose >= 1:
-        print "Generating DSSRT points and table: %i pts" % lenPts
+        print("Generating DSSRT points and table: %i pts" % lenPts)
 
     str_table = []
     str_table.append(header)
@@ -845,7 +845,7 @@ def make_generic_table(header, pts, model, da_reg, da_rate, table_lookup_dict, r
             try:
                 row.append(n_sigdigs_str(val, sigd))
             except:
-                print "Error processing string %s for header %s" % (ev_str, h)
+                print("Error processing string %s for header %s" % (ev_str, h))
                 raise
 
         str_table.append(row)
@@ -944,7 +944,7 @@ def computePPlaneObjects(gen, xvar, yvar, state=None, tol=1e-8,
     ## ------------------------------------------------------------
 
     if verbose >= 1:
-        print "Computing fixed points"
+        print("Computing fixed points")
 
     if subdomain is not None:
         stateFS.update(filteredDict(gen._FScompatibleNames(subdomain),
@@ -983,7 +983,7 @@ def computePPlaneObjects(gen, xvar, yvar, state=None, tol=1e-8,
     gen.set(ics=varPars)
 
     if verbose >= 1:
-        print "Computing nullclines"
+        print("Computing nullclines")
 
     assert 'V' in (xvar, yvar)
     if 'V' == xvar:
@@ -1071,12 +1071,12 @@ def do_traj(model, t_end, trajname='test', cutoff_after_max=1, do_plot=True):
     except:
         pts = traj.sample()
         if t_end > 15 and pts[-1]['V'] < 0:
-            print "Warning: expect monotonic approach to a sub-threshold f.p. in V, at least up to t=", t_end
+            print("Warning: expect monotonic approach to a sub-threshold f.p. in V, at least up to t=", t_end)
             tmax = t_end
         else:
             raise RuntimeError("Did not run for long enough - V never reached a max")
     else:
-        print "V had a max at t=",tmax, "with value", traj.events['cell_max'][0]['V']
+        print("V had a max at t=",tmax, "with value", traj.events['cell_max'][0]['V'])
     try:
         tmin = traj.eventTimes['cell_min'][0]
     except:

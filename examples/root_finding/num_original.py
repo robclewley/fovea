@@ -86,12 +86,12 @@ if __name__ == "__main__":
 
     #Invoking Bisection Method
     res = bisection(func,1,2)
-    print res
+    print(res)
 
     #Invoking Secant Method
     res = bisection(func,1,2)
-    print res
+    print(res)
 
     #Invoking Newton Raphson Method
     res = newtonraphson(func,func_,1)
-    print res
+    print(res)

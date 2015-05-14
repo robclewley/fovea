@@ -95,7 +95,7 @@ class PPcallback_m(PPcallback):
         phase plane sub-plot when time is changed interactively.
         """
         loc = self.loc
-        #print "\n\npplane call back, mouseUp =", gui._mouseUp
+        #print("\n\npplane call back, mouseUp =", gui._mouseUp)
 
         fig_struct = plotter.figs['Master']
         # combine all layer information
@@ -109,7 +109,7 @@ class PPcallback_m(PPcallback):
         if hard_reset:
             force = True
             preComputed = False
-            print "\n HARD REFRESH for phase plane"
+            print("\n HARD REFRESH for phase plane")
         else:
             preComputed = False
             force = False
@@ -191,8 +191,8 @@ class PPcallback_m(PPcallback):
         d = fig_struct.layers['nullclines_mV'].data
 
         if not preComputed and gui._mouseUp:
-            print "\nComputing phase plane..."
-            print "  Current time = %.4f" % (time)
+            print("\nComputing phase plane...")
+            print("  Current time = %.4f" % (time))
 
             if self.nullx is None or force:
                 # compute m nullcline this once
@@ -252,7 +252,7 @@ class PPcallback_m(PPcallback):
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
-            print "  Phase plane rebuild completed.\n"
+            print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
             gui.clearAxes(ax)
@@ -275,7 +275,7 @@ class PPcallback_n(PPcallback):
         phase plane sub-plot when time is changed interactively.
         """
         loc = self.loc
-        #print "\n\npplane call back, mouseUp =", gui._mouseUp
+        #print("\n\npplane call back, mouseUp =", gui._mouseUp)
 
         fig_struct = plotter.figs['Master']
         # combine all layer information
@@ -288,7 +288,7 @@ class PPcallback_n(PPcallback):
         if hard_reset:
             force = True
             preComputed = False
-            print "\n HARD REFRESH for phase plane"
+            print("\n HARD REFRESH for phase plane")
         else:
             preComputed = False
             force = False
@@ -390,8 +390,8 @@ class PPcallback_n(PPcallback):
         d = fig_struct.layers['nullclines_nV'].data
 
         if not preComputed and gui._mouseUp:
-            print "\nComputing phase plane..."
-            print "  Current time = %.4f" % (time)
+            print("\nComputing phase plane...")
+            print("  Current time = %.4f" % (time))
 
             if self.nullx is None or force:
                 # compute m nullcline this once
@@ -441,7 +441,7 @@ class PPcallback_n(PPcallback):
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
-            print "  Phase plane rebuild completed.\n"
+            print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
             gui.clearAxes(ax)
@@ -492,7 +492,7 @@ def animate_frames(t0, t1, n_frames=100,
 
     assert t0 < t1
     for i, t in enumerate(np.linspace(t0, t1, n_frames)):
-        print i
+        print(i)
         sys.stdout.flush()
         gui.set_time(t)
         plt.savefig(fname_base+str(i+1)+'.'+format, format=format)
@@ -615,10 +615,10 @@ plotter.addData([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
 # strDSSRT is a table for display purposes and can be saved to .csv if needed
 
 # print out epochs to screen
-print "\nEpochs regular (psi):"
+print("\nEpochs regular (psi):")
 show_epochs(epochs_reg)
 
-print "\nEpochs rate (omega):"
+print("\nEpochs rate (omega):")
 show_epochs(epochs_rate)
 
 

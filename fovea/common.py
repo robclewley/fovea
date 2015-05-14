@@ -139,7 +139,7 @@ class queue(object):
 
     def append(self, item):
         if len(self.data) < self.size:
-            print len(self.data)
+            #print(len(self.data))
             self.data.append(item)
             return []
         else:

@@ -36,11 +36,11 @@ da_dict = dict(zip( ('h','H','j','J','n','m'),
 dv_dict = dict(zip( ('d','D','f','F','c','v'),
                     (-1, -10, 1, 10, -0.1, 0.1)))
 
-print "Change angle keys:"
-print da_dict
+print("Change angle keys:")
+print(da_dict)
 
-print "Change velocity keys:"
-print dv_dict
+print("Change velocity keys:")
+print(dv_dict)
 
 # other keys used in GUIrocket:
 # l = make a line of interest (click-drag-release)
@@ -472,7 +472,7 @@ class GUIrocket(object):
 
     def updateVel(self, vel):
         if vel < 0.01:
-            print "Velocity must be >= 0.01"
+            print("Velocity must be >= 0.01")
             vel = 0.01
         self.vel = vel
         self.go(run=False)
@@ -480,7 +480,7 @@ class GUIrocket(object):
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
         # TEMP
-        print "Pressed", k
+        print("Pressed", k)
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -854,7 +854,7 @@ def project(sim, x, y, i, pline):
     Fs, Fvecs = sim.get_forces(x,y)
     F = Fs[i]
     ra = relative_angle(fline, pline)
-    print fline.ang_deg - pline.ang_deg
+    print(fline.ang_deg - pline.ang_deg)
     proj_F = F*cos(ra)
     bx, by = sim.pos[i]
     proj_d = pp.distfun(x,y,bx,by)*cos(ra)

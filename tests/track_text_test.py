@@ -20,8 +20,8 @@ class LogWrappedFunction(object):
 
 
     def logAndCall(self, *arguments, **namedArguments):
-        print "Calling %s with arguments %s and named arguments %s" %\
-                      (self.function.func_name, arguments, namedArguments)
+        print("Calling %s with arguments %s and named arguments %s" %\
+                      (self.function.func_name, arguments, namedArguments))
         self.function.__call__(*arguments, **namedArguments)
 
 def logwrap(function):
@@ -29,7 +29,7 @@ def logwrap(function):
 
 @logwrap
 def doSomething(spam, eggs, foo, bar):
-    print "Doing something totally awesome with %s and %s." % (spam, eggs)
+    print("Doing something totally awesome with %s and %s." % (spam, eggs))
 
 
 doSomething("beans","rice", foo="wiggity", bar="wack")

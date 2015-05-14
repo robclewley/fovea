@@ -1379,13 +1379,13 @@ class diagnosticGUI(object):
 
     def mouseDownFn(self, ev):
         self._mouseUp = False
-        #print "mouseDownFn", self._mouseUp
+        #print("mouseDownFn", self._mouseUp)
 
     def mouseUpFn(self, ev):
         # NOTE: zoom dragging will not get completed before this callback
         # so trying to refresh as a result of zoom here will fail
         self._mouseUp = True
-        #print "mouseUpFn", self._mouseUp
+        #print("mouseUpFn", self._mouseUp)
         # if in a time-based sub-plot and not dragging
         do_get = False
         if not self._mouseDrag:

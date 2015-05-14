@@ -108,7 +108,7 @@ class polygon_domain(object):
             if np.linalg.norm(pnew-c) > self.max_radius:
                 self.stop_growing = [True]*self.nsides
                 if verbose:
-                    print "All points stopped growing because too big"
+                    print("All points stopped growing because too big")
                 break
             elif f(pnew):
                 # accept point
@@ -118,7 +118,7 @@ class polygon_domain(object):
                 # for now, define success here
                 self.stop_growing[i] = True
                 if verbose:
-                    print "Point %i stopped growing because success"%i
+                    print("Point %i stopped growing because success"%i)
 
         self.polygon = P.Polygon(new_pts)
 
@@ -144,8 +144,8 @@ class polygon_domain(object):
                 final_pts[ix2] = pts[ix2]
                 self.stop_growing[ix] = self.stop_growing[ix2] = True
                 if verbose:
-                    print "Points %i and %i stopped growing because edge too long" % (ix, ix2)
-                    print "   ", pts[ix], pts[ix2]
+                    print("Points %i and %i stopped growing because edge too long" % (ix, ix2))
+                    print("   ", pts[ix], pts[ix2])
             self.polygon = P.Polygon(final_pts)
 
 
@@ -253,7 +253,7 @@ class GUI_domain_handler(object):
         self.event('mouse')
         if self.gui_grow_state != 1:
             if self.verbose:
-                print "make_dom_c failed"
+                print("make_dom_c failed")
             self.gui.mouse_wait_state_owner = None
             return
         # assign to c
@@ -274,7 +274,7 @@ class GUI_domain_handler(object):
         self.event('mouse')
         if self.gui_grow_state != 2:
             if self.verbose:
-                print "make_dom_p1 failed"
+                print("make_dom_p1 failed")
             return
         # assign to p1
         self.p1_pt = pp.Point2D(ev.xdata, ev.ydata)
@@ -298,7 +298,7 @@ class GUI_domain_handler(object):
     def show_domain(self):
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
 ##        if self.gui.selected_object_temphandle is not None:
-            #print "show_domain ignoring: ", self.gui.selected_object_temphandle
+            #print("show_domain ignoring: ", self.gui.selected_object_temphandle)
 ##            try:
 ##                self.gui.selected_object_temphandle.remove()
 ##            except ValueError:
