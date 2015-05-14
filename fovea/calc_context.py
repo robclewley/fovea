@@ -97,7 +97,7 @@ class calc_context(object):
 
         try:
             val = getattr(self, fn.__name__)() #fn(self)
-        except Exception, e:
+        except Exception as e:
             print("Could not compute value at attachment time for function %s"%fn.__name__)
             print("  Problem was: %s" % str(e))
              # initialize with None now, to declare in the meantime

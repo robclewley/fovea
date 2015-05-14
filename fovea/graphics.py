@@ -1713,7 +1713,7 @@ class tracker_textconsole(tracker_GUI):
                         continue
                     try:
                         data = getattr(obj, tracked_attr)
-                    except Exception, e:
+                    except Exception as e:
                         print("No attribute: '%s' in object in workspace '%s'" % (tracked_attr, wspace._name))
                         raise
                     plt.text(0.05, 0.05+i*0.04, '%s: %s = %.4g' % (obj_name, tracked_attr, data))
@@ -1754,12 +1754,12 @@ class tracker_plotter(tracker_GUI):
             for tracked in figdata.tracked:
                 try:
                     xdata = getattr(wspace, tracked.xstr)
-                except Exception, e:
+                except Exception as e:
                     print("Failed to evaluate: '%s' in workspace '%s'" % (tracked.xstr, wspace._name))
                     raise
                 try:
                     ydata = getattr(self.calc_context.workspace, tracked.ystr)
-                except Exception, e:
+                except Exception as e:
                     print("Failed to evaluate: '%s' in workspace '%s'" % (tracked.ystr, wspace._name))
                     raise
                 plt.plot(xdata, ydata,
