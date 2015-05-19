@@ -276,7 +276,7 @@ class plotter2D(object):
             raise ValueError("Must supply domain for figure")
 
         # Check to see if label already exists
-        if self.figs.has_key(label):
+        if label in self.figs:
             raise KeyError("Figure label already exists!")
 
         self.currFig = label
@@ -305,7 +305,7 @@ class plotter2D(object):
         information.
         """
         # Check to see if label already exists #
-        if self.figs.has_key(newFig):
+        if newFig in self.figs:
             raise KeyError("New figure label already exists!")
 
         self.currFig = newFig
@@ -346,14 +346,14 @@ class plotter2D(object):
         elif label == None and self.currFig == None:
             raise ValueError("Must set current figure")
         elif label != None:
-            if not self.figs.has_key(label):
+            if label not in self.figs:
                 raise KeyError("Figure does not exist with specified label!")
 
         self.currFig = label
 
         for kw in kwargs:
             # Check to see that keyword is valid #
-            if not self.figs[label].has_key(kw):
+            if kw not in self.figs[label]:
                 raise KeyError("Unable to set figure property: Invalid keyword argument")
 
             self.figs[label][kw] = kwargs[kw]
@@ -364,7 +364,7 @@ class plotter2D(object):
         Clear all figure data for named figure
         Ignore if figure name is found.
         """
-        if self.figs.has_key(figure_name):
+        if figure_name in self.figs:
             for layer in self.figs[figure_name].layers:
                 self.figs[figure_name].layers[layer].data = {}
 
@@ -439,7 +439,7 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
 
         # Check to see layer does not already exist
-        if fig_struct.layers.has_key(layer_name):
+        if layer_name in fig_struct.layers:
             raise KeyError("Layer name already exists in figure!")
 
         # default plot style generated from list of colors
@@ -466,7 +466,7 @@ class plotter2D(object):
             # Check to see that parameter exists in layers
             # ISSUE: Possibly change to account for different properties of
             # specific artist objects?
-            if not layAttrs.has_key(kw):
+            if kw not in layAttrs:
                 raise KeyError("Parameter is not a property of the layer.")
             layAttrs[kw] = kwargs[kw]
 
@@ -484,14 +484,14 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
 
         # Check to see that layer exists
-        if not fig_struct.layers.has_key(label):
+        if label not in fig_struct.layers:
             raise KeyError("Layer does not exist in figure!")
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
             # ISSUE: Possibly change to account for different properties of
             # specific artist objects?
-            if not fig_struct.layers[label].has_key(kw):
+            if kw not in fig_struct.layers[label]:
                 raise KeyError("Parameter is not a property of the layer.")
 
             fig_struct.layers[label][kw] = kwargs[kw]
@@ -541,7 +541,7 @@ class plotter2D(object):
         d = layer_struct.data
 
         # Check to see if data name already exists
-        if d.has_key(name) and not force:
+        if name in d and not force:
             raise KeyError("Data name already exists in layer: %s" %name)
 
         # Create name if none is provided
@@ -805,7 +805,7 @@ class plotter2D(object):
         d = layer_struct.data
 
         # Check to see if data name already exists
-        if d.has_key(name) and not force:
+        if name in d and not force:
             raise KeyError("Data name already exists in layer: %s" %name)
 
         # Create name if none is provided
@@ -931,6 +931,8 @@ class plotter2D(object):
             ax.set_ylim(ydom)
             f.canvas.draw()
         if not self.shown:
+            
+            plt.ion() #Artists not appearing on axes without call to ion
             plt.show()
             self.shown = True
 
@@ -944,7 +946,8 @@ class plotter2D(object):
             print("N <RETURN>: Stop waiting on each iteration")
             print("A <RETURN>: Stop waiting and save all figures on iterations")
             print("S <RETURN>: Save this figure and continue")
-            key = raw_input('Enter command or <RETURN> to continue or ^D to quit: ')
+            
+            key = input('Enter command or <RETURN> to continue or ^D to quit: ')
             if key in ['N', 'n']:
                 self.wait_status = False
             elif key in ['S', 's']:
@@ -994,7 +997,7 @@ class plotter2D(object):
                 else:
                     assert isinstance(dynamicFns, dict), "Dynamic functions must be a dictionary of layer-function pairs"
 
-                    if dynamicFns.has_key(layer):
+                    if layer in dynamicFns:
                         #print("updateDynamic calling function: %s" % str(dynamicFns[layer]))
                         dynamicFns[layer](time, hard_reset)
 
@@ -1308,7 +1311,7 @@ class diagnosticGUI(object):
                     ax = subplot_struct['axes_obj']
 
                     for layName in layer_info:
-                        if self.dynamicPlotFns.has_key(layName):
+                        if layName in self.dynamicPlotFns:
                             self.dynamicPlots[layName] = ax
                             # initialize the layer's dynamic stuff
                             self.dynamicPlotFns[layName](self.t)
