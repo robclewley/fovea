@@ -159,7 +159,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
     dsscaled = dx_scaled_2D(ds, rel_scale)
     if isinstance(ds_gamma, dict):
         assert len(ds_gamma) == 2, "Invalid value for ds_gamma"
-        assert remain(ds_gamma.keys(), [1,-1]) == [], \
+        assert remain(list(ds_gamma.keys()), [1,-1]) == [], \
                "Invalid value for ds_gamma"
     else:
         try:

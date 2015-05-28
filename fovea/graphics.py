@@ -130,12 +130,13 @@ class plotter2D(object):
                 continue
             else:
                 found_fig = True
-            for layerName, layer in fig.layers.items():
-                for dName, d in layer['data'].items():
-                    x_extent[0] = min(min(d[0][0]), x_extent[0])
-                    x_extent[1] = max(max(d[0][0]), x_extent[1])
-                    y_extent[0] = min(min(d[0][1]), y_extent[0])
-                    y_extent[1] = max(max(d[0][1]), y_extent[1])
+            for layerName, layer in list(fig.layers.items()): 
+                for dName, d in list(layer['data'].items()):
+                    x_extent[0] = min(min(list(d.values())[0][0]), x_extent[0])
+                    x_extent[1] = max(max(list(d.values())[0][0]), x_extent[1])
+                    y_extent[0] = min(min(list(d.values())[0][1]), y_extent[0])
+                    y_extent[1] = max(max(list(d.values())[0][1]), y_extent[1])
+                                                    
 
         if not found_fig:
             raise ValueError("No such figure")
@@ -239,7 +240,7 @@ class plotter2D(object):
                 continue
             layer_info = spec['layers']
             for layer in layer_info:
-                lay = fig_struct.layers[layer]
+                lay = fig_struct.layers[layer] #Doesn't interpret layer = * properly
                 if not lay.display or lay.kind != 'data':
                     continue
                 print("\nLAYER: %s" % str(layer))
@@ -855,7 +856,7 @@ class plotter2D(object):
                 layer_info = subplot_struct['layers']
                 if not isinstance(layer_info, list):
                     if layer_info == '*':
-                        layer_info = fig_struct.layers.keys()
+                        layer_info = list(fig_struct.layers.keys())
                     else:
                         # singleton string layer name
                         layer_info = [layer_info]
@@ -916,7 +917,7 @@ class plotter2D(object):
             figures = []
             for fig_name, fig_struct in self.figs.items():
                 figures.append(fig_name)
-                layers[fig_name] = fig_struct.layers.keys()
+                layers[fig_name] = list(fig_struct.layers.keys())
         if update is not None:
             for fig_name in figures:
                 self._subplots(layers[fig_name], fig_name, rebuild)
@@ -1303,7 +1304,7 @@ class diagnosticGUI(object):
                     layer_info = subplot_struct['layers']
                     if not isinstance(layer_info, list):
                         if layer_info == '*':
-                            layer_info = fig_struct.layers.keys()
+                            layer_info = list(fig_struct.layers.keys())
                         else:
                             # singleton string layer name
                             layer_info = [layer_info]
@@ -1843,7 +1844,6 @@ class tracker_manager(object):
 ##        tracker.track_list = [getattr(obj, attr_name)]
 ##        return fn
 ##    return decorator
-
 
 def _escape_underscore(text):
     """

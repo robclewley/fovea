@@ -11,8 +11,10 @@ radii1 = [0.04, 0.04, 0.03, 0.03, 0.08]
 pos1 = [(-0.2, 0.45), (0.2, 0.7), (0.3, 0.4), (-0.14,0.55),
         (0,0)]
 
-game1 = GUIrocket(radii1, density1, pos1, "Demo-game1",
-                  axisbgcol='white')
+bodies = {'density': density1, 'radius': radii1, 'position': pos1 } #Create dict to ensure right number of args to GUIrocket
+
+game1 = GUIrocket(bodies, "Demo-game1",
+                  axisbgcol = 'white')
 game1.set( (-60, 0.8) )
 
 

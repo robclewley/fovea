@@ -540,7 +540,7 @@ def getHH_DSSRT(model, pts, name=None, header=None, verbose=0,
     if verbose >= 1:
         print("Calculating DSSRT for: %s" % name)
 
-    gen = model.registry.values()[0]
+    gen = list(model.registry.values())[0]
 
     ############################
 

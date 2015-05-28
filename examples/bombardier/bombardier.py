@@ -325,7 +325,7 @@ class GUIrocket(object):
                      'd': (['xx', 'yy', 'x1', 'y1'], "sqrt((xx-x1)*(xx-x1)+(yy-y1)*(yy-y1))")
                     }
         DSargs.auxvars = ['Fx_out', 'Fy_out', 'speed', 'bearing'] + \
-            extra_auxvars.keys()
+            list(extra_auxvars.keys())
         DSargs.pars = pardict
         DSargs.pars.update(extra_pars)
         DSargs.fnspecs = auxfndict
@@ -379,7 +379,7 @@ class GUIrocket(object):
                                          'precise': True,
                                          'term': True},
                                         varnames=['x','y'],
-                                        parnames=pardict.keys(),
+                                        parnames=list(pardict.keys()),
                                         fnspecs=auxfndict,
                                         targetlang=targetlang)
             bevs.append(bev)
