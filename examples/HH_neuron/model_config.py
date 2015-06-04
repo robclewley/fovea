@@ -53,7 +53,7 @@ alg_args = {'init_step': 0.01, 'max_step': 0.05,
             'max_pts': 25000}
 
 
-print "Using neuron model ", name
+print("Using neuron model ", name)
 
 # have to eliminate h from ICs if model does not use h
 ic_args_no_h = ic_args.copy()
@@ -79,7 +79,7 @@ if no_h:
     h_const = ic_args['Na.h']
     orig_gNa = HHmodel.pars['Na.g']
     HHmodel.set(pars={'Na.g': orig_gNa*h_const})
-    print "Na.g adjusted by h_const factor, original value stored in orig_gNa"
+    print("Na.g adjusted by h_const factor, original value stored in orig_gNa")
 
 ##### Header for selecting derived quantities to compute
 # order can matter in this list, as later quantities may depend on earlier ones being up to date

@@ -24,7 +24,7 @@ from scipy.optimize import fsolve
 ## ----- ----- ----- ----- ----- ----- ##
 
 model = modelManager.instances[name]
-gen = model.registry.values()[0]
+gen = list(model.registry.values())[0]
 
 # global define for convenience
 plotter = gui.plotter
