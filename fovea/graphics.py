@@ -132,11 +132,10 @@ class plotter2D(object):
                 found_fig = True
             for layerName, layer in list(fig.layers.items()): 
                 for dName, d in list(layer['data'].items()):
-                    x_extent[0] = min(min(list(d.values())[0][0]), x_extent[0])
-                    x_extent[1] = max(max(list(d.values())[0][0]), x_extent[1])
-                    y_extent[0] = min(min(list(d.values())[0][1]), y_extent[0])
-                    y_extent[1] = max(max(list(d.values())[0][1]), y_extent[1])
-                                                    
+                    x_extent[0] = min(min(d['data'][:][0]), x_extent[0])
+                    x_extent[1] = max(max(d['data'][:][0]), x_extent[1])
+                    y_extent[0] = min(min(d['data'][:][1]), y_extent[0])
+                    y_extent[1] = max(max(d['data'][:][1]), y_extent[1])                    
 
         if not found_fig:
             raise ValueError("No such figure")
@@ -411,8 +410,8 @@ class plotter2D(object):
                 raise ValueError("Position does not exist in subplot arrangement.")
 
             layer_info = spec['layers']
-            if len(spec['axes_vars']) > 2:
-                raise ValueError("Cannot have more than two axis titles.")
+            if len(spec['axes_vars']) > 3:
+                raise ValueError("Cannot have more than three axis titles.")
             else:
                 axes_vars = spec['axes_vars']
 
@@ -504,58 +503,57 @@ class plotter2D(object):
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
         format as would be passed to matplotlib's plot.
-
+        
         Use *force* option only if known that existing data must be overwritten.
         Add a diagnostic manager's log attribute to the optional *log* argument
         to have the figure, layer, and data name recorded in the log.
-
+    
         *display* option (default True) controls whether the data will be
         visible by default.
         """
-
+        
         # Check to see that data is a list or array
         try:
             size = np.shape(data)
         except:
             raise TypeError("Data must be castable to a numpy array")
-
-        # Check to see that there is an x- and y- dataset
-        if size[0] != 2:
-            raise ValueError("Data must contain 2 seqs of data points")
-
+    
+        # Check to see that there is an x- and y- (or z-) dataset
+        if size[0] != 2 and size[0] != 3:
+            raise ValueError("Data must contain 2 or 3 seqs of data points")
+    
         fig_struct, figure = self._resolveFig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
             layer_struct = self._resolveLayer(figure, layer)
-
+    
         # inherit default style from layer if not given
         if style is None:
             style = layer_struct.style
-
+    
         # d is a dictionary mapping 'name' to a dictionary of fields for the
         # numerical plot data (key 'data'), style (key 'style'), and display
         # boolean (key 'display').
         #
         # The numerical data for d is given by the method argument also called data
         d = layer_struct.data
-
+    
         # Check to see if data name already exists
         if name in d and not force:
             raise KeyError("Data name already exists in layer: %s" %name)
-
+    
         # Create name if none is provided
         if name is None:
             name = get_unique_name(figure+'_'+layer)
-
+    
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': display}})
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
-        self._updateTraj(figure, layer)
-
+        self._updateTraj(figure, layer)    
 
     def setPoint(self, name, pt, layer, figure=None):
         """
@@ -868,12 +866,23 @@ class plotter2D(object):
                     scale = None
 
                 if rebuild:
-                    ax = fig.add_subplot(shape[0], shape[1], shape[1]*i + j+1)
+                    #Check if projection type has been specified for layer.
+                    try:
+                        ax = fig.add_subplot(shape[0], shape[1], shape[1]*i + j+1, projection= subplot_struct['projection'])
+                    except KeyError:
+                        ax = fig.add_subplot(shape[0], shape[1], shape[1]*i + j+1)
+                    
                     subplot_struct['axes_obj'] = ax
                     ax.set_title(subplot_struct['name'])
                     axes_vars = subplot_struct['axes_vars']
                     ax.set_xlabel(axes_vars[0])
                     ax.set_ylabel(axes_vars[1])
+                    
+                    if len(axes_vars) == 3:
+                        if subplot_struct['projection'] != '3d':
+                            raise ValueError("Cannot have 3 axes variables on a layer where projection is not '3d'")
+                        ax.set_zlabel(axes_vars[2])
+                    
                 else:
                     ax = subplot_struct['axes_obj']
                 # refresh this in case layer contents have changed
@@ -965,8 +974,8 @@ class plotter2D(object):
             f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
                                                             start=1)+'.png'),
                       format='png')
-
-
+        
+    
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
                     force=False):
         """
@@ -1086,7 +1095,7 @@ class plotter2D(object):
                 s = 'k-'
 
             # in case in future we wish to have option to reverse axes
-            ix0, ix1 = 0, 1
+            ix0, ix1, ix2 = 0, 1, 2
 
             if lay.kind == 'text':
                 if dname not in lay.handles or force:
@@ -1105,13 +1114,26 @@ class plotter2D(object):
             else:
                 if dname not in lay.handles or force:
                     if style_as_string:
-                        lay.handles[dname] = \
-                            ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                    s)[0]
+                        #Check if data are two or three dimensional.
+                        if len(dstruct['data']) == 2:
+                            lay.handles[dname] = \
+                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                        s)[0]
+                        elif len(dstruct['data']) == 3:
+                            lay.handles[dname] = \
+                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
+                                        s)[0]                        
+                        
                     else:
-                        lay.handles[dname] = \
-                            ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                    **s)[0]
+                        if len(dstruct['data']) == 2:
+                            lay.handles[dname] = \
+                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                        **s)[0]
+                        elif len(dstruct['data']) == 3:
+                            lay.handles[dname] = \
+                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
+                                        **s)[0]                            
+                        
         if rescale is not None:
             # overrides layer scale
             sc = rescale
@@ -1319,7 +1341,7 @@ class diagnosticGUI(object):
                     if with_times:
                         # add vertical time line in all time plots
                         # (provide option for user to specify as time or t)
-                        if axes_vars[0].lower() in ["time", 't']:
+                        if subplot_struct['axes_vars'][0].lower() in ["time", 't']:
                             self.timeLines.append(ax.axvline(x=self.t, color='r',
                                                          linewidth=3, linestyle='--'))
                             self.timePlots.extend(layer_info)
@@ -1863,5 +1885,3 @@ plotter = plotter2D()
 gui = diagnosticGUI(plotter)
 
 tracker = tracker_manager()
-
-
