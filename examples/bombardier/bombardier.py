@@ -14,7 +14,7 @@ from matplotlib.widgets import Slider, Button, RectangleSelector
 
 import fovea
 import fovea.domain2D as dom
-from fovea import common, prep
+from fovea import common, prep, graphics
 
 
 gentype = 'dopri'
@@ -193,7 +193,7 @@ class GUIrocket(object):
         self.go(run=False)
         # force call to graphics_refresh because run=False above
         self.graphics_refresh(cla=False)
-        plt.show()
+        #plt.show()
 
         # next_fighandle for whenever a new model is put in a new figure (new game instance)
         next_fighandle += 1
