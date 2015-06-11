@@ -203,7 +203,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
 
@@ -216,7 +216,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
@@ -366,7 +366,7 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
@@ -378,7 +378,7 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
 
@@ -446,7 +446,7 @@ gui.addDataPoints(trajPts)
 
 plotter.clean()
 plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
-               tdom=[0, t_end])
+               tdom=[0, t_end], domain=[(-100,50), (0,1)])
 
 # Add layers and their data
 
