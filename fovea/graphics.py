@@ -130,12 +130,12 @@ class plotter2D(object):
                 continue
             else:
                 found_fig = True
-            for layerName, layer in list(fig.layers.items()): 
+            for layerName, layer in list(fig.layers.items()):
                 for dName, d in list(layer['data'].items()):
                     x_extent[0] = min(min(d['data'][:][0]), x_extent[0])
                     x_extent[1] = max(max(d['data'][:][0]), x_extent[1])
                     y_extent[0] = min(min(d['data'][:][1]), y_extent[0])
-                    y_extent[1] = max(max(d['data'][:][1]), y_extent[1])                    
+                    y_extent[1] = max(max(d['data'][:][1]), y_extent[1])
 
         if not found_fig:
             raise ValueError("No such figure")
@@ -503,57 +503,57 @@ class plotter2D(object):
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
         format as would be passed to matplotlib's plot.
-        
+
         Use *force* option only if known that existing data must be overwritten.
         Add a diagnostic manager's log attribute to the optional *log* argument
         to have the figure, layer, and data name recorded in the log.
-    
+
         *display* option (default True) controls whether the data will be
         visible by default.
         """
-        
+
         # Check to see that data is a list or array
         try:
             size = np.shape(data)
         except:
             raise TypeError("Data must be castable to a numpy array")
-    
+
         # Check to see that there is an x- and y- (or z-) dataset
         if size[0] != 2 and size[0] != 3:
             raise ValueError("Data must contain 2 or 3 seqs of data points")
-    
+
         fig_struct, figure = self._resolveFig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
             layer_struct = self._resolveLayer(figure, layer)
-    
+
         # inherit default style from layer if not given
         if style is None:
             style = layer_struct.style
-    
+
         # d is a dictionary mapping 'name' to a dictionary of fields for the
         # numerical plot data (key 'data'), style (key 'style'), and display
         # boolean (key 'display').
         #
         # The numerical data for d is given by the method argument also called data
         d = layer_struct.data
-    
+
         # Check to see if data name already exists
         if name in d and not force:
             raise KeyError("Data name already exists in layer: %s" %name)
-    
+
         # Create name if none is provided
         if name is None:
             name = get_unique_name(figure+'_'+layer)
-    
+
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': display}})
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
-        self._updateTraj(figure, layer)    
+        self._updateTraj(figure, layer)
 
     def setPoint(self, name, pt, layer, figure=None):
         """
@@ -871,18 +871,18 @@ class plotter2D(object):
                         ax = fig.add_subplot(shape[0], shape[1], shape[1]*i + j+1, projection= subplot_struct['projection'])
                     except KeyError:
                         ax = fig.add_subplot(shape[0], shape[1], shape[1]*i + j+1)
-                    
+
                     subplot_struct['axes_obj'] = ax
                     ax.set_title(subplot_struct['name'])
                     axes_vars = subplot_struct['axes_vars']
                     ax.set_xlabel(axes_vars[0])
                     ax.set_ylabel(axes_vars[1])
-                    
+
                     if len(axes_vars) == 3:
                         if subplot_struct['projection'] != '3d':
                             raise ValueError("Cannot have 3 axes variables on a layer where projection is not '3d'")
                         ax.set_zlabel(axes_vars[2])
-                    
+
                 else:
                     ax = subplot_struct['axes_obj']
                 # refresh this in case layer contents have changed
@@ -941,7 +941,6 @@ class plotter2D(object):
             ax.set_ylim(ydom)
             f.canvas.draw()
         if not self.shown:
-            
             plt.ion() #Artists not appearing on axes without call to ion
             plt.show()
             self.shown = True
@@ -956,7 +955,7 @@ class plotter2D(object):
             print("N <RETURN>: Stop waiting on each iteration")
             print("A <RETURN>: Stop waiting and save all figures on iterations")
             print("S <RETURN>: Save this figure and continue")
-            
+
             key = input('Enter command or <RETURN> to continue or ^D to quit: ')
             if key in ['N', 'n']:
                 self.wait_status = False
@@ -974,8 +973,8 @@ class plotter2D(object):
             f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
                                                             start=1)+'.png'),
                       format='png')
-        
-    
+
+
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
                     force=False):
         """
@@ -1122,8 +1121,8 @@ class plotter2D(object):
                         elif len(dstruct['data']) == 3:
                             lay.handles[dname] = \
                                 ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                        s)[0]                        
-                        
+                                        s)[0]
+
                     else:
                         if len(dstruct['data']) == 2:
                             lay.handles[dname] = \
@@ -1132,8 +1131,8 @@ class plotter2D(object):
                         elif len(dstruct['data']) == 3:
                             lay.handles[dname] = \
                                 ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
-                                        **s)[0]                            
-                        
+                                        **s)[0]
+
         if rescale is not None:
             # overrides layer scale
             sc = rescale
@@ -1746,7 +1745,7 @@ class tracker_textconsole(tracker_GUI):
             plt.title('%s measures of %s (workspace: %s)'%(self.calc_context.sim.name, tracked_attr,
                                                            _escape_underscore(self.calc_context.workspace._name)))
             fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
-        plt.show()
+        #plt.show()
 
 
 
@@ -1794,7 +1793,7 @@ class tracker_plotter(tracker_GUI):
             plt.title('%s measures vs %s (workspace: %s)'%(self.calc_context.sim.name, tracked.xstr,
                                                            _escape_underscore(self.calc_context.workspace._name)))
             fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
-        plt.show()
+        #plt.show()
 
 
 class tracker_manager(object):
