@@ -61,10 +61,10 @@ del ic_args_no_h['Na.h']
 
 if name[-5:] == '_no_h':
     no_h = True
-    man = get_model(path, name, ic_args_no_h, alg_args, gen='Dopri')
+    man = get_model(path, name, ic_args_no_h, alg_args, gen='Vode')
 else:
     no_h = False
-    man = get_model(path, name, ic_args, alg_args, gen='Dopri')
+    man = get_model(path, name, ic_args, alg_args, gen='Vode')
 
 HHmodel = man.instances[name]
 # ensure these are set (in case model was reloaded not created)

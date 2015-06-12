@@ -17,6 +17,7 @@ import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, RectangleSelector
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from copy import copy
 from math import *
@@ -519,7 +520,7 @@ class plotter2D(object):
             raise TypeError("Data must be castable to a numpy array")
 
         # Check to see that there is an x- and y- (or z-) dataset
-        if size[0] != 2 and size[0] != 3:
+        if size[0] not in (2,3):
             raise ValueError("Data must contain 2 or 3 seqs of data points")
 
         fig_struct, figure = self._resolveFig(figure)

@@ -50,7 +50,7 @@ def body1_dominant_at_point(pt_array):
     """
     global dom_thresh
     net_Fs = game2.get_forces(pt_array[0],pt_array[1])[0]
-    return net_Fs[1]/sum(net_Fs.values()) - dom_thresh
+    return net_Fs[1]/sum(list(net_Fs.values())) - dom_thresh
 
 
 # Domain growth testing

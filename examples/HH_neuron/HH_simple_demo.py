@@ -436,7 +436,8 @@ else:
                                                     do_plot=False)
 
 # re-sample traj at constant dt and declare to GUI
-trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
+#trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
+trajPts = ref_traj.sample(dt=0.01)[:len(ref_traj.sample(dt=0.01))-40] #[:-40] syntax not working in python 3
 gui.addDataPoints(trajPts)
 
 
