@@ -52,6 +52,17 @@ plotter.addFig('Master',
                xlabel='x', ylabel='y',
                domain=DOI)
 
+#Original data points. Set dim to an integer to view hyperspheres. Makes variance plot more interesting.
+#dim = 'disc'
+dim = 2
+
+if dim == 2:
+    pts = sd.generate_ball(100, 2, 10)
+    pts = np.concatenate((pts,np.zeros((100, 1))), axis=1)
+else:
+    pts = sd.generate_ball(100, dim, 10)
+
+#Setup all layers
 plotter.addLayer('orig_data')
 
 plotter.addLayer('rot_data1')
@@ -89,7 +100,7 @@ plotter.arrangeFig([1,3], {'11':
                             'axes_vars': ['x', 'y']},
                            '13':
                                {'name': 'Variance by Components',
-                                'scale': [(0,10),(0,1)],
+                                'scale': [(0,dim),(0,1)],
                                 'layers': ['var_data1',
                                            'var_data2',
                                            'var_data3'],  # all layers will be selected
@@ -101,16 +112,6 @@ gui.buildPlotter2D((8,8), with_times=False)
 #Amount to translate data and along which axis.
 trans_am = 15
 trans_ax = 1
-
-#Original data points. Set dim to an integer to view hyperspheres. Makes variance plot more interesting.
-dim = 'disc'
-#dim = 5
-
-if dim == 'disc':
-    pts = sd.generate_ball(100, 2, 10)
-    pts = np.concatenate((pts,np.zeros((100, 1))), axis=1)
-else:
-    pts = sd.generate_ball(100, dim, 10)
 
 pts = stretch(pts, 0, 1.7) #Stretching data causes one PC to capture a greater amount of variance.
 
@@ -165,28 +166,40 @@ plotter.auto_scale_domain(figure= 'Master')
 plotter.show(rebuild=False)
 
 c = 0
+m = False
 def keypress(event):
     global c
+    global m
 
     if event.key == 'right':
         c = c + 1
     if event.key == 'left':
         c = c - 1
 
-    for i in rot_layers:
-        plotter.setLayer(i[0], figure='Master', display= False)
-        plotter.setLayer(i[1], figure='Master', display= False)
-        plotter.setLayer(i[2], figure='Master', display=False)
-        plotter.setLayer(i[3], figure='Master', display=False)
+    if event.key == 'left' or event.key == 'right':
+        for i in rot_layers:
+            plotter.setLayer(i[0], figure='Master', display= False)
+            plotter.setLayer(i[1], figure='Master', display= False)
+            plotter.setLayer(i[2], figure='Master', display=False)
+            plotter.setLayer(i[3], figure='Master', display=False)
 
-    plotter.toggleDisplay(layer=rot_layers[c%3][0], figure='Master')
-    plotter.toggleDisplay(layer=rot_layers[c%3][1], figure='Master')
-    plotter.toggleDisplay(layer=rot_layers[c%3][2], figure='Master')
-    plotter.toggleDisplay(layer=rot_layers[c%3][3], figure='Master')
+        plotter.toggleDisplay(layer=rot_layers[c%3][0], figure='Master')
+        plotter.toggleDisplay(layer=rot_layers[c%3][1], figure='Master')
+        plotter.toggleDisplay(layer=rot_layers[c%3][2], figure='Master')
+        plotter.toggleDisplay(layer=rot_layers[c%3][3], figure='Master')
+
+    if event.key == 'm':
+        m = not m
+        for rot in rot_layers:
+            plotter.setLayer(label=rot[0], figure='Master', display=m)
+            plotter.setLayer(label=rot[1], figure='Master', display= m)
+            plotter.setLayer(label=rot[2], figure='Master', display = m)
+            plotter.setLayer(label=rot[3], figure='Master', display = m)
 
     plotter.show(rebuild=False)
 
 gui.masterWin.canvas.mpl_connect('key_press_event', keypress)
 
-print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's")
+print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
+print("Press m to display or hide all layers.")
 halt=True
