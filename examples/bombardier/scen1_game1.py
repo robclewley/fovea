@@ -103,7 +103,7 @@ def body4_dominant_at_point(pt_array):
     """
     global dom_thresh
     net_Fs = game1.get_forces(pt_array[0],pt_array[1])[0]
-    return net_Fs[4]/sum(net_Fs.values()) - dom_thresh
+    return net_Fs[4]/sum(list(net_Fs.values())) - dom_thresh
 
 game1.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
 

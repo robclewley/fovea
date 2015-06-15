@@ -62,14 +62,14 @@ game4.go()
 Interactive scenario continuation:
 
 Game 2:
-  Define body-1-dominant region
-  Define line at the edge of that region
+  #Define body-1-dominant region
+  #Define line at the edge of that region
 
 Game 4:
-  Assign that line to game4's currently selected object
-  Name it
-  Create the event for it
-  Compute end point of this regime
+  #Assign that line to game4's currently selected object
+  #Name it
+  #Create the event for it
+  #Compute end point of this regime
 
 Game 2:
   Assign new IC from end point of Game 4 regime and predict whether pericenter

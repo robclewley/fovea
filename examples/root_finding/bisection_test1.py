@@ -43,8 +43,6 @@ xs = npy.linspace(DOI[0][0], DOI[0][1], 500)
 ys = f1(xs)
 plotter.addData([xs, ys], layer='fn_data', style='k-')
 
-plotter.auto_scale_domain('Master')
-
 root = bisection(f1, 0.1, 2)
 print("Root is x=%.4f"%root)
 

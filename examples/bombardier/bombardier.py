@@ -193,7 +193,7 @@ class GUIrocket(object):
         self.go(run=False)
         # force call to graphics_refresh because run=False above
         self.graphics_refresh(cla=False)
-        #plt.show()
+        plt.show()
 
         # next_fighandle for whenever a new model is put in a new figure (new game instance)
         next_fighandle += 1
@@ -912,7 +912,11 @@ def net_force_along_pts(sim, pts, bodies=None):
         Fs, Fvecs = sim.get_forces(x,y)
         for n in bodies:
             Fs_by_body[n][i] = Fs[n]
-        net_Fs[i] = np.linalg.norm(np.sum(Fvecs.values(), 0))
+        try:
+            net_Fs[i] = np.linalg.norm(np.sum(list(Fvecs.values()), 0))
+        except TypeError:
+            print(Fvecs.values())
+            print(np.sum(list(Fvecs.values()), 0))
 
     return net_Fs, Fs_by_body
 
