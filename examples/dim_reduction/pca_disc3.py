@@ -78,7 +78,7 @@ plotter.arrangeFig([1,3], {'11':
                             'projection':'3d'},
                            '12':
                            {'name': 'Lo D',
-                            'scale': [(-10,10),(-10,10)],
+                            'scale': [(-20,20),(-20,20)],
                             'layers': 'loD_data',  # all layers will be selected
                             'axes_vars': ['x', 'y']},
                            '13':
