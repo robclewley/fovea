@@ -841,7 +841,7 @@ class plotter2D(object):
         fig = plt.figure(fig_struct.fignum)
         if rebuild:
             for axs in fig.get_axes():
-                if axs not in list(map(lambda bttn: bttn.ax, gui.widgets.values())):
+                if axs not in [bttn.ax for bttn in gui.widgets.values()]:
                     fig.delaxes(axs)
 
         # Build up each subplot, left to right, top to bottom
@@ -1348,6 +1348,9 @@ class diagnosticGUI(object):
                             self.timeLines.append(ax.axvline(x=self.t, color='r',
                                                          linewidth=3, linestyle='--'))
                             self.timePlots.extend(layer_info)
+
+        if [isinstance(fig_struct['arrange'][pos]['axes_obj'], Axes3D) for pos in fig_struct['arrange'].keys()]:
+            print("3D Axes can be rotated by clicking and dragging.")
 
         # Activate button & slider callbacks
         self.widgets['capturePoint'].on_clicked(self.capturePoint)
