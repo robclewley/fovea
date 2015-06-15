@@ -36,6 +36,11 @@ def stretch(X, axis, amount):
     X[:,axis] = X[:,axis]*amount
     return X
 
+def noise(X, axis, percent, loc, scale):
+    for i in range(0, round(len(X)*percent)):
+        X[i][axis] = np.random.normal(loc, scale, 1)
+    return X
+
 def ortho_proj_mat(n, m):
     Z = npy.random.rand(n, m)
     Q, R = npy.linalg.qr(Z)
@@ -114,6 +119,7 @@ trans_am = 15
 trans_ax = 1
 
 pts = stretch(pts, 0, 1.7) #Stretching data causes one PC to capture a greater amount of variance.
+pts = noise(pts, 2, 0.8, 0, 1.5)
 
 plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
@@ -196,10 +202,14 @@ def keypress(event):
             plotter.setLayer(label=rot[2], figure='Master', display = m)
             plotter.setLayer(label=rot[3], figure='Master', display = m)
 
+    if event.key == 'h':
+        plotter.toggleDisplay(layer='orig_data', figure='Master')
+
     plotter.show(rebuild=False)
 
 gui.masterWin.canvas.mpl_connect('key_press_event', keypress)
 
 print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
 print("Press m to display or hide all layers.")
+print("Press h to show or hide original data.")
 halt=True
