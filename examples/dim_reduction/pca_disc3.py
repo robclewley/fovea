@@ -78,7 +78,7 @@ plotter.arrangeFig([1,3], {'11':
                             'projection':'3d'},
                            '12':
                            {'name': 'Lo D',
-                            'scale': [(-10,10),(-10,10)],
+                            'scale': [(-20,20),(-20,20)],
                             'layers': 'loD_data',  # all layers will be selected
                             'axes_vars': ['x', 'y']},
                            '13':
@@ -136,7 +136,7 @@ for i in rot_layers:
         loPts = npy.dot(loPts, Q2)
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer='var_data', style=i[3])
+    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer='var_data', style=i[3]+"o")
 
     #Create plot of high-dimensional data and its PC's.
     plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer=i[0], style=i[2])

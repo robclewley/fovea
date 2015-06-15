@@ -840,7 +840,9 @@ class plotter2D(object):
         fig_struct = self.figs[fig_name]
         fig = plt.figure(fig_struct.fignum)
         if rebuild:
-            fig.clf()
+            for axs in fig.get_axes():
+                if axs not in [bttn.ax for bttn in gui.widgets.values()]:
+                    fig.delaxes(axs)
 
         # Build up each subplot, left to right, top to bottom
         shape = fig_struct.shape
@@ -936,10 +938,11 @@ class plotter2D(object):
         for figName, fig in self.figs.items():
             f = plt.figure(fig.fignum)
             # ISSUE: gca not useful in multi-subplot usage
-            ax = f.gca()
-            xdom, ydom = fig.domain
-            ax.set_xlim(xdom)
-            ax.set_ylim(ydom)
+            for pos in fig.arrange.keys():
+                ax = fig.arrange[pos]['axes_obj']
+                xdom, ydom = fig.arrange[pos]['scale']
+                ax.set_xlim(xdom)
+                ax.set_ylim(ydom)
             f.canvas.draw()
         if not self.shown:
             plt.ion() #Artists not appearing on axes without call to ion
@@ -1346,6 +1349,9 @@ class diagnosticGUI(object):
                                                          linewidth=3, linestyle='--'))
                             self.timePlots.extend(layer_info)
 
+        if [isinstance(fig_struct['arrange'][pos]['axes_obj'], Axes3D) for pos in fig_struct['arrange'].keys()]:
+            print("3D Axes can be rotated by clicking and dragging.")
+
         # Activate button & slider callbacks
         self.widgets['capturePoint'].on_clicked(self.capturePoint)
         self.widgets['refresh'].on_clicked(self.refresh)
@@ -1361,6 +1367,8 @@ class diagnosticGUI(object):
         evMouseMove = fig_handle.canvas.mpl_connect('motion_notify_event', self.mouseMoveFn)
         evKeyOn = fig_handle.canvas.mpl_connect('key_press_event', self.modifier_key_on)
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
+
+
 
 
     def clearAxes(self, subplot, figure=None):
