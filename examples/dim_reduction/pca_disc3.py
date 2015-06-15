@@ -56,15 +56,19 @@ plotter.addLayer('orig_data')
 
 plotter.addLayer('rot_data1')
 plotter.addLayer('rot_pc1')
+plotter.addLayer('loD_data1')
+plotter.addLayer('var_data1')
 
 plotter.addLayer('rot_data2')
 plotter.addLayer('rot_pc2')
+plotter.addLayer('loD_data2')
+plotter.addLayer('var_data2')
 
 plotter.addLayer('rot_data3')
 plotter.addLayer('rot_pc3')
+plotter.addLayer('loD_data3')
+plotter.addLayer('var_data3')
 
-plotter.addLayer('loD_data')
-plotter.addLayer('var_data')
 plotter.addLayer('meta_data', kind='text')
 
 plotter.arrangeFig([1,3], {'11':
@@ -79,12 +83,16 @@ plotter.arrangeFig([1,3], {'11':
                            '12':
                            {'name': 'Lo D',
                             'scale': [(-20,20),(-20,20)],
-                            'layers': 'loD_data',  # all layers will be selected
+                            'layers': ['loD_data1',
+                                       'loD_data2',
+                                       'loD_data3'],  # all layers will be selected
                             'axes_vars': ['x', 'y']},
                            '13':
                                {'name': 'Variance by Components',
                                 'scale': [(0,10),(0,1)],
-                                'layers': 'var_data',  # all layers will be selected
+                                'layers': ['var_data1',
+                                           'var_data2',
+                                           'var_data3'],  # all layers will be selected
                                 'axes_vars': ['x', 'y']},
                            })
 
@@ -109,7 +117,9 @@ pts = stretch(pts, 0, 1.7) #Stretching data causes one PC to capture a greater a
 plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
 #Plot out several different rotations of the original data.
-rot_layers= [['rot_data1','rot_pc1','r.', 'r-'], ['rot_data2','rot_pc2','g.', 'g-'], ['rot_data3','rot_pc3','y.', 'y-']]
+rot_layers= [['rot_data1','rot_pc1','loD_data1','var_data1','r.', 'r-'],
+             ['rot_data2','rot_pc2','loD_data2','var_data2','g.', 'g-'],
+             ['rot_data3','rot_pc3', 'loD_data3','var_data3','y.', 'y-']]
 for i in rot_layers:
 
     #If data high dimensional, create an arbitrary projection matrix so we can visualize.
@@ -136,17 +146,19 @@ for i in rot_layers:
         loPts = npy.dot(loPts, Q2)
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer='var_data', style=i[3]+"o")
+    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=i[3], style=i[5]+"o")
 
     #Create plot of high-dimensional data and its PC's.
-    plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer=i[0], style=i[2])
-    plotter.addData([pcPts[:,0], pcPts[:,1], pcPts[:,2]], layer=i[1], style=i[3])
+    plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer=i[0], style=i[4])
+    plotter.addData([pcPts[:,0], pcPts[:,1], pcPts[:,2]], layer=i[1], style=i[5])
 
     #Create plot of low-dimensional data.
-    plotter.addData([loPts[:,0], loPts[:,1]], layer='loD_data', style=i[2])
+    plotter.addData([loPts[:,0], loPts[:,1]], layer=i[2], style=i[4])
 
     plotter.setLayer(i[0], figure='Master', display=False)
     plotter.setLayer(i[1], figure='Master', display=False)
+    plotter.setLayer(i[2], figure='Master', display=False)
+    plotter.setLayer(i[3], figure='Master', display=False)
 
 plotter.auto_scale_domain(figure= 'Master')
 
@@ -155,20 +167,26 @@ plotter.show(rebuild=False)
 c = 0
 def keypress(event):
     global c
-    c = c + 1
 
-    if event.key == 'm':
-        for i in rot_layers:
-            plotter.setLayer(i[0], figure='Master', display= False)
-            plotter.setLayer(i[1], figure='Master', display= False)
+    if event.key == 'right':
+        c = c + 1
+    if event.key == 'left':
+        c = c - 1
 
-        plotter.toggleDisplay(layer=rot_layers[c%3][0], figure='Master')
-        plotter.toggleDisplay(layer=rot_layers[c%3][1], figure='Master')
+    for i in rot_layers:
+        plotter.setLayer(i[0], figure='Master', display= False)
+        plotter.setLayer(i[1], figure='Master', display= False)
+        plotter.setLayer(i[2], figure='Master', display=False)
+        plotter.setLayer(i[3], figure='Master', display=False)
 
-        plotter.show(rebuild=False)
+    plotter.toggleDisplay(layer=rot_layers[c%3][0], figure='Master')
+    plotter.toggleDisplay(layer=rot_layers[c%3][1], figure='Master')
+    plotter.toggleDisplay(layer=rot_layers[c%3][2], figure='Master')
+    plotter.toggleDisplay(layer=rot_layers[c%3][3], figure='Master')
 
+    plotter.show(rebuild=False)
 
 gui.masterWin.canvas.mpl_connect('key_press_event', keypress)
 
-print("Press 'm' to view different rotations of Hi-D data and their PC's")
+print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's")
 halt=True
