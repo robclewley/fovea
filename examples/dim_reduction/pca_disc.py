@@ -59,7 +59,7 @@ plotter.addFig('Master',
 
 #Original data points. Set dim to an integer to view hyperspheres. Makes variance plot more interesting.
 #dim = 'disc'
-dim = 2
+dim = 5
 
 if dim == 2:
     pts = sd.generate_ball(100, 2, 10)
@@ -88,7 +88,7 @@ plotter.addLayer('var_data3')
 plotter.addLayer('meta_data', kind='text')
 
 plotter.arrangeFig([1,3], {'11':
-                           {'name': 'Hi D',
+                           {'name': 'BEFORE',
                             'scale': DOI,
                             'layers': ['orig_data','meta_data',
                                        'rot_data1', 'rot_pc1',
@@ -97,7 +97,7 @@ plotter.arrangeFig([1,3], {'11':
                             'axes_vars': ['x', 'y', 'z'],
                             'projection':'3d'},
                            '12':
-                           {'name': 'Lo D',
+                           {'name': 'AFTER',
                             'scale': [(-20,20),(-20,20)],
                             'layers': ['loD_data1',
                                        'loD_data2',
@@ -119,15 +119,19 @@ trans_am = 15
 trans_ax = 1
 
 pts = stretch(pts, 0, 1.7) #Stretching data causes one PC to capture a greater amount of variance.
+pts = stretch(pts, 1, 1.9) #Stretching data causes one PC to capture a greater amount of variance.
 pts = noise(pts, 2, 0.8, 0, 1.5)
 
 plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
 #Plot out several different rotations of the original data.
-rot_layers= [['rot_data1','rot_pc1','loD_data1','var_data1','r.', 'r-'],
-             ['rot_data2','rot_pc2','loD_data2','var_data2','g.', 'g-'],
-             ['rot_data3','rot_pc3', 'loD_data3','var_data3','y.', 'y-']]
-for i in rot_layers:
+rot_layers= [['rot_data1','rot_pc1','loD_data1','var_data1'],
+             ['rot_data2','rot_pc2','loD_data2','var_data2'],
+             ['rot_data3','rot_pc3', 'loD_data3','var_data3']]
+rot_styles= [['r.', 'r-'],
+             ['g.', 'g-'],
+             ['y.', 'y-']]
+for i in range(len(rot_layers)):
 
     #If data high dimensional, create an arbitrary projection matrix so we can visualize.
     if(len(pts[0]) > 3):
@@ -141,31 +145,33 @@ for i in rot_layers:
 
     pcMat = p.get_projmatrix()
 
-    pcPts = np.row_stack((pcMat.transpose()[0,:],np.zeros((1, len(pcMat))), pcMat.transpose()[1,:]))*10 #Format proj vecs as points.
+    pcPts = np.row_stack((pcMat.transpose()[0,:] * 15, -pcMat.transpose()[0,:] * 15,
+                          pcMat.transpose()[1,:] * 15, -pcMat.transpose()[1,:] * 15))
     loPts = p._execute(Y) #Get dimensionality reduced data.
 
     if len(Y[0]) > 3:
         Y = npy.dot(Y, Q3)
-        pcPts = npy.dot(pcPts, Q3)
+        pcPts = npy.dot(pcPts, Q3) #Will this work with new pcPts?
 
     if len(loPts[0]) > 2:
         Q2 = ortho_proj_mat(len(loPts[0]), 2)
         loPts = npy.dot(loPts, Q2)
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=i[3], style=i[5]+"o")
+    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=rot_layers[i][3], style=rot_styles[i][1]+"o")
 
     #Create plot of high-dimensional data and its PC's.
-    plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer=i[0], style=i[4])
-    plotter.addData([pcPts[:,0], pcPts[:,1], pcPts[:,2]], layer=i[1], style=i[5])
+    plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer= rot_layers[i][0], style=rot_styles[i][0])
+    plotter.addData([pcPts[0:2,0], pcPts[0:2,1], pcPts[0:2,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
+    plotter.addData([pcPts[2:4,0], pcPts[2:4,1], pcPts[2:4,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
 
     #Create plot of low-dimensional data.
-    plotter.addData([loPts[:,0], loPts[:,1]], layer=i[2], style=i[4])
+    plotter.addData([loPts[:,0], loPts[:,1]], layer=rot_layers[i][2], style=rot_styles[i][0])
 
-    plotter.setLayer(i[0], figure='Master', display=False)
-    plotter.setLayer(i[1], figure='Master', display=False)
-    plotter.setLayer(i[2], figure='Master', display=False)
-    plotter.setLayer(i[3], figure='Master', display=False)
+    plotter.setLayer(rot_layers[i][0], figure='Master', display=False)
+    plotter.setLayer(rot_layers[i][1], figure='Master', display=False)
+    plotter.setLayer(rot_layers[i][2], figure='Master', display=False)
+    plotter.setLayer(rot_layers[i][3], figure='Master', display=False)
 
 plotter.auto_scale_domain(figure= 'Master')
 
