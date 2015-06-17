@@ -46,6 +46,9 @@ def ortho_proj_mat(n, m):
     Q, R = npy.linalg.qr(Z)
     return Q
 
+print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
+print("Press m to display or hide all layers.")
+print("Press h to show or hide original data.")
 
 plotter= gui.plotter
 
@@ -59,7 +62,7 @@ plotter.addFig('Master',
 
 #Original data points. Set dim to an integer to view hyperspheres. Makes variance plot more interesting.
 #dim = 'disc'
-dim = 5
+dim = 6
 
 if dim == 2:
     pts = sd.generate_ball(100, 2, 10)
@@ -118,9 +121,10 @@ gui.buildPlotter2D((8,8), with_times=False)
 trans_am = 15
 trans_ax = 1
 
-pts = stretch(pts, 0, 1.7) #Stretching data causes one PC to capture a greater amount of variance.
-pts = stretch(pts, 1, 1.9) #Stretching data causes one PC to capture a greater amount of variance.
-pts = noise(pts, 2, 0.8, 0, 1.5)
+pts = stretch(pts, 0, 1.2) #Stretching data causes one PC to capture a greater amount of variance.
+pts = stretch(pts, 1, 1.2)
+pts = stretch(pts, 2, 1.2)
+#pts = noise(pts, 2, 0.8, 0, 1.5)
 
 plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
@@ -131,57 +135,72 @@ rot_layers= [['rot_data1','rot_pc1','loD_data1','var_data1'],
 rot_styles= [['r.', 'r-'],
              ['g.', 'g-'],
              ['y.', 'y-']]
-for i in range(len(rot_layers)):
 
-    #If data high dimensional, create an arbitrary projection matrix so we can visualize.
-    if(len(pts[0]) > 3):
-        Y = pts
-        Q3 = ortho_proj_mat(len(pts[0]), 3)
+def loopPCA(pts, new_dim, rot_layers, rot_styles):
+    for i in range(len(rot_layers)):
 
-    else:
-        Y = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
+        for j in rot_layers[i]:
+            plotter.setLayer(j, figure='Master', data={})
 
-    p = da.doPCA(Y, len(Y[0]), len(Y[0])) #Creates a pcaNode object.
+        #If data high dimensional, create an arbitrary projection matrix so we can visualize.
+        if(len(pts[0]) > 3):
+            Y = pts
+            Q3 = ortho_proj_mat(len(pts[0]), 3)
 
-    pcMat = p.get_projmatrix()
+        else:
+            Y = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
 
-    pcPts = np.row_stack((pcMat.transpose()[0,:] * 15, -pcMat.transpose()[0,:] * 15,
-                          pcMat.transpose()[1,:] * 15, -pcMat.transpose()[1,:] * 15))
-    loPts = p._execute(Y) #Get dimensionality reduced data.
+        p = da.doPCA(Y, len(Y[0]), len(Y[0])) #Creates a pcaNode object.
 
-    if len(Y[0]) > 3:
-        Y = npy.dot(Y, Q3)
-        pcPts = npy.dot(pcPts, Q3) #Will this work with new pcPts?
+        pcMat = p.get_projmatrix()
 
-    if len(loPts[0]) > 2:
-        Q2 = ortho_proj_mat(len(loPts[0]), 2)
-        loPts = npy.dot(loPts, Q2)
+        pcPts = np.concatenate(([pcMat.transpose()[0,:]*15],
+                        [-pcMat.transpose()[0,:]*15]), axis=0)
+        for j in range(1, new_dim):
+            pcPts = np.concatenate((pcPts, [pcMat.transpose()[j,:]*15],
+                            [-pcMat.transpose()[j,:]*15]), axis=0)
 
-    #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=rot_layers[i][3], style=rot_styles[i][1]+"o")
+        loPts = p._execute(Y, new_dim) #Get dimensionality reduced data.
 
-    #Create plot of high-dimensional data and its PC's.
-    plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer= rot_layers[i][0], style=rot_styles[i][0])
-    plotter.addData([pcPts[0:2,0], pcPts[0:2,1], pcPts[0:2,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
-    plotter.addData([pcPts[2:4,0], pcPts[2:4,1], pcPts[2:4,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
+        if len(Y[0]) > 3:
+            Y = npy.dot(Y, Q3)
+            pcPts = npy.dot(pcPts, Q3) #Will this work with new pcPts?
 
-    #Create plot of low-dimensional data.
-    plotter.addData([loPts[:,0], loPts[:,1]], layer=rot_layers[i][2], style=rot_styles[i][0])
+        if len(loPts[0]) > 2:
+            Q2 = ortho_proj_mat(len(loPts[0]), 2)
+            loPts = npy.dot(loPts, Q2)
 
-    plotter.setLayer(rot_layers[i][0], figure='Master', display=False)
-    plotter.setLayer(rot_layers[i][1], figure='Master', display=False)
-    plotter.setLayer(rot_layers[i][2], figure='Master', display=False)
-    plotter.setLayer(rot_layers[i][3], figure='Master', display=False)
+        #Create line plot for variance explained by each component.
+        plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=rot_layers[i][3], style=rot_styles[i][1]+"o")
 
-plotter.auto_scale_domain(figure= 'Master')
+        #Create plot of high-dimensional data and its PC's.
+        plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer= rot_layers[i][0], style=rot_styles[i][0])
 
-plotter.show(rebuild=False)
+        for j in range(0, len(pcPts), 2):
+            plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
+            plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
+
+        #Create plot of low-dimensional data.
+        plotter.addData([loPts[:,0], loPts[:,1]], layer=rot_layers[i][2], style=rot_styles[i][0])
+
+        for j in rot_layers[i]:
+            plotter.setLayer(j, figure='Master', display=False)
+
+    print("Variance Explained:")
+    print(sum(p.d[0:new_dim])/sum(p.d))
+
+    plotter.show(rebuild=False)
 
 c = 0
 m = False
+d = 2
+
+loopPCA(pts, 2, rot_layers, rot_styles)
+
 def keypress(event):
     global c
     global m
+    global d
 
     if event.key == 'right':
         c = c + 1
@@ -189,33 +208,34 @@ def keypress(event):
         c = c - 1
 
     if event.key == 'left' or event.key == 'right':
-        for i in rot_layers:
-            plotter.setLayer(i[0], figure='Master', display= False)
-            plotter.setLayer(i[1], figure='Master', display= False)
-            plotter.setLayer(i[2], figure='Master', display=False)
-            plotter.setLayer(i[3], figure='Master', display=False)
+        for rot in rot_layers:
+            for lay in rot:
+                plotter.setLayer(lay, figure='Master', display= False)
 
-        plotter.toggleDisplay(layer=rot_layers[c%3][0], figure='Master')
-        plotter.toggleDisplay(layer=rot_layers[c%3][1], figure='Master')
-        plotter.toggleDisplay(layer=rot_layers[c%3][2], figure='Master')
-        plotter.toggleDisplay(layer=rot_layers[c%3][3], figure='Master')
+        for i in range(len(rot_layers[0])):
+            plotter.toggleDisplay(layer=rot_layers[c%len(rot_layers)][i], figure='Master')
 
     if event.key == 'm':
         m = not m
         for rot in rot_layers:
-            plotter.setLayer(label=rot[0], figure='Master', display=m)
-            plotter.setLayer(label=rot[1], figure='Master', display= m)
-            plotter.setLayer(label=rot[2], figure='Master', display = m)
-            plotter.setLayer(label=rot[3], figure='Master', display = m)
+            for lay in rot:
+                plotter.setLayer(lay, figure='Master', display=m)
 
     if event.key == 'h':
         plotter.toggleDisplay(layer='orig_data', figure='Master')
+
+    if event.key == 'up':
+        d = d + 1
+        plotter.addVLine( d, layer='var_data1')
+        loopPCA(pts, d, rot_layers, rot_styles)
+
+    if event.key == 'down':
+        if d is not 2:
+            d = d - 1
+            loopPCA(pts, d, rot_layers, rot_styles)
 
     plotter.show(rebuild=False)
 
 gui.masterWin.canvas.mpl_connect('key_press_event', keypress)
 
-print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
-print("Press m to display or hide all layers.")
-print("Press h to show or hide original data.")
 halt=True
