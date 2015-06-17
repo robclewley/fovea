@@ -105,4 +105,89 @@ def loopPCA(pts, new_dim, rot_layers, rot_styles):
 
     plotter.show(rebuild=False)
 
+
+def setupPCAlayers(rot_layers, rot_styles, DOI):
+    plotter.clean() # in case rerun in same session
+    plotter.addFig('Master',
+                   title='PCA Disc',
+                   xlabel='x', ylabel='y',
+                   domain=DOI)
+
+    #Setup all layers
+    plotter.addLayer('orig_data')
+    plotter.addLayer('meta_data', kind='text')
+
+    for rot in rot_layers:
+        for lay in rot:
+            plotter.addLayer(lay)
+
+    plotter.arrangeFig([1,3], {'11':
+                               {'name': 'BEFORE',
+                                'scale': DOI,
+                                'layers': sum([rot_layers[i][0:2] for i in range(3)],['orig_data']),  # all layers will be selected
+                                'axes_vars': ['x', 'y', 'z'],
+                                'projection':'3d'},
+                               '12':
+                               {'name': 'AFTER',
+                                'scale': [(-20,20),(-20,20)],
+                                'layers': [rot_layers[i][2] for i in range(3)],  # all layers will be selected
+                                'axes_vars': ['a', 'b']},
+                               '13':
+                               {'name': 'Variance by Components',
+                                'scale': [(0,10),(0,1)],
+                                'layers': [rot_layers[i][3] for i in range(3)],  # all layers will be selected
+                                'axes_vars': ['x', 'y']},
+                               })
+
+    gui.buildPlotter2D((8,8), with_times=False)
+
+class ControlSys:
+    def __init__(self, fig, data, rot_layers, rot_styles, d):
+        self.fig = fig
+        self.data = data
+        self.rot_layers = rot_layers
+        self.rot_styles = rot_styles
+        self.d = d
+        self.c = 0
+        self.m = False
+        self.fig.canvas.mpl_connect('key_press_event', self.keypress)
+
+        print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
+        print("Press m to display or hide all layers.")
+        print("Press h to show or hide original data.")
+
+    def keypress(self, event):
+        if event.key == 'right':
+            self.c += 1
+        if event.key == 'left':
+            self.c -= 1
+
+        if event.key == 'left' or event.key == 'right':
+            for rot in self.rot_layers:
+                for lay in rot:
+                    plotter.setLayer(lay, display= False)
+
+            for i in range(len(self.rot_layers[0])):
+                plotter.toggleDisplay(layer=self.rot_layers[self.c%len(self.rot_layers)][i]) #figure='Master',
+
+        if event.key == 'm':
+            self.m = not self.m
+            for rot in self.rot_layers:
+                for lay in rot:
+                    plotter.setLayer(lay, figure='Master', display=self.m)
+
+        if event.key == 'h':
+            plotter.toggleDisplay(layer='orig_data', figure='Master')
+
+        if event.key == 'up':
+            self.d += 1
+            loopPCA(self.data, self.d, self.rot_layers, self.rot_styles)
+
+        if event.key == 'down':
+            if self.d is not 2:
+                self.d -= 1
+                loopPCA(self.data, self.d, self.rot_layers, self.rot_styles)
+
+        plotter.show(rebuild=False)
+
 halt=True
