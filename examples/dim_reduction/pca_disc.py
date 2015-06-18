@@ -47,58 +47,55 @@ def ortho_proj_mat(n, m):
     Q, R = npy.linalg.qr(Z)
     return Q
 
-def loopPCA(pts, new_dim, rot_layers, rot_styles):
-    #Amount to translate data and along which axis.
-    trans_am = 15
-    trans_ax = 1
-    for i in range(len(rot_layers)):
+def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
 
-        for j in rot_layers[i]:
-            plotter.setLayer(j, figure='Master', data={})
+    p = da.doPCA(X, len(X[0]), len(X[0])) #Creates a pcaNode object.
 
-        #If data high dimensional, create an arbitrary projection matrix so we can visualize.
-        if(len(pts[0]) > 3):
-            Y = pts
-            Q3 = ortho_proj_mat(len(pts[0]), 3)
+    pcMat = p.get_projmatrix()
 
-        else:
-            Y = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
+    pcPts = np.concatenate(([pcMat.transpose()[0,:]*15],
+                            [-pcMat.transpose()[0,:]*15]), axis=0)
 
-        p = da.doPCA(Y, len(Y[0]), len(Y[0])) #Creates a pcaNode object.
+    for j in range(1, new_dim):
+        pcPts = np.concatenate((pcPts, [pcMat.transpose()[j,:]*15],
+                                [-pcMat.transpose()[j,:]*15]), axis=0)
 
-        pcMat = p.get_projmatrix()
+    Y = p._execute(X, new_dim) #Get dimensionality reduced data.
 
-        pcPts = np.concatenate(([pcMat.transpose()[0,:]*15],
-                        [-pcMat.transpose()[0,:]*15]), axis=0)
-        for j in range(1, new_dim):
-            pcPts = np.concatenate((pcPts, [pcMat.transpose()[j,:]*15],
-                            [-pcMat.transpose()[j,:]*15]), axis=0)
+    #Produce proj vecs if none supplied
+    if proj_vecsHI is None:
+        proj_vecsHI = ortho_proj_mat(len(X[0]), 3)
 
-        loPts = p._execute(Y, new_dim) #Get dimensionality reduced data.
 
-        if len(Y[0]) > 3:
-            Y = npy.dot(Y, Q3)
-            pcPts = npy.dot(pcPts, Q3) #Will this work with new pcPts?
+    if proj_vecsLO is None:
+        proj_vecsLO = ortho_proj_mat(len(Y[0]), 2)
 
-        if len(loPts[0]) > 2:
-            Q2 = ortho_proj_mat(len(loPts[0]), 2)
-            loPts = npy.dot(loPts, Q2)
+    for layer in layers:
+        plotter.setLayer(layer, figure='Master', data={})
 
-        #Create line plot for variance explained by each component.
-        plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=rot_layers[i][3], style=rot_styles[i][1]+"o")
+    #If data are high-dimensional, use the projection vectors.
+    if len(X[0]) > 3:
+        X = npy.dot(X, proj_vecsHI)
+        pcPts = npy.dot(pcPts, proj_vecsHI) #Will this work with new pcPts?
 
-        #Create plot of high-dimensional data and its PC's.
-        plotter.addData([Y[:,0], Y[:,1], Y[:,2]], layer= rot_layers[i][0], style=rot_styles[i][0])
+    if len(Y[0]) > 2:
+        Y = npy.dot(Y, proj_vecsLO)
 
-        for j in range(0, len(pcPts), 2):
-            plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
-            plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= rot_layers[i][1], style= rot_styles[i][1])
+    #Create line plot for variance explained by each component.
+    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layers[3], style=styles[1]+"o")
 
-        #Create plot of low-dimensional data.
-        plotter.addData([loPts[:,0], loPts[:,1]], layer=rot_layers[i][2], style=rot_styles[i][0])
+    #Create plot of high-dimensional data and its PC's.
+    plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layers[0], style=styles[0])
 
-        for j in rot_layers[i]:
-            plotter.setLayer(j, figure='Master', display=False)
+    for j in range(0, len(pcPts), 2):
+        plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layers[1], style= styles[1])
+        plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layers[1], style= styles[1])
+
+    #Create plot of low-dimensional data.
+    plotter.addData([Y[:,0], Y[:,1]], layer=layers[2], style=styles[0])
+
+    for layer in layers:
+        plotter.setLayer(layer, figure='Master', display=False)
 
     print("Variance Explained:")
     print(sum(p.d[0:new_dim])/sum(p.d))
@@ -142,11 +139,11 @@ def setupPCAlayers(rot_layers, rot_styles, DOI):
     gui.buildPlotter2D((8,8), with_times=False)
 
 class ControlSys:
-    def __init__(self, fig, data, rot_layers, rot_styles, d):
+    def __init__(self, fig, data, clus_layers, clus_styles, d):
         self.fig = fig
         self.data = data
-        self.rot_layers = rot_layers
-        self.rot_styles = rot_styles
+        self.clus_layers = clus_layers
+        self.clus_styles = clus_styles
         self.d = d
         self.c = 0
         self.m = False
@@ -163,17 +160,18 @@ class ControlSys:
             self.c -= 1
 
         if event.key == 'left' or event.key == 'right':
-            for rot in self.rot_layers:
-                for lay in rot:
+
+            for clus in self.clus_layers:
+                for lay in clus:
                     plotter.setLayer(lay, display= False)
 
-            for i in range(len(self.rot_layers[0])):
-                plotter.toggleDisplay(layer=self.rot_layers[self.c%len(self.rot_layers)][i]) #figure='Master',
+            for i in range(len(self.clus_layers[0])):
+                plotter.toggleDisplay(layer=self.clus_layers[self.c%len(self.clus_layers)][i]) #figure='Master',
 
         if event.key == 'm':
             self.m = not self.m
-            for rot in self.rot_layers:
-                for lay in rot:
+            for clus in self.clus_layers:
+                for lay in clus:
                     plotter.setLayer(lay, figure='Master', display=self.m)
 
         if event.key == 'h':
@@ -181,12 +179,13 @@ class ControlSys:
 
         if event.key == 'up':
             self.d += 1
-            loopPCA(self.data, self.d, self.rot_layers, self.rot_styles)
+            for i in range(len(self.clus_layers)):
+                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i]) #Issue: Going to be randomly generating proj_vecs.
 
         if event.key == 'down':
             if self.d is not 2:
                 self.d -= 1
-                loopPCA(self.data, self.d, self.rot_layers, self.rot_styles)
+                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i])
 
         plotter.show(rebuild=False)
 
