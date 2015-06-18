@@ -76,9 +76,10 @@ def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
     #If data are high-dimensional, use the projection vectors.
     if len(X[0]) > 3:
         X = npy.dot(X, proj_vecsHI)
-        pcPts = npy.dot(pcPts, proj_vecsHI) #Will this work with new pcPts?
+        pcPts = npy.dot(pcPts, proj_vecsHI)
 
     if len(Y[0]) > 2:
+        proj_vecsLO = proj_vecsLO[0:new_dim, :] #Scrape the needed rows from projection matrix, so we can page between dimensionalities.
         Y = npy.dot(Y, proj_vecsLO)
 
     #Create line plot for variance explained by each component.
@@ -139,11 +140,13 @@ def setupPCAlayers(rot_layers, rot_styles, DOI):
     gui.buildPlotter2D((8,8), with_times=False)
 
 class ControlSys:
-    def __init__(self, fig, data, clus_layers, clus_styles, d):
+    def __init__(self, fig, data, clus_layers, clus_styles, d, proj_vecsLO=None, proj_vecsHI=None):
         self.fig = fig
         self.data = data
         self.clus_layers = clus_layers
         self.clus_styles = clus_styles
+        self.proj_vecsLO = proj_vecsLO
+        self.proj_vecsHI = proj_vecsHI
         self.d = d
         self.c = 0
         self.m = False
@@ -180,12 +183,13 @@ class ControlSys:
         if event.key == 'up':
             self.d += 1
             for i in range(len(self.clus_layers)):
-                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i]) #Issue: Going to be randomly generating proj_vecs.
+                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI) #Issue: Going to be randomly generating proj_vecs.
 
         if event.key == 'down':
             if self.d is not 2:
                 self.d -= 1
-                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i])
+                for i in range(len(self.clus_layers)):
+                    loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
 
         plotter.show(rebuild=False)
 

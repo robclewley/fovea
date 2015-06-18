@@ -65,16 +65,16 @@ def hypersphere(dim, clus_layers, clus_styles):
 
     plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
-    d = 4
-    ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2)
-
     proj_vecsHI = pca_disc.ortho_proj_mat(len(X[0][0]), 3)
-    proj_vecsLO = pca_disc.ortho_proj_mat(d, 2)
+    proj_vecsLO = pca_disc.ortho_proj_mat(len(X[0][0]), 2)
+
+    d = 2
+    ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2, proj_vecsLO, proj_vecsHI)
 
     for i in range(len(clus_layers)):
         loopPCA(X[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
-#hypersphere(6, [], [])
-disc()
+hypersphere(6, [], [])
+#disc()
 
 halt= True
