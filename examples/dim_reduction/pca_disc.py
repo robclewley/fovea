@@ -47,7 +47,7 @@ def ortho_proj_mat(n, m):
     Q, R = npy.linalg.qr(Z)
     return Q
 
-def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
+def loopPCA(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
 
     p = da.doPCA(X, len(X[0]), len(X[0])) #Creates a pcaNode object.
 
@@ -70,8 +70,7 @@ def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
     if proj_vecsLO is None:
         proj_vecsLO = ortho_proj_mat(len(Y[0]), 2)
 
-    for layer in layers:
-        plotter.setLayer(layer, figure='Master', data={})
+    plotter.setLayer(layer, figure='Master', data={})
 
     #If data are high-dimensional, use the projection vectors.
     if len(X[0]) > 3:
@@ -83,20 +82,19 @@ def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
         Y = npy.dot(Y, proj_vecsLO)
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layers[3], style=styles[1]+"o")
+    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
-    plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layers[0], style=styles[0])
+    plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
 
     for j in range(0, len(pcPts), 2):
-        plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layers[1], style= styles[1])
-        plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layers[1], style= styles[1])
+        plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
+        plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
-    plotter.addData([Y[:,0], Y[:,1]], layer=layers[2], style=styles[0])
+    plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
-    for layer in layers:
-        plotter.setLayer(layer, figure='Master', display=False)
+    plotter.setLayer(layer, figure='Master', display=False)
 
     print("Variance Explained:")
     print(sum(p.d[0:new_dim])/sum(p.d))
@@ -104,7 +102,7 @@ def loopPCA(X, new_dim, layers, styles, proj_vecsLO = None, proj_vecsHI = None):
     plotter.show(rebuild=False)
 
 
-def setupPCAlayers(rot_layers, rot_styles, DOI):
+def setupPCAlayers(clus_layers, rot_styles, DOI):
     plotter.clean() # in case rerun in same session
     plotter.addFig('Master',
                    title='PCA Disc',
@@ -115,25 +113,24 @@ def setupPCAlayers(rot_layers, rot_styles, DOI):
     plotter.addLayer('orig_data')
     plotter.addLayer('meta_data', kind='text')
 
-    for rot in rot_layers:
-        for lay in rot:
-            plotter.addLayer(lay)
+    for clus in clus_layers:
+            plotter.addLayer(clus)
 
     plotter.arrangeFig([1,3], {'11':
                                {'name': 'BEFORE',
                                 'scale': DOI,
-                                'layers': sum([rot_layers[i][0:2] for i in range(3)],['orig_data']),  # all layers will be selected
+                                'layers': clus_layers+['orig_data'],  # all layers will be selected
                                 'axes_vars': ['x', 'y', 'z'],
                                 'projection':'3d'},
                                '12':
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
-                                'layers': [rot_layers[i][2] for i in range(3)],  # all layers will be selected
+                                'layers': clus_layers,  # all layers will be selected
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
                                 'scale': [(0,10),(0,1)],
-                                'layers': [rot_layers[i][3] for i in range(3)],  # all layers will be selected
+                                'layers': clus_layers,  # all layers will be selected
                                 'axes_vars': ['x', 'y']},
                                })
 
@@ -165,17 +162,14 @@ class ControlSys:
         if event.key == 'left' or event.key == 'right':
 
             for clus in self.clus_layers:
-                for lay in clus:
-                    plotter.setLayer(lay, display= False)
+                    plotter.setLayer(clus, display= False)
 
-            for i in range(len(self.clus_layers[0])):
-                plotter.toggleDisplay(layer=self.clus_layers[self.c%len(self.clus_layers)][i]) #figure='Master',
+            plotter.toggleDisplay(layer=self.clus_layers[self.c%len(self.clus_layers)]) #figure='Master',
 
         if event.key == 'm':
             self.m = not self.m
             for clus in self.clus_layers:
-                for lay in clus:
-                    plotter.setLayer(lay, figure='Master', display=self.m)
+                    plotter.setLayer(clus, figure='Master', display=self.m)
 
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')
@@ -192,5 +186,3 @@ class ControlSys:
                     loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
 
         plotter.show(rebuild=False)
-
-halt=True

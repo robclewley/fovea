@@ -53,12 +53,15 @@ def hypersphere(dim, clus_layers, clus_styles):
     X = [X1, X2, X3]
 
     #Plot out several different hyperspheres.
-    clus_layers= [['clus1_data','clus1_pc','clus1_loD','clus1_var'],
-                 ['clus2_data','clus2_pc','clus2_loD','clus2_var'],
-                 ['clus3_data','clus3_pc','clus3_loD','clus3_var']]
-    clus_styles= [['r.', 'r-'],
-                 ['g.', 'g-'],
-                 ['y.', 'y-']]
+    #clus_layers= [['clus1_data','clus1_pc','clus1_loD','clus1_var'],
+                 #['clus2_data','clus2_pc','clus2_loD','clus2_var'],
+                 #['clus3_data','clus3_pc','clus3_loD','clus3_var']]
+    #clus_styles= [['r.', 'r-'],
+                 #['g.', 'g-'],
+                 #['y.', 'y-']]
+
+    clus_layers = ['clus1', 'clus2', 'clus3']
+    clus_styles = ['r', 'g', 'y']
 
 
     pca_disc.setupPCAlayers(clus_layers, clus_styles, DOI)
