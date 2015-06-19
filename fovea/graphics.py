@@ -550,9 +550,6 @@ class plotter2D(object):
         if name is None:
             name = get_unique_name(figure+'_'+layer)
 
-        if subplot is None:
-            subplot = self._retrieveSubplots(layer)
-
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
@@ -790,7 +787,7 @@ class plotter2D(object):
                      style=style, name=name, log=log)
 
 
-    def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None,
+    def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None, subplot=None,
                 figure=None, display=True, style=None, force=False, log=None):
         """
         Use style to select color (defaults to black).
@@ -818,7 +815,7 @@ class plotter2D(object):
             name = get_unique_name(figure+'_'+layer)
 
         d.update({name: {'data': [x, y], 'text': text, 'display': display,
-                         'style': style, 'use_axis_coords': use_axis_coords}})
+                         'style': style, 'use_axis_coords': use_axis_coords, 'subplot': subplot}})
 
         if log:
             log.msg("Added text data", figure=figure, layer=layer, name=name)
@@ -1058,6 +1055,10 @@ class plotter2D(object):
         """
         subplots = []
         for sp, dic in self.figs[self.currFig]['arrange'].items():
+            if dic['layers'] is '*':
+                subplots = list(self.figs[self.currFig]['arrange'].keys())
+                break
+
             if layer in dic['layers']:
                 subplots += [sp]
 
@@ -1105,6 +1106,9 @@ class plotter2D(object):
             s = dstruct['style']
 
             # For now, default to first subplot with 0 indexing if multiple exist
+            if dstruct['subplot'] == None:
+                dstruct['subplot'] = self._retrieveSubplots(layer_name)[0]
+
             try:
                 ax = self.figs[self.currFig].arrange[dstruct['subplot'][0]]['axes_obj']
             except KeyError:
