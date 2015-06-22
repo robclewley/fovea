@@ -406,6 +406,7 @@ class plotter2D(object):
         # make copy of arrPlots in case change singleton layer names to lists
         arrPlots = copy(arrPlots)
 
+        #Ensure subplot positions are consistent with figure shape.
         for ixstr, spec in arrPlots.items():
             if int(ixstr[0])*int(ixstr[1]) > shape[0]*shape[1]:
                 raise ValueError("Position does not exist in subplot arrangement.")
@@ -498,7 +499,7 @@ class plotter2D(object):
             fig_struct.layers[label][kw] = kwargs[kw]
 
 
-    def addData(self, data, figure=None, layer=None, style=None, name=None,
+    def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
@@ -551,7 +552,8 @@ class plotter2D(object):
 
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
-        d.update({name: {'data': data, 'style': style, 'display': display}})
+        d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
+
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
         self._updateTraj(figure, layer)
@@ -785,7 +787,7 @@ class plotter2D(object):
                      style=style, name=name, log=log)
 
 
-    def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None,
+    def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None, subplot=None,
                 figure=None, display=True, style=None, force=False, log=None):
         """
         Use style to select color (defaults to black).
@@ -813,7 +815,7 @@ class plotter2D(object):
             name = get_unique_name(figure+'_'+layer)
 
         d.update({name: {'data': [x, y], 'text': text, 'display': display,
-                         'style': style, 'use_axis_coords': use_axis_coords}})
+                         'style': style, 'use_axis_coords': use_axis_coords, 'subplot': subplot}})
 
         if log:
             log.msg("Added text data", figure=figure, layer=layer, name=name)
@@ -1047,6 +1049,21 @@ class plotter2D(object):
         except KeyError:
             raise KeyError("Invalid layer name: %s in figure %s" % (layer, figure))
 
+    def _retrieveSubplots(self, layer):
+        """
+        Internal utility to find all subplots a given layer has been assigned to through arrangeFig.
+        """
+        subplots = []
+        for sp, dic in self.figs[self.currFig]['arrange'].items():
+            if dic['layers'] is '*':
+                subplots = list(self.figs[self.currFig]['arrange'].keys())
+                break
+
+            if layer in dic['layers']:
+                subplots += [sp]
+
+        return subplots
+
 
     def buildLayer(self, figure_name, layer_name, ax, rescale=None,
                    force=False):
@@ -1087,6 +1104,15 @@ class plotter2D(object):
 
             # process user-defined style
             s = dstruct['style']
+
+            # For now, default to first subplot with 0 indexing if multiple exist
+            if dstruct['subplot'] == None:
+                dstruct['subplot'] = self._retrieveSubplots(layer_name)[0]
+
+            try:
+                ax = self.figs[self.currFig].arrange[dstruct['subplot'][0]]['axes_obj']
+            except KeyError:
+                ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
 
             if isinstance(s, str):
                 style_as_string = True
