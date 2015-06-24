@@ -22,6 +22,10 @@ def disc():
     X2 = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
     X3 = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
 
+    X1 = noise(X1, 2, 0.3, 0, 10)
+    X2 = noise(X2, 2, 0.3, 0, 10)
+    X3 = noise(X3, 2, 0.3, 0, 10)
+
     X = [X1, X2, X3]
 
     rot_layers = ['rot1', 'rot2', 'rot3']
