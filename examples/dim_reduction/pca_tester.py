@@ -1,5 +1,5 @@
 import pca_disc
-from pca_disc import plotter, gui, loopPCA, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate
+from pca_disc import plotter, gui, compute, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate
 from fovea import *
 
 from PyDSTool.Toolbox import synthetic_data as sd
@@ -24,15 +24,10 @@ def disc():
 
     X = [X1, X2, X3]
 
-    #Plot out several different rotations of the original data.
-    rot_layers= [['rot_data1','rot_pc1','loD_data1','var_data1'],
-                 ['rot_data2','rot_pc2','loD_data2','var_data2'],
-                 ['rot_data3','rot_pc3', 'loD_data3','var_data3']]
-    rot_styles= [['r.', 'r-'],
-                 ['g.', 'g-'],
-                 ['y.', 'y-']]
+    rot_layers = ['rot1', 'rot2', 'rot3']
+    rot_styles = ['r', 'g', 'y']
 
-    pca_disc.setupPCAlayers(rot_layers, rot_styles, DOI)
+    pca_disc.setupDisplay(rot_layers, rot_styles, DOI)
 
     plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
@@ -40,29 +35,20 @@ def disc():
     ctrl_sys = ControlSys(gui.masterWin, pts, rot_layers, rot_styles, 2)
 
     for i in range(len(rot_layers)):
-        loopPCA(X[i], d, rot_layers[i], rot_styles[i])
+        compute(X[i], d, rot_layers[i], rot_styles[i])
 
-def hypersphere(dim, clus_layers, clus_styles):
+def hypersphere(dim):
     pts = sd.generate_ball(100, dim, 10)
 
-    #Produce rotated clusters:
+    #Create and stretch different hypersphere "clusters":
     X1 = stretch(sd.generate_ball(133, dim, 10), 0, 1.2)
     X2 = sd.generate_ball(110, dim, 10)
     X3 = sd.generate_ball(95, dim, 10)
 
     X = [X1, X2, X3]
 
-    #Plot out several different hyperspheres.
-    #clus_layers= [['clus1_data','clus1_pc','clus1_loD','clus1_var'],
-                 #['clus2_data','clus2_pc','clus2_loD','clus2_var'],
-                 #['clus3_data','clus3_pc','clus3_loD','clus3_var']]
-    #clus_styles= [['r.', 'r-'],
-                 #['g.', 'g-'],
-                 #['y.', 'y-']]
-
     clus_layers = ['clus1', 'clus2', 'clus3']
     clus_styles = ['r', 'g', 'y']
-
 
     pca_disc.setupPCAlayers(clus_layers, clus_styles, DOI)
 
@@ -75,9 +61,28 @@ def hypersphere(dim, clus_layers, clus_styles):
     ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2, proj_vecsLO, proj_vecsHI)
 
     for i in range(len(clus_layers)):
-        loopPCA(X[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
+        compute(X[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
-hypersphere(6, [], [])
-#disc()
+def iris():
+    """
+    Example for loading in real data from txt. Not yet working.
+    """
+    data = np.loadtxt('iris.data.txt', dtype= [('f0',float),('f1',float), ('f2',float),('f3',float), ('f4', object)], delimiter=',', unpack=False)
+    X = {}
+
+    for row in data:
+        try:
+            np.row_stack((X[row[4]], (np.array([row[i] for i in range(4)]))))
+        except:
+            X[row[4]] = (np.array([row[i] for i in range(4)]))
+
+
+
+
+    x=4
+
+#hypersphere(6)
+disc()
+#iris()
 
 halt= True

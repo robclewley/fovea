@@ -47,7 +47,10 @@ def ortho_proj_mat(n, m):
     Q, R = npy.linalg.qr(Z)
     return Q
 
-def loopPCA(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
+def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
+
+    data_dict = {}
+    data_dict['X'] = X
 
     p = da.doPCA(X, len(X[0]), len(X[0])) #Creates a pcaNode object.
 
@@ -61,6 +64,7 @@ def loopPCA(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
                                 [-pcMat.transpose()[j,:]*15]), axis=0)
 
     Y = p._execute(X, new_dim) #Get dimensionality reduced data.
+    data_dict['Y'] = Y
 
     #Produce proj vecs if none supplied
     if proj_vecsHI is None:
@@ -76,10 +80,12 @@ def loopPCA(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
     if len(X[0]) > 3:
         X = npy.dot(X, proj_vecsHI)
         pcPts = npy.dot(pcPts, proj_vecsHI)
+        data_dict['X_projected'] = X
 
     if len(Y[0]) > 2:
         proj_vecsLO = proj_vecsLO[0:new_dim, :] #Scrape the needed rows from projection matrix, so we can page between dimensionalities.
         Y = npy.dot(Y, proj_vecsLO)
+        data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
     plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
@@ -101,8 +107,10 @@ def loopPCA(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
 
     plotter.show(rebuild=False)
 
+    return data_dict
 
-def setupPCAlayers(clus_layers, rot_styles, DOI):
+
+def setupDisplay(clus_layers, clus_styles, DOI):
     plotter.clean() # in case rerun in same session
     plotter.addFig('Master',
                    title='PCA Disc',
@@ -118,7 +126,7 @@ def setupPCAlayers(clus_layers, rot_styles, DOI):
 
     plotter.arrangeFig([1,3], {'11':
                                {'name': 'BEFORE',
-                                'scale': DOI,
+                                'scale': [(-10,10),(-10,10)],
                                 'layers': clus_layers+['orig_data'],  # all layers will be selected
                                 'axes_vars': ['x', 'y', 'z'],
                                 'projection':'3d'},
@@ -136,10 +144,14 @@ def setupPCAlayers(clus_layers, rot_styles, DOI):
 
     gui.buildPlotter2D((8,8), with_times=False)
 
+
+proj_thresh = 20
 class ControlSys:
     def __init__(self, fig, data, clus_layers, clus_styles, d, proj_vecsLO=None, proj_vecsHI=None):
         self.fig = fig
         self.data = data
+        self.data_dict = None
+        self.proj_thresh = 4
         self.clus_layers = clus_layers
         self.clus_styles = clus_styles
         self.proj_vecsLO = proj_vecsLO
@@ -149,9 +161,42 @@ class ControlSys:
         self.m = False
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
 
+        #Initialize Bombardier callbacks on 2D subplot.
+        game = gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+
+        #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
         print("Press m to display or hide all layers.")
         print("Press h to show or hide original data.")
+
+    def get_projection_distance(self, pt_array):
+        """Domain criterion function for determining how far lower dimensional points
+        were projected"""
+        #Judge by nearest point rather than points inside. Otherwise, I would need to access the whole polygon,
+        #which would be difficult.
+
+        nearest_pt = []
+        index = []
+
+        #Find closest projected point.
+        dist = 10000000
+        for i, row in enumerate(self.data_dict['Y_projected']):
+            if np.linalg.norm(pt_array - row) < dist:
+                dist = np.linalg.norm(pt_array - row)
+                nearest_pt = row
+                index = i
+
+        #Need more formal way to do this. Standard deviation? This doesn't seem to accomplish anything right now anyways.
+        if dist > 2:
+            return -1
+
+        #Calculate distance between projected point and loD point.
+        orig_pt = self.data_dict['Y'][i]
+        proj_pt = np.append(nearest_pt, np.zeros(len(orig_pt)-len(nearest_pt)))
+        if np.linalg.norm(orig_pt - proj_pt) > self.proj_thresh:
+            return -1
+        else:
+            return 1
 
     def keypress(self, event):
         if event.key == 'right':
@@ -177,12 +222,14 @@ class ControlSys:
         if event.key == 'up':
             self.d += 1
             for i in range(len(self.clus_layers)):
-                loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI) #Issue: Going to be randomly generating proj_vecs.
+                self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
+                gui.current_domain_handler.assign_criterion_func(self.get_projection_distance) #Reset criterion function to access fresh data_dict.
 
         if event.key == 'down':
             if self.d is not 2:
                 self.d -= 1
                 for i in range(len(self.clus_layers)):
-                    loopPCA(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
+                    self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
+                    gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)

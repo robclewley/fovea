@@ -1245,6 +1245,20 @@ class diagnosticGUI(object):
                              'control': 1}
         self._last_ix = None
 
+    def initialize_callbacks(self, fig, ax):
+        #INIT FROM GUIROCKET
+        self.fig = fig
+        self.ax = ax
+        self.context_objects = []
+        self.pts = None
+        self.current_domain_handler = dom.GUI_domain_handler(self)
+
+        self.mouse_wait_state_owner = None
+        self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
+        self.RS_line.set_active(False)
+        evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
+        evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
+
     def addDataTraj(self, traj, points=None):
         """
         Provide the trajectory (or other curve object) for the
@@ -1340,6 +1354,10 @@ class diagnosticGUI(object):
             backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
             self.widgets['goBack'] = backButton
 
+            # Go back to last point button
+            saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
+            self.widgets['save'] = saveButton
+
             self.plotter.show(update='all', rebuild=True, force_wait=False)
 
             # Build up each subplot, left to right, top to bottom
@@ -1382,6 +1400,7 @@ class diagnosticGUI(object):
         self.widgets['capturePoint'].on_clicked(self.capturePoint)
         self.widgets['refresh'].on_clicked(self.refresh)
         self.widgets['goBack'].on_clicked(self.goBack)
+        self.widgets['save'].on_clicked(self.save)
         if with_times:
             self.widgets['timeBar'].on_changed(self.updatePlots)
             self.widgets['minus_dt'].on_clicked(self.minus_dt)
@@ -1521,6 +1540,15 @@ class diagnosticGUI(object):
                             if fig_struct.layers[layName].kind == 'data':
                                 pt_dict[data_name] = traj(self.t)['y']
 
+            print("figName: ")
+            print(figName)
+            print("pt_dict: ")
+            print(pt_dict)
+            print(type(pt_dict))
+            print("Point(pt_dict): ")
+            print(Point(pt_dict))
+            type(Point(pt_dict))
+            print("...")
             pts_dict.update({figName: Point(pt_dict)})
 
         if self.verbose >= 1:
@@ -1581,6 +1609,21 @@ class diagnosticGUI(object):
         self.plotter.updateDynamic(self.t, self.dynamicPlotFns,
                                    hard_reset)
 
+    def save(self, ev):
+        """For save button. Saves current figure as a .png
+        in working directory or dm directory if provided.
+                """
+        fig_struct, fig_name = self.plotter._resolveFig(self.plotter.currFig)
+        f = plt.figure(fig_struct.fignum)
+
+        if self.plotter.dm is not None:
+            dirpath = self.plotter.dm._dirpath
+        else:
+            dirpath = ''
+        f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
+                                                        start=1)+'.png'),
+                  format='png')
+
     def minus_dt(self, ev):
         """For the -dt button.
         Moves -1 index position; holding shift moves -10 indices
@@ -1607,6 +1650,93 @@ class diagnosticGUI(object):
     def modifier_key_off(self, ev):
         self._key_mod = None
 
+    def key_on(self, ev):
+        self._key = k = ev.key  # keep record of last keypress
+        # TEMP
+        dom_key = '.'
+        change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
+
+        print("Pressed", k)
+
+        if self.mouse_wait_state_owner == 'domain' and \
+           k in change_mouse_state_keys:
+            # reset state of domain handler first
+            self.current_domain_handler.event('clear')
+        elif k == 'l':
+            print("Make a line of interest")
+            self.RS_line.set_active(True)
+            self.mouse_wait_state_owner = 'line'
+        elif k == ' ':
+            print("Forces at clicked mouse point")
+            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_force)
+            self.mouse_wait_state_owner = 'forces'
+        elif k == 's':
+            print("Snap clicked mouse point to closest point on trajectory")
+            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
+            self.mouse_wait_state_owner = 'snap'
+        elif k == dom_key:
+            print("Click on domain seed point then initial radius point")
+            # grow domain
+            if self.current_domain_handler.func is None:
+                print("Assign a domain criterion function first!")
+                return
+            else:
+                # this call may have side-effects
+                self.current_domain_handler.event('key')
+                self.mouse_wait_state_owner = 'domain'
+
+    def key_off(self, ev):
+        self._key = None
+
+    def onselect_line(self, eclick, erelease):
+        if eclick.button == 1:
+            # left (primary)
+            x1, y1 = eclick.xdata, eclick.ydata
+            x2, y2 = erelease.xdata, erelease.ydata
+
+            print("Self.ax is...")
+            print(self.ax)
+
+            self.selected_object = line_GUI(self, self.ax,
+                                            pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            print("Created line as new selected object, now give it a name")
+            print("  by writing this object's selected_object.name attribute")
+            self.RS_line.set_active(False)
+            self.mouse_wait_state_owner = None
+
+    def mouse_event_snap(self, ev):
+        if self.pts is None:
+            print("No trajectory defined")
+            return
+        print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
+        # have to guess phase, use widest tolerance
+
+        try:
+            data = pp.find_pt_nophase_2D(self.pts, pp.Point2D(ev.xdata, ev.ydata),
+                                         eps=0.1)
+        except ValueError:
+            print("No nearby point found. Try again")
+            self.fig.canvas.mpl_disconnect(self.mouse_cid)
+            return
+        self.last_output = data
+        x_snap = data[2]['x']
+        y_snap = data[2]['y']
+        self.selected_object = pp.Point2D(x_snap, y_snap)
+        if self.selected_object_temphandle is not None:
+            self.selected_object_temphandle.remove()
+        self.selected_object_temphandle = self.ax.plot(x_snap, y_snap, 'go')[0]
+        self.fig.canvas.draw()
+        print("Last output = (index, distance, point)")
+        print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
+                                                          x_snap, y_snap))
+        self.fig.canvas.mpl_disconnect(self.mouse_cid)
+        self.mouse_wait_state_owner = None
+
+    def declare_in_context(self, con_obj):
+        # context_changed flag set when new objects created and unset when Generator is
+        # created with the new context code included
+        self.context_changed = True
+        self.context_objects.append(con_obj)
 
 class context_object(object):
     # Abstract base class
@@ -1620,6 +1750,7 @@ class line_GUI(context_object):
     Line of interest context_object for GUI
     """
     def __init__(self, gui, gui_axes, pt1, pt2):
+
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
             raise ValueError("Coordinate name mismatch")
@@ -1829,7 +1960,6 @@ class tracker_plotter(tracker_GUI):
                                                            _escape_underscore(self.calc_context.workspace._name)))
             fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
         #plt.show()
-
 
 class tracker_manager(object):
     """
