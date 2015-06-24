@@ -52,7 +52,7 @@ def hypersphere(dim):
     clus_layers = ['clus1', 'clus2', 'clus3']
     clus_styles = ['r', 'g', 'y']
 
-    pca_disc.setupPCAlayers(clus_layers, clus_styles, DOI)
+    pca_disc.setupDisplay(clus_layers, clus_styles, DOI)
 
     plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
@@ -80,6 +80,7 @@ def iris():
         except:
             X[row[4]] = (np.array([row[i] for i in range(4)]))
 
-ctrl_sys = disc()
+#ctrl_sys = disc()
+ctrl_sys = hypersphere(6)
 
 halt= True
