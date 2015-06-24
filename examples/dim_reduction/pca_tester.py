@@ -37,6 +37,8 @@ def disc():
     for i in range(len(rot_layers)):
         compute(X[i], d, rot_layers[i], rot_styles[i])
 
+    return ctrl_sys
+
 def hypersphere(dim):
     pts = sd.generate_ball(100, dim, 10)
 
@@ -63,6 +65,8 @@ def hypersphere(dim):
     for i in range(len(clus_layers)):
         compute(X[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
+    return ctrl_sys
+
 def iris():
     """
     Example for loading in real data from txt. Not yet working.
@@ -82,7 +86,7 @@ def iris():
     x=4
 
 #hypersphere(6)
-disc()
-#iris()
+ctrl_sys = disc()
+ctrl_sys = iris()
 
 halt= True
