@@ -80,13 +80,6 @@ def iris():
         except:
             X[row[4]] = (np.array([row[i] for i in range(4)]))
 
-
-
-
-    x=4
-
-#hypersphere(6)
 ctrl_sys = disc()
-ctrl_sys = iris()
 
 halt= True
