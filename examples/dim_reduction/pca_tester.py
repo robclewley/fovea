@@ -29,17 +29,14 @@ def disc():
     X = [X1, X2, X3]
 
     rot_layers = ['rot1', 'rot2', 'rot3']
-    rot_styles = ['r', 'g', 'y']
+    rot_styles = ['r', 'g', 'b']
 
     pca_disc.setupDisplay(rot_layers, rot_styles, DOI)
 
-    plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
+    plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='y.')
 
     d=2
     ctrl_sys = ControlSys(gui.masterWin, X, rot_layers, rot_styles, 2)
-
-    #for i in range(len(rot_layers)):
-        #compute(X[i], d, rot_layers[i], rot_styles[i])
 
     return ctrl_sys
 
@@ -47,21 +44,23 @@ def hypersphere(dim):
     pts = sd.generate_ball(100, dim, 10)
 
     #Create and stretch different hypersphere "clusters":
-    X1 = stretch(sd.generate_ball(133, dim, 10), 0, 1.2)
-    X2 = sd.generate_ball(110, dim, 10)
-    X3 = sd.generate_ball(95, dim, 10)
+    X1 = translate(stretch(sd.generate_ball(133, dim, 10), 0, 1.2), 0, 25)
+    X2 = translate(sd.generate_ball(110, dim, 10), 1, 20)
+    X3 = translate(noise(sd.generate_ball(95, dim, 10), 2, 0.6, 0, 2), 2, 15)
 
     X = [X1, X2, X3]
 
     clus_layers = ['clus1', 'clus2', 'clus3']
-    clus_styles = ['r', 'g', 'y']
+    clus_styles = ['r', 'g', 'b']
 
     pca_disc.setupDisplay(clus_layers, clus_styles, DOI)
 
-    plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
-
     proj_vecsHI = pca_disc.ortho_proj_mat(len(X[0][0]), 3)
     proj_vecsLO = pca_disc.ortho_proj_mat(len(X[0][0]), 2)
+
+    #Plot the entire dataset in blue.
+    X_all = np.concatenate((X1,X2,X3))
+    plotter.addData(np.dot(X_all, proj_vecsHI).transpose(), layer='orig_data', style='y.')
 
     d = 2
     ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2, proj_vecsLO, proj_vecsHI)

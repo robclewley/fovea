@@ -102,7 +102,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
 
     plotter.setLayer(layer, figure='Master', display=False)
 
-    print("Variance Explained:")
+    print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
 
     plotter.show(rebuild=False)
@@ -126,7 +126,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
 
     plotter.arrangeFig([1,3], {'11':
                                {'name': 'BEFORE',
-                                'scale': [(-10,10),(-10,10)],
+                                'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers+['orig_data'],  # all layers will be selected
                                 'axes_vars': ['x', 'y', 'z'],
                                 'projection':'3d'},
@@ -137,7 +137,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
-                                'scale': [(1,10),(0,1)],
+                                'scale': [(0.5,10),(0,1)],
                                 'layers': clus_layers,  # all layers will be selected
                                 'axes_vars': ['x', 'y']},
                                })
@@ -163,8 +163,8 @@ class ControlSys:
 
         for i in range(len(clus_layers)):
             compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
-            plotter.addVLine(self.d, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d))
 
+        self.highlight_eigens()
         #Initialize Bombardier callbacks on 2D subplot.
         game = gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
 
@@ -172,6 +172,11 @@ class ControlSys:
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
         print("Press m to display or hide all layers.")
         print("Press h to show or hide original data.")
+
+    def highlight_eigens(self):
+        for i in range(len(self.clus_layers)):
+            for j in range(1, self.d+1):
+                plotter.addVLine(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
 
     def get_projection_distance(self, pt_array):
         """Domain criterion function for determining how far lower dimensional points
@@ -223,16 +228,18 @@ class ControlSys:
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')
 
-        if event.key == 'up' or event.key == 'down':
+        if event.key == 'up' or (event.key == 'down' and self.d is not 2):
             if event.key == 'up':
                 self.d += 1
-            elif event.key == 'down' and self.d is not 2:
+            elif event.key == 'down':
                 self.d -= 1
+
+            print("Attempting to display", self.d,"-dimensional data...")
 
             for i in range(len(self.clus_layers)):
                 self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
-                plotter.addVLine(self.d, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d))
 
+            self.highlight_eigens()
             gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)
