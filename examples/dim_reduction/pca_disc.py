@@ -38,7 +38,7 @@ def stretch(X, axis, amount):
     return X
 
 def noise(X, axis, percent, loc, scale):
-    for i in range(0, round(len(X)*percent)):
+    for i in range(0, int(round(len(X)*percent))):
         X[i][axis] = np.random.normal(loc, scale, 1)
     return X
 
@@ -88,7 +88,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
+    plotter.addData([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
     plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
@@ -137,7 +137,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
-                                'scale': [(0,10),(0,1)],
+                                'scale': [(1,10),(0,1)],
                                 'layers': clus_layers,  # all layers will be selected
                                 'axes_vars': ['x', 'y']},
                                })
@@ -160,6 +160,10 @@ class ControlSys:
         self.c = 0
         self.m = False
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
+
+        for i in range(len(clus_layers)):
+            compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
+            plotter.addVLine(self.d, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d))
 
         #Initialize Bombardier callbacks on 2D subplot.
         game = gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
@@ -199,12 +203,12 @@ class ControlSys:
             return 1
 
     def keypress(self, event):
-        if event.key == 'right':
-            self.c += 1
-        if event.key == 'left':
-            self.c -= 1
 
         if event.key == 'left' or event.key == 'right':
+            if event.key == 'left':
+                self.c += 1
+            else:
+                self.c -= 1
 
             for clus in self.clus_layers:
                     plotter.setLayer(clus, display= False)
@@ -219,17 +223,16 @@ class ControlSys:
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')
 
-        if event.key == 'up':
-            self.d += 1
+        if event.key == 'up' or event.key == 'down':
+            if event.key == 'up':
+                self.d += 1
+            elif event.key == 'down' and self.d is not 2:
+                self.d -= 1
+
             for i in range(len(self.clus_layers)):
                 self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
-                gui.current_domain_handler.assign_criterion_func(self.get_projection_distance) #Reset criterion function to access fresh data_dict.
+                plotter.addVLine(self.d, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d))
 
-        if event.key == 'down':
-            if self.d is not 2:
-                self.d -= 1
-                for i in range(len(self.clus_layers)):
-                    self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
-                    gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
+            gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)

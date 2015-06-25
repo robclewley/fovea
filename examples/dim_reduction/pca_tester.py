@@ -1,5 +1,5 @@
 import pca_disc
-from pca_disc import plotter, gui, compute, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate
+from pca_disc import plotter, gui, compute, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate, noise
 from fovea import *
 
 from PyDSTool.Toolbox import synthetic_data as sd
@@ -36,10 +36,10 @@ def disc():
     plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='b.')
 
     d=2
-    ctrl_sys = ControlSys(gui.masterWin, pts, rot_layers, rot_styles, 2)
+    ctrl_sys = ControlSys(gui.masterWin, X, rot_layers, rot_styles, 2)
 
-    for i in range(len(rot_layers)):
-        compute(X[i], d, rot_layers[i], rot_styles[i])
+    #for i in range(len(rot_layers)):
+        #compute(X[i], d, rot_layers[i], rot_styles[i])
 
     return ctrl_sys
 
@@ -65,9 +65,6 @@ def hypersphere(dim):
 
     d = 2
     ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2, proj_vecsLO, proj_vecsHI)
-
-    for i in range(len(clus_layers)):
-        compute(X[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
     return ctrl_sys
 
