@@ -58,7 +58,7 @@ class polygon_domain(object):
         if callable(condition_func):
             # single function
             target_fsign = np.sign(condition_func(c))
-            self.boolfunc = lambda p: np.sign(condition_func(p)) == \
+            self.boolfunc = lambda p: np.sign(condition_func(p, fsign = target_fsign)) == \
                                          target_fsign
         else:
             # list of functions
@@ -67,26 +67,27 @@ class polygon_domain(object):
                                          target_fsigns
         # check that p1 satifies same sign
         if not self.boolfunc(p1):
-            raise dst.PyDSTool_ValueError("f(p1) has different sign to f(c)")
+            #raise dst.PyDSTool_ValueError("f(p1) has different sign to f(c)")\
+            print("Error: f(p1) has different sign to f(c)")
+        else:
+            # distance scale and initial trust radius
+            self.r0 = np.linalg.norm(p1-c)
+            self.max_radius = max_radius_fac*self.r0
+            self.edge_resolution_atol = rtol*self.r0
+            self.edge_length_atol = edge_len_rtol*self.r0
+            # angle of trust radius line to x-axis
+            theta1 = math.acos(self.initial_r[0]/self.r0)
+            dtheta = 2*math.pi/nsides
+            # distribute angles uniformly over the circle
+            # and compute nsides-1 new polygon vertices from p1
+            pt_list = [self.initial_center + \
+                               self.r0*np.array([math.cos(theta1+dtheta*i),
+                                                 math.sin(theta1+dtheta*i)])
+                               for i in range(nsides)]
+            self.polygon = P.Polygon(pt_list)
+            self.nsides = nsides
 
-        # distance scale and initial trust radius
-        self.r0 = np.linalg.norm(p1-c)
-        self.max_radius = max_radius_fac*self.r0
-        self.edge_resolution_atol = rtol*self.r0
-        self.edge_length_atol = edge_len_rtol*self.r0
-        # angle of trust radius line to x-axis
-        theta1 = math.acos(self.initial_r[0]/self.r0)
-        dtheta = 2*math.pi/nsides
-        # distribute angles uniformly over the circle
-        # and compute nsides-1 new polygon vertices from p1
-        pt_list = [self.initial_center + \
-                           self.r0*np.array([math.cos(theta1+dtheta*i),
-                                             math.sin(theta1+dtheta*i)])
-                           for i in range(nsides)]
-        self.polygon = P.Polygon(pt_list)
-        self.nsides = nsides
-
-        self.stop_growing = [False]*self.nsides
+            self.stop_growing = [False]*self.nsides
 
     def grow(self, max_iters=300):
         for i in range(max_iters):
@@ -288,12 +289,15 @@ class GUI_domain_handler(object):
                                                      edge_len_rtol=3)
         if self.verbose:
             print("Growing domain")
-        self.polygon_domain_obj.grow()
-        self.domain = self.polygon_domain_obj.polygon
-        self.gui_grow_state = 3
-        self.show_domain()
-        if self.verbose:
-            print("Domain complete")
+        try:
+            self.polygon_domain_obj.grow()
+            self.domain = self.polygon_domain_obj.polygon
+            self.gui_grow_state = 3
+            self.show_domain()
+            if self.verbose:
+                print("Domain complete")
+        except AttributeError:
+            return
 
     def show_domain(self):
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
@@ -310,11 +314,16 @@ class GUI_domain_handler(object):
 
     def unshow_domain(self):
         if self.gui.selected_object_temphandle is not None:
+
             try:
                 self.gui.selected_object_temphandle.remove()
             except ValueError:
                 # sequence
-                for th in self.gui.selected_object_temphandle:
-                    th.remove()
+                try:
+                    for th in self.gui.selected_object_temphandle:
+                        th.remove()
+                except TypeError:
+                    pass
+
         self.gui.fig.canvas.draw()
 

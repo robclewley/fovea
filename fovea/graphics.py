@@ -746,7 +746,7 @@ class plotter2D(object):
                      name=name, display=display, log=log)
 
 
-    def addVLine(self, x, figure=None, layer=None, style=None, name='vline',
+    def addVLine(self, x, figure=None, layer=None, subplot=None, style=None, name='vline',
                  log=None):
         """
         Add vertical line.
@@ -762,7 +762,7 @@ class plotter2D(object):
                 ydom = self.figs[figure].domain[1]
             else:
                 ydom = sc[1]
-        self.addData([[x, x], ydom], figure=figure, layer=layer,
+        self.addData([[x, x], ydom], figure=figure, layer=layer, subplot=subplot,
                          style=style, name=name, log=log)
 
 
@@ -1251,6 +1251,7 @@ class diagnosticGUI(object):
         self.ax = ax
         self.context_objects = []
         self.pts = None
+        self.selected_object_temphandle = None
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
         self.mouse_wait_state_owner = None
@@ -1656,7 +1657,7 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-        print("Pressed", k)
+        #print("Pressed", k)
 
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
@@ -1675,6 +1676,8 @@ class diagnosticGUI(object):
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
             self.mouse_wait_state_owner = 'snap'
         elif k == dom_key:
+            if self.selected_object_temphandle is not None:
+                self.current_domain_handler.event('reset')
             print("Click on domain seed point then initial radius point")
             # grow domain
             if self.current_domain_handler.func is None:
