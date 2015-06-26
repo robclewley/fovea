@@ -1,5 +1,5 @@
 import pca_disc
-from pca_disc import plotter, gui, compute, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate, noise
+from pca_disc import plotter, gui, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate, noise
 from fovea import *
 
 from PyDSTool.Toolbox import synthetic_data as sd
@@ -14,19 +14,15 @@ def disc():
     pts = sd.generate_ball(100, 2, 10)
     pts = np.concatenate((pts,np.zeros((100, 1))), axis=1)
 
-    trans_am = 15
+    trans_am = 12
     trans_ax = 1
 
-    #Produce rotated clusters:
-    X1 = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
-    X2 = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
-    X3 = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
+    X = [[],[],[]]
+    for i in range(3):
+        X[i] = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
+        X[i] = noise(X[i], 2, 0.3, 0, 10)
 
-    X1 = noise(X1, 2, 0.3, 0, 10)
-    X2 = noise(X2, 2, 0.3, 0, 10)
-    X3 = noise(X3, 2, 0.3, 0, 10)
-
-    X = [X1, X2, X3]
+    print(X[0])
 
     rot_layers = ['rot1', 'rot2', 'rot3']
     rot_styles = ['r', 'g', 'b']
@@ -44,7 +40,8 @@ def hypersphere(dim):
     pts = sd.generate_ball(100, dim, 10)
 
     #Create and stretch different hypersphere "clusters":
-    X1 = translate(stretch(sd.generate_ball(133, dim, 10), 0, 1.2), 0, 25)
+    #X1 = translate(stretch(sd.generate_ball(133, dim, 10), 0, 1.2), 0, 25)
+    X1 = translate(stretch(stretch(sd.generate_ball(133, dim, 10), 0, 1.4), 1, 1.4), 0, 25)
     X2 = translate(sd.generate_ball(110, dim, 10), 1, 20)
     X3 = translate(noise(sd.generate_ball(95, dim, 10), 2, 0.6, 0, 2), 2, 15)
 

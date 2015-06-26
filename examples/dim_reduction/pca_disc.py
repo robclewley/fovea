@@ -100,10 +100,10 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
     #Create plot of low-dimensional data.
     plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
-    plotter.setLayer(layer, figure='Master', display=False)
-
     print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
+
+    plotter.setLayer(layer, figure='Master', display=False)
 
     plotter.show(rebuild=False)
 
@@ -126,23 +126,23 @@ def setupDisplay(clus_layers, clus_styles, DOI):
 
     plotter.arrangeFig([1,3], {'11':
                                {'name': 'BEFORE',
-                                'scale': [(-20,20),(-20,20)],
-                                'layers': clus_layers+['orig_data'],  # all layers will be selected
+                                'scale': [(-10,10),(-10,10)],
+                                'layers': clus_layers+['orig_data'],
                                 'axes_vars': ['x', 'y', 'z'],
                                 'projection':'3d'},
                                '12':
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
-                                'layers': clus_layers,  # all layers will be selected
+                                'layers': clus_layers,
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
                                 'scale': [(0.5,10),(0,1)],
-                                'layers': clus_layers,  # all layers will be selected
+                                'layers': clus_layers,
                                 'axes_vars': ['x', 'y']},
                                })
 
-    gui.buildPlotter2D((8,8), with_times=False)
+    gui.buildPlotter2D((14,6), with_times=False)
 
 
 proj_thresh = 20
@@ -162,11 +162,12 @@ class ControlSys:
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
 
         for i in range(len(clus_layers)):
-            compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
+            self.data_dict = compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
         self.highlight_eigens()
         #Initialize Bombardier callbacks on 2D subplot.
-        game = gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+        gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+        gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
@@ -178,7 +179,7 @@ class ControlSys:
             for j in range(1, self.d+1):
                 plotter.addVLine(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
 
-    def get_projection_distance(self, pt_array):
+    def get_projection_distance(self, pt_array, fsign=None):
         """Domain criterion function for determining how far lower dimensional points
         were projected"""
         #Judge by nearest point rather than points inside. Otherwise, I would need to access the whole polygon,
@@ -187,17 +188,22 @@ class ControlSys:
         nearest_pt = []
         index = []
 
+        try:
+            pts = self.data_dict['Y_projected']
+        except KeyError:
+            pts = self.data_dict['Y']
+
         #Find closest projected point.
         dist = 10000000
-        for i, row in enumerate(self.data_dict['Y_projected']):
+        for i, row in enumerate(pts):
             if np.linalg.norm(pt_array - row) < dist:
                 dist = np.linalg.norm(pt_array - row)
                 nearest_pt = row
                 index = i
 
         #Need more formal way to do this. Standard deviation? This doesn't seem to accomplish anything right now anyways.
-        if dist > 2:
-            return -1
+        if dist > 2 and fsign is not None:
+            return -fsign
 
         #Calculate distance between projected point and loD point.
         orig_pt = self.data_dict['Y'][i]
