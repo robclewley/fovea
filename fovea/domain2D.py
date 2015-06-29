@@ -246,10 +246,11 @@ class GUI_domain_handler(object):
                 return False
 
     def mouse_event_make_dom_c(self, ev):
-        if self.gui.ax is not None and ev.inaxes is not self.gui.ax:
+        if ev.inaxes not in self.gui.cb_axes:
             print('Must select axes for which callbacks have been defined.')
             return
 
+        self.curr_axes = ev.inaxes
         if self.verbose:
             print("In make_dom_c")
         # release mouse event control
@@ -264,7 +265,8 @@ class GUI_domain_handler(object):
         # assign to c
         self.center_pt = pp.Point2D(ev.xdata, ev.ydata)
         # display c
-        self.gui.selected_object_temphandle = self.gui.ax.plot(ev.xdata, ev.ydata, 'go')[0]
+        #self.gui.selected_object_temphandle = self.gui.ax.plot(ev.xdata, ev.ydata, 'go')[0]
+        self.gui.selected_object_temphandle = ev.inaxes.plot(ev.xdata, ev.ydata, 'go')[0]
         self.gui.fig.canvas.draw()
         # switch control to make_dom_p1
         self.gui.mouse_cid = self.gui.fig.canvas.mpl_connect('button_release_event', self.mouse_event_make_dom_p1)
@@ -313,7 +315,7 @@ class GUI_domain_handler(object):
 ##                # sequence
 ##                for th in self.gui.selected_object_temphandle:
 ##                    th.remove()
-        self.gui.selected_object_temphandle = self.gui.ax.plot(xs, ys, 'y-', lw=2, zorder=2)[0]
+        self.gui.selected_object_temphandle = self.curr_axes.plot(xs, ys, 'y-', lw=2, zorder=2)[0]
         self.gui.fig.canvas.draw()
 
     def unshow_domain(self):

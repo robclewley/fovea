@@ -135,6 +135,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers,
+                                #'callbacks':'*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
@@ -168,7 +169,7 @@ class ControlSys:
         self.highlight_eigens()
 
         #Initialize Bombardier callbacks on 2D subplot.
-        gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+        #gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
         gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
         gui.assign_spatial_func(self.get_displacements)
 
@@ -259,13 +260,20 @@ class ControlSys:
         by datapoint number (1-N):
         distance from (x, y) and displacement vector to (x, y)
         """
+        print("Last output = (mag dict, vector dict)")
         Fxs = []
         Fys = []
         Fs = []
-        ixs = range(len(self.data_dict['Y_projected']))
+
+        try:
+            pts = self.data_dict['Y_projected']
+        except KeyError:
+            pts = self.data_dict['Y']
+
+        ixs = range(len(pts))
         for i in ixs:
-            Fx = x - self.data_dict['Y_projected'][i][0]
-            Fy = y - self.data_dict['Y_projected'][i][1]
+            Fx = x - pts[i][0]
+            Fy = y - pts[i][1]
             Fxs.append(Fx)
             Fys.append(Fy)
             Fs.append(sqrt(Fx*Fx+Fy*Fy))
