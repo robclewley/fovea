@@ -246,6 +246,10 @@ class GUI_domain_handler(object):
                 return False
 
     def mouse_event_make_dom_c(self, ev):
+        if self.gui.ax is not None and ev.inaxes is not self.gui.ax:
+            print('Must select axes for which callbacks have been defined.')
+            return
+
         if self.verbose:
             print("In make_dom_c")
         # release mouse event control

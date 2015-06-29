@@ -4,6 +4,7 @@ from PyDSTool.Toolbox import data_analysis as da
 
 import numpy as np
 
+from PyDSTool import *
 from fovea import *
 from fovea.graphics import gui
 from fovea.diagnostics import diagnostic_manager
@@ -165,9 +166,11 @@ class ControlSys:
             self.data_dict = compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
 
         self.highlight_eigens()
+
         #Initialize Bombardier callbacks on 2D subplot.
         gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
         gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
+        gui.assign_spatial_func(self.get_displacements)
 
         #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
@@ -249,3 +252,21 @@ class ControlSys:
             gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)
+
+    def get_displacements(self, x, y):
+        """
+        For given x, y coord arguments, returns two dictionaries keyed
+        by datapoint number (1-N):
+        distance from (x, y) and displacement vector to (x, y)
+        """
+        Fxs = []
+        Fys = []
+        Fs = []
+        ixs = range(len(self.data_dict['Y_projected']))
+        for i in ixs:
+            Fx = x - self.data_dict['Y_projected'][i][0]
+            Fy = y - self.data_dict['Y_projected'][i][1]
+            Fxs.append(Fx)
+            Fys.append(Fy)
+            Fs.append(sqrt(Fx*Fx+Fy*Fy))
+        return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))

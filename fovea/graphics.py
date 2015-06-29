@@ -890,6 +890,7 @@ class plotter2D(object):
 
                 else:
                     ax = subplot_struct['axes_obj']
+
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
 
@@ -1657,8 +1658,6 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-        #print("Pressed", k)
-
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -1734,6 +1733,27 @@ class diagnosticGUI(object):
                                                           x_snap, y_snap))
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
+
+    def mouse_event_force(self, ev):
+        if ev.inaxes is not self.ax:
+            print('Must select axes for which callbacks have been defined.')
+            return
+
+        print("\n(%.4f, %.4f)" %(ev.xdata, ev.ydata))
+        fs, fvecs = self.spatial_func(ev.xdata, ev.ydata)
+        print(fs)
+        print("Last output = (force mag dict, force vector dict)")
+        self.last_output = (fs, fvecs)
+        self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
+        if self.selected_object_temphandle is not None:
+            self.selected_object_temphandle.remove()
+        self.selected_object_temphandle = self.ax.plot(ev.xdata, ev.ydata, 'go')[0]
+        self.fig.canvas.draw()
+        self.fig.canvas.mpl_disconnect(self.mouse_cid)
+        self.mouse_wait_state_owner = None
+
+    def assign_spatial_func(self, func):
+        self.spatial_func = func
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is
