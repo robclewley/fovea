@@ -746,7 +746,7 @@ class plotter2D(object):
                      name=name, display=display, log=log)
 
 
-    def addVLine(self, x, figure=None, layer=None, style=None, name='vline',
+    def addVLine(self, x, figure=None, layer=None, subplot=None, style=None, name='vline',
                  log=None):
         """
         Add vertical line.
@@ -762,7 +762,7 @@ class plotter2D(object):
                 ydom = self.figs[figure].domain[1]
             else:
                 ydom = sc[1]
-        self.addData([[x, x], ydom], figure=figure, layer=layer,
+        self.addData([[x, x], ydom], figure=figure, layer=layer, subplot=subplot,
                          style=style, name=name, log=log)
 
 
@@ -890,6 +890,12 @@ class plotter2D(object):
 
                 else:
                     ax = subplot_struct['axes_obj']
+
+                if 'callbacks' in subplot_struct:
+                    gui.cb_axes.append(ax)
+                    gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
+                    gui.RS_line.set_active(False)
+
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
 
@@ -1190,6 +1196,8 @@ class diagnosticGUI(object):
         assert isinstance(objPlotter, plotter2D), \
                "plotter2D_GUI must be instantiated with a plotter2D object."
 
+        self.cb_axes = []
+
         # easy user access to these basic attributes: current time and
         # index into self.points
         self.t = None
@@ -1245,17 +1253,17 @@ class diagnosticGUI(object):
                              'control': 1}
         self._last_ix = None
 
-    def initialize_callbacks(self, fig, ax):
+    def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
         self.fig = fig
-        self.ax = ax
         self.context_objects = []
         self.pts = None
+        self.selected_object_temphandle = None
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
         self.mouse_wait_state_owner = None
-        self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
-        self.RS_line.set_active(False)
+        #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
+        #self.RS_line.set_active(False)
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
@@ -1319,6 +1327,7 @@ class diagnosticGUI(object):
                                wspace=0.2, hspace=0.23)
 
             self.masterWin = fig_handle
+            self.initialize_callbacks(self.masterWin)
 
             # Time bar controls time lines in figures
             # ISSUE: Not all uses of this class use time
@@ -1656,8 +1665,6 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-        print("Pressed", k)
-
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -1675,6 +1682,8 @@ class diagnosticGUI(object):
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
             self.mouse_wait_state_owner = 'snap'
         elif k == dom_key:
+            if self.selected_object_temphandle is not None:
+                self.current_domain_handler.event('reset')
             print("Click on domain seed point then initial radius point")
             # grow domain
             if self.current_domain_handler.func is None:
@@ -1731,6 +1740,26 @@ class diagnosticGUI(object):
                                                           x_snap, y_snap))
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
+
+    def mouse_event_force(self, ev):
+        if ev.inaxes not in self.cb_axes:
+            print('Must select axes for which callbacks have been defined.')
+            return
+
+        print("\n(%.4f, %.4f)" %(ev.xdata, ev.ydata))
+        fs, fvecs = self.spatial_func(ev.xdata, ev.ydata)
+        print(fs)
+        self.last_output = (fs, fvecs)
+        self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
+        if self.selected_object_temphandle is not None:
+            self.selected_object_temphandle.remove()
+        self.selected_object_temphandle = ev.inaxes.plot(ev.xdata, ev.ydata, 'go')[0]
+        self.fig.canvas.draw()
+        self.fig.canvas.mpl_disconnect(self.mouse_cid)
+        self.mouse_wait_state_owner = None
+
+    def assign_spatial_func(self, func):
+        self.spatial_func = func
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is

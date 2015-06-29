@@ -97,7 +97,7 @@ print("Eccentricity = %.3f" % ecc1)
 
 dom_thresh = 0.6
 
-def body4_dominant_at_point(pt_array):
+def body4_dominant_at_point(pt_array, fsign=None):
     """
     Returns scalar relative to user threshold of %age dominant out of net force
     """

@@ -44,7 +44,7 @@ game2.go()
 
 dom_thresh = 0.6
 
-def body1_dominant_at_point(pt_array):
+def body1_dominant_at_point(pt_array, fsign=None):
     """
     Returns scalar relative to user threshold of %age dominant out of net force
     """

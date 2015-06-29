@@ -4,6 +4,7 @@ from PyDSTool.Toolbox import data_analysis as da
 
 import numpy as np
 
+from PyDSTool import *
 from fovea import *
 from fovea.graphics import gui
 from fovea.diagnostics import diagnostic_manager
@@ -38,7 +39,7 @@ def stretch(X, axis, amount):
     return X
 
 def noise(X, axis, percent, loc, scale):
-    for i in range(0, round(len(X)*percent)):
+    for i in range(0, int(round(len(X)*percent))):
         X[i][axis] = np.random.normal(loc, scale, 1)
     return X
 
@@ -88,7 +89,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(len(p.d)), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
+    plotter.addData([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
     plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
@@ -100,10 +101,10 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
     #Create plot of low-dimensional data.
     plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
-    plotter.setLayer(layer, figure='Master', display=False)
-
-    print("Variance Explained:")
+    print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
+
+    plotter.setLayer(layer, figure='Master', display=False)
 
     plotter.show(rebuild=False)
 
@@ -127,22 +128,23 @@ def setupDisplay(clus_layers, clus_styles, DOI):
     plotter.arrangeFig([1,3], {'11':
                                {'name': 'BEFORE',
                                 'scale': [(-10,10),(-10,10)],
-                                'layers': clus_layers+['orig_data'],  # all layers will be selected
+                                'layers': clus_layers+['orig_data'],
                                 'axes_vars': ['x', 'y', 'z'],
                                 'projection':'3d'},
                                '12':
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
-                                'layers': clus_layers,  # all layers will be selected
+                                'layers': clus_layers,
+                                #'callbacks':'*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
-                                'scale': [(0,10),(0,1)],
-                                'layers': clus_layers,  # all layers will be selected
+                                'scale': [(0.5,10),(0,1)],
+                                'layers': clus_layers,
                                 'axes_vars': ['x', 'y']},
                                })
 
-    gui.buildPlotter2D((8,8), with_times=False)
+    gui.buildPlotter2D((14,6), with_times=False)
 
 
 proj_thresh = 20
@@ -161,15 +163,27 @@ class ControlSys:
         self.m = False
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
 
+        for i in range(len(clus_layers)):
+            self.data_dict = compute(data[i], d, clus_layers[i], clus_styles[i], proj_vecsLO, proj_vecsHI)
+
+        self.highlight_eigens()
+
         #Initialize Bombardier callbacks on 2D subplot.
-        game = gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+        #gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
+        gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
+        gui.assign_spatial_func(self.get_displacements)
 
         #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
         print("Press m to display or hide all layers.")
         print("Press h to show or hide original data.")
 
-    def get_projection_distance(self, pt_array):
+    def highlight_eigens(self):
+        for i in range(len(self.clus_layers)):
+            for j in range(1, self.d+1):
+                plotter.addVLine(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
+
+    def get_projection_distance(self, pt_array, fsign=None):
         """Domain criterion function for determining how far lower dimensional points
         were projected"""
         #Judge by nearest point rather than points inside. Otherwise, I would need to access the whole polygon,
@@ -178,17 +192,22 @@ class ControlSys:
         nearest_pt = []
         index = []
 
+        try:
+            pts = self.data_dict['Y_projected']
+        except KeyError:
+            pts = self.data_dict['Y']
+
         #Find closest projected point.
         dist = 10000000
-        for i, row in enumerate(self.data_dict['Y_projected']):
+        for i, row in enumerate(pts):
             if np.linalg.norm(pt_array - row) < dist:
                 dist = np.linalg.norm(pt_array - row)
                 nearest_pt = row
                 index = i
 
         #Need more formal way to do this. Standard deviation? This doesn't seem to accomplish anything right now anyways.
-        if dist > 2:
-            return -1
+        if dist > 2 and fsign is not None:
+            return -fsign
 
         #Calculate distance between projected point and loD point.
         orig_pt = self.data_dict['Y'][i]
@@ -199,12 +218,12 @@ class ControlSys:
             return 1
 
     def keypress(self, event):
-        if event.key == 'right':
-            self.c += 1
-        if event.key == 'left':
-            self.c -= 1
 
         if event.key == 'left' or event.key == 'right':
+            if event.key == 'left':
+                self.c += 1
+            else:
+                self.c -= 1
 
             for clus in self.clus_layers:
                     plotter.setLayer(clus, display= False)
@@ -219,17 +238,43 @@ class ControlSys:
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')
 
-        if event.key == 'up':
-            self.d += 1
+        if event.key == 'up' or (event.key == 'down' and self.d is not 2):
+            if event.key == 'up':
+                self.d += 1
+            elif event.key == 'down':
+                self.d -= 1
+
+            print("Attempting to display", self.d,"-dimensional data...")
+
             for i in range(len(self.clus_layers)):
                 self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
-                gui.current_domain_handler.assign_criterion_func(self.get_projection_distance) #Reset criterion function to access fresh data_dict.
 
-        if event.key == 'down':
-            if self.d is not 2:
-                self.d -= 1
-                for i in range(len(self.clus_layers)):
-                    self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
-                    gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
+            self.highlight_eigens()
+            gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)
+
+    def get_displacements(self, x, y):
+        """
+        For given x, y coord arguments, returns two dictionaries keyed
+        by datapoint number (1-N):
+        distance from (x, y) and displacement vector to (x, y)
+        """
+        print("Last output = (mag dict, vector dict)")
+        Fxs = []
+        Fys = []
+        Fs = []
+
+        try:
+            pts = self.data_dict['Y_projected']
+        except KeyError:
+            pts = self.data_dict['Y']
+
+        ixs = range(len(pts))
+        for i in ixs:
+            Fx = x - pts[i][0]
+            Fy = y - pts[i][1]
+            Fxs.append(Fx)
+            Fys.append(Fy)
+            Fs.append(sqrt(Fx*Fx+Fy*Fy))
+        return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))
