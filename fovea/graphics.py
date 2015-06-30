@@ -1257,7 +1257,6 @@ class diagnosticGUI(object):
         #INIT FROM GUIROCKET
         self.fig = fig
         self.context_objects = []
-        self.pts = None
         self.selected_object_temphandle = None
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
@@ -1266,6 +1265,95 @@ class diagnosticGUI(object):
         #self.RS_line.set_active(False)
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
+
+    def plot_traj(self, pts=None, with_speeds=True, startpt=None, endpt=None, trajline=None, quartiles=None):
+        """
+        with_speeds option makes a "heat map" like color code along trajectory that denotes speed.
+        """
+        #TEMP VARS
+        self.ax = self.cb_axes[0]
+        self.maxspeed = 2.2
+
+        if pts is None:
+            if self.points is not None:
+                pts = self.points
+            else:
+                # nothing to plot
+                return
+        #if self.axisbgcol == 'black':
+            #col = 'w'
+        #else:
+            #col = 'k'
+        col='k'
+        firstpt = pts[0]
+        lastpt = pts[-1]
+
+        if startpt is None:
+            #self.startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
+            startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
+        else:
+            #self.startpt.set_xdata(firstpt['x'])
+            #self.startpt.set_ydata(firstpt['y'])
+            startpt.set_xdata(firstpt['x'])
+            startpt.set_ydata(firstpt['y'])
+
+        #if self.trajline is not None:
+            #self.trajline.remove()
+        if trajline is not None:
+            trajline.remove()
+
+        if with_speeds:
+            speeds = pts['speed']
+            norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
+            cmap=plt.cm.jet #gist_heat
+            RGBAs = cmap(norm(speeds))
+            xs = pts['x'][1:-1]
+            ys = pts['y'][1:-1]
+            segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+            linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
+            #self.trajline = self.ax.add_collection(linecollection)
+            trajline = self.ax.add_collection(linecollection)
+        else:
+            #self.trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
+            trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
+
+        #if self.endpt is None:
+            #self.endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
+        if endpt is None:
+            endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
+        else:
+            self.endpt.set_xdata(lastpt['x'])
+            self.endpt.set_ydata(lastpt['y'])
+            endpt.set_xdata(lastpt['x'])
+            endpt.set_ydata(lastpt['y'])
+
+        n = len(pts)
+        ptq1 = pts[int(0.25*n)]
+        ptq2 = pts[int(0.5*n)]
+        ptq3 = pts[int(0.75*n)]
+        #if self.quartiles is None:
+            #self.quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
+                              #self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
+                              #self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
+        #else:
+            #self.quartiles[0].set_xdata(ptq1['x'])
+            #self.quartiles[0].set_ydata(ptq1['y'])
+            #self.quartiles[1].set_xdata(ptq2['x'])
+            #self.quartiles[1].set_ydata(ptq2['y'])
+            #self.quartiles[2].set_xdata(ptq3['x'])
+            #self.quartiles[2].set_ydata(ptq3['y'])
+        if quartiles is None:
+            quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
+                              self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
+                              self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
+        else:
+            quartiles[0].set_xdata(ptq1['x'])
+            quartiles[0].set_ydata(ptq1['y'])
+            quartiles[1].set_xdata(ptq2['x'])
+            quartiles[1].set_ydata(ptq2['y'])
+            quartiles[2].set_xdata(ptq3['x'])
+            quartiles[2].set_ydata(ptq3['y'])
+        plt.draw()
 
     def addDataTraj(self, traj, points=None):
         """
@@ -1282,7 +1370,7 @@ class diagnosticGUI(object):
         else:
             self.points = points
         try:
-            self.times = points['t']
+            self.times = self.points['t']
         except KeyError:
             # trajectory is not parameterized by 't'
             self.times = None
@@ -1299,7 +1387,7 @@ class diagnosticGUI(object):
             self.times = None
 
 
-    def buildPlotter2D(self, figsize=None, with_times=True):
+    def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
         """
         Create time bar widget.
         Create capture points widget.
@@ -1320,7 +1408,7 @@ class diagnosticGUI(object):
             else:
                 fig_handle = plt.figure(fig_struct.fignum)
             fig_handle.canvas.set_window_title(fig_struct.title + " : Master window")
-            if figName != 'Master':
+            if figName != 'Master' and figName != 'master':
                 continue
             # ====== Set up master window controls
             plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
@@ -1351,21 +1439,27 @@ class diagnosticGUI(object):
                 p_dt_Button = Button(plt.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
                 self.widgets['plus_dt'] = p_dt_Button
 
-            # Capture point button in lower left
-            captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
-            self.widgets['capturePoint'] = captureButton
+            if basic_widgets:
+                # Capture point button in lower left
+                captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
+                self.widgets['capturePoint'] = captureButton
 
-            # Refresh button
-            refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
-            self.widgets['refresh'] = refreshButton
+                # Refresh button
+                refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
+                self.widgets['refresh'] = refreshButton
 
-            # Go back to last point button
-            backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
-            self.widgets['goBack'] = backButton
+                # Go back to last point button
+                backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
+                self.widgets['goBack'] = backButton
 
-            # Go back to last point button
-            saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
-            self.widgets['save'] = saveButton
+                # Go back to last point button
+                saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
+                self.widgets['save'] = saveButton
+
+                self.widgets['capturePoint'].on_clicked(self.capturePoint)
+                self.widgets['refresh'].on_clicked(self.refresh)
+                self.widgets['goBack'].on_clicked(self.goBack)
+                self.widgets['save'].on_clicked(self.save)
 
             self.plotter.show(update='all', rebuild=True, force_wait=False)
 
@@ -1406,10 +1500,10 @@ class diagnosticGUI(object):
             print("3D Axes can be rotated by clicking and dragging.")
 
         # Activate button & slider callbacks
-        self.widgets['capturePoint'].on_clicked(self.capturePoint)
-        self.widgets['refresh'].on_clicked(self.refresh)
-        self.widgets['goBack'].on_clicked(self.goBack)
-        self.widgets['save'].on_clicked(self.save)
+        #self.widgets['capturePoint'].on_clicked(self.capturePoint)
+        #self.widgets['refresh'].on_clicked(self.refresh)
+        #self.widgets['goBack'].on_clicked(self.goBack)
+        #self.widgets['save'].on_clicked(self.save)
         if with_times:
             self.widgets['timeBar'].on_changed(self.updatePlots)
             self.widgets['minus_dt'].on_clicked(self.minus_dt)
@@ -1703,10 +1797,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            print("Self.ax is...")
-            print(self.ax)
-
-            self.selected_object = line_GUI(self, self.ax,
+            self.selected_object = line_GUI(self, self.RS_line.ax,
                                             pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
@@ -1714,14 +1805,14 @@ class diagnosticGUI(object):
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
-        if self.pts is None:
+        if self.points is None:
             print("No trajectory defined")
             return
         print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
         # have to guess phase, use widest tolerance
 
         try:
-            data = pp.find_pt_nophase_2D(self.pts, pp.Point2D(ev.xdata, ev.ydata),
+            data = pp.find_pt_nophase_2D(self.points, pp.Point2D(ev.xdata, ev.ydata),
                                          eps=0.1)
         except ValueError:
             print("No nearby point found. Try again")
@@ -1733,7 +1824,7 @@ class diagnosticGUI(object):
         self.selected_object = pp.Point2D(x_snap, y_snap)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
-        self.selected_object_temphandle = self.ax.plot(x_snap, y_snap, 'go')[0]
+        self.selected_object_temphandle = self.RS_line.ax.plot(x_snap, y_snap, 'go')[0]
         self.fig.canvas.draw()
         print("Last output = (index, distance, point)")
         print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
