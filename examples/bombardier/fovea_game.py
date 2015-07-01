@@ -150,10 +150,9 @@ class GUIrocket(object):
         #evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         #evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
-        gui.addWidget(Slider,
+        gui.addWidget(Slider, axlims = (0.1, 0.055, 0.65, 0.03),
                       label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
-                      valinit= self.ang, color='b', dragging=False, valfmt='%2.3f',
-                      ax=plt.axes([0.1, 0.055, 0.65, 0.03]))
+                      valinit= self.ang, color='b', dragging=False, valfmt='%2.3f')
 
         AngSlide = plt.axes([0.1, 0.055, 0.65, 0.03])
         self.widgets['AngBar'] = Slider(AngSlide, 'Shoot Angle', -maxangle, maxangle,

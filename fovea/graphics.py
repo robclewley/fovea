@@ -1386,13 +1386,18 @@ class diagnosticGUI(object):
         except KeyError:
             self.times = None
 
-    def addWidget(self, widg, callback=None, **kwargs):
-        if not callable(widg):
-            print("widg must be a subclass of matplotlib.widget")
-        if not callable(callback):
-            print("callback must be callable")
+    def addWidget(self, widg, axlims, callback=None, **kwargs):
+        """
+        Create a matplotlib widget
+        """
+        if not issubclass(widg, mpl.widgets.Widget):
+            raise TypeError("widg must be a subclass of matplotlib.widget")
+        if not callable(callback) and callback is not None:
+            raise TypeError("callback must be callable")
 
-        widget = widg(**kwargs)
+        ax=plt.axes(axlims)
+
+        widget = widg(ax=ax, **kwargs)
         self.widgets[kwargs['label']] = widget
         if callback is not None:
             self.widgets[kwargs['label']].on_clicked(callback)
@@ -1779,9 +1784,9 @@ class diagnosticGUI(object):
             self.RS_line.set_active(True)
             self.mouse_wait_state_owner = 'line'
         elif k == ' ':
-            print("Forces at clicked mouse point")
-            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_force)
-            self.mouse_wait_state_owner = 'forces'
+            print("Output of user function at clicked mouse point")
+            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_user_function)
+            self.mouse_wait_state_owner = 'user_func'
         elif k == 's':
             print("Snap clicked mouse point to closest point on trajectory")
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
@@ -1843,13 +1848,13 @@ class diagnosticGUI(object):
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
-    def mouse_event_force(self, ev):
+    def mouse_event_user_function(self, ev):
         if ev.inaxes not in self.cb_axes:
             print('Must select axes for which callbacks have been defined.')
             return
 
         print("\n(%.4f, %.4f)" %(ev.xdata, ev.ydata))
-        fs, fvecs = self.spatial_func(ev.xdata, ev.ydata)
+        fs, fvecs = self.user_func(ev.xdata, ev.ydata)
         print(fs)
         self.last_output = (fs, fvecs)
         self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
@@ -1860,8 +1865,8 @@ class diagnosticGUI(object):
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
-    def assign_spatial_func(self, func):
-        self.spatial_func = func
+    def assign_user_func(self, func):
+        self.user_func = func
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is

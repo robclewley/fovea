@@ -171,7 +171,7 @@ class ControlSys:
         #Initialize Bombardier callbacks on 2D subplot.
         #gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
         gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
-        gui.assign_spatial_func(self.get_displacements)
+        gui.assign_user_func(self.get_displacements)
 
         #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")
