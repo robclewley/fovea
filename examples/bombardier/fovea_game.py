@@ -150,6 +150,11 @@ class GUIrocket(object):
         #evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         #evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
+        gui.addWidget(Slider,
+                      label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
+                      valinit= self.ang, color='b', dragging=False, valfmt='%2.3f',
+                      ax=plt.axes([0.1, 0.055, 0.65, 0.03]))
+
         AngSlide = plt.axes([0.1, 0.055, 0.65, 0.03])
         self.widgets['AngBar'] = Slider(AngSlide, 'Shoot Angle', -maxangle, maxangle,
                                             valinit=self.ang, color='b',
@@ -507,67 +512,6 @@ class GUIrocket(object):
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def plot_traj(self, pts=None, with_speeds=True):
-        """
-        with_speeds option makes a "heat map" like color code along trajectory that denotes speed.
-        """
-        if pts is None:
-            if self.pts is not None:
-                pts = self.pts
-            else:
-                # nothing to plot
-                return
-        if self.axisbgcol == 'black':
-            col = 'w'
-        else:
-            col = 'k'
-        firstpt = pts[0]
-        lastpt = pts[-1]
-
-        if self.startpt is None:
-            self.startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
-        else:
-            self.startpt.set_xdata(firstpt['x'])
-            self.startpt.set_ydata(firstpt['y'])
-
-        if self.trajline is not None:
-            self.trajline.remove()
-        if with_speeds:
-            speeds = pts['speed']
-            norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
-            cmap=plt.cm.jet #gist_heat
-            RGBAs = cmap(norm(speeds))
-            xs = pts['x'][1:-1]
-            ys = pts['y'][1:-1]
-            segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-            linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-            self.trajline = self.ax.add_collection(linecollection)
-        else:
-            self.trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
-
-        if self.endpt is None:
-            self.endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
-        else:
-            self.endpt.set_xdata(lastpt['x'])
-            self.endpt.set_ydata(lastpt['y'])
-        n = len(pts)
-        ptq1 = pts[int(0.25*n)]
-        ptq2 = pts[int(0.5*n)]
-        ptq3 = pts[int(0.75*n)]
-        if self.quartiles is None:
-            self.quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
-        else:
-            self.quartiles[0].set_xdata(ptq1['x'])
-            self.quartiles[0].set_ydata(ptq1['y'])
-            self.quartiles[1].set_xdata(ptq2['x'])
-            self.quartiles[1].set_ydata(ptq2['y'])
-            self.quartiles[2].set_xdata(ptq3['x'])
-            self.quartiles[2].set_ydata(ptq3['y'])
-        plt.draw()
-
-
     def run(self, tmax=None):
         self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
@@ -640,7 +584,7 @@ class GUIrocket(object):
         self.startpt = None
         self.endpt = None
         self.go(run=False)
-        #self.graphics_refresh()
+        self.graphics_refresh()
 
     def onselect_box(self, eclick, erelease):
         self.mouse_wait_state_owner = None

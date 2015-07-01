@@ -1386,6 +1386,17 @@ class diagnosticGUI(object):
         except KeyError:
             self.times = None
 
+    def addWidget(self, widg, callback=None, **kwargs):
+        if not callable(widg):
+            print("widg must be a subclass of matplotlib.widget")
+        if not callable(callback):
+            print("callback must be callable")
+
+        widget = widg(**kwargs)
+        self.widgets[kwargs['label']] = widget
+        if callback is not None:
+            self.widgets[kwargs['label']].on_clicked(callback)
+
 
     def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
         """
