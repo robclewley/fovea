@@ -77,9 +77,6 @@ class GUIrocket(object):
         # if defined, will be refreshed on each Go!
         self.calc_context = None
 
-        # Graphics widgets to be set for application
-        self.widgets = {}
-
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -150,21 +147,15 @@ class GUIrocket(object):
         #evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         #evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
-        gui.addWidget(Slider, axlims = (0.1, 0.055, 0.65, 0.03),
+        gui.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
                       label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
                       valinit= self.ang, color='b', dragging=False, valfmt='%2.3f')
 
-        AngSlide = plt.axes([0.1, 0.055, 0.65, 0.03])
-        self.widgets['AngBar'] = Slider(AngSlide, 'Shoot Angle', -maxangle, maxangle,
-                                            valinit=self.ang, color='b',
-                                            dragging=False, valfmt='%2.3f')
-        self.widgets['AngBar'].on_changed(self.updateAng)
+        gui.addWidget(Slider, callback=self.updateVel, axlims=(0.1, 0.02, 0.65, 0.03),
+                      label='Shoot Speed', valmin=0.01, valmax=2,
+                      valinit=self.vel, color='b',
+                      dragging=False, valfmt='%1.4f')
 
-        VelSlide = plt.axes([0.1, 0.02, 0.65, 0.03])
-        self.widgets['VelBar'] = Slider(VelSlide, 'Shoot Speed', 0.01, 2,
-                                            valinit=self.vel, color='b',
-                                            dragging=False, valfmt='%1.4f')
-        self.widgets['VelBar'].on_changed(self.updateVel)
 
         # assume max of N-2 planetoid bodies + target + source
         self.N = len(bodies)
@@ -179,9 +170,8 @@ class GUIrocket(object):
         # --- END OF BOMBARDIER SPECIFICS
 
         # Move these to a _recreate method than can be reused for un-pickling
-        GoButton = Button(plt.axes([0.005, 0.1, 0.045, 0.03]), 'Go!')
-        GoButton.on_clicked(self.go)
-        self.widgets['Go'] = GoButton
+
+        gui.addWidget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03), label='Go!')
 
         # context_changed flag set when new objects created using declare_in_context(),
         # and unset when Generator is created with the new context code included
@@ -459,10 +449,10 @@ class GUIrocket(object):
 
 
     def setAng(self, ang):
-        self.widgets['AngBar'].set_val(ang)
+        gui.widgets['Shoot Angle'].set_val(ang)
 
     def setVel(self, vel):
-        self.widgets['VelBar'].set_val(vel)
+        gui.widgets['Shoot Speed'].set_val(vel)
 
     def updateAng(self, ang):
         if ang < -maxangle:

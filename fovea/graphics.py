@@ -1399,8 +1399,11 @@ class diagnosticGUI(object):
 
         widget = widg(ax=ax, **kwargs)
         self.widgets[kwargs['label']] = widget
-        if callback is not None:
+        try:
+            self.widgets[kwargs['label']].on_changed(callback)
+        except AttributeError:
             self.widgets[kwargs['label']].on_clicked(callback)
+
 
 
     def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
