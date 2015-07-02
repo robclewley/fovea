@@ -24,7 +24,7 @@ from math import *
 import hashlib, time
 import euclid as euc
 
-from PyDSTool import args, numeric_to_traj, Point
+from PyDSTool import args, numeric_to_traj, Point, Points
 import PyDSTool.Toolbox.phaseplane as pp
 # for potentially generalizable functions and classes to use
 import PyDSTool as dst
@@ -513,7 +513,6 @@ class plotter2D(object):
         *display* option (default True) controls whether the data will be
         visible by default.
         """
-
         # Check to see that data is a list or array
         try:
             size = np.shape(data)
@@ -521,8 +520,11 @@ class plotter2D(object):
             raise TypeError("Data must be castable to a numpy array")
 
         # Check to see that there is an x- and y- (or z-) dataset
-        if size[0] not in (2,3):
-            raise ValueError("Data must contain 2 or 3 seqs of data points")
+        try:
+            if size[0] not in (2,3):
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
 
         fig_struct, figure = self._resolveFig(figure)
         if layer is None:
@@ -633,7 +635,10 @@ class plotter2D(object):
                                         coordnames=['y'],
                                         indepvar=dstruct['data'][0],
                                         discrete=False)
-            except ValueError:
+            except ValueError: #Issue: need to store trajectories of linecollections as well.
+                pass
+            #Maybe PyDSTool needs a linecollection_to_traj method
+            except TypeError:
                 pass
 
 
@@ -1148,26 +1153,28 @@ class plotter2D(object):
 
             else:
                 if dname not in lay.handles or force:
-                    if style_as_string:
-                        #Check if data are two or three dimensional.
-                        if len(dstruct['data']) == 2:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                        s)[0]
-                        elif len(dstruct['data']) == 3:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                        s)[0]
-
-                    else:
-                        if len(dstruct['data']) == 2:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                        **s)[0]
-                        elif len(dstruct['data']) == 3:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
-                                        **s)[0]
+                    try:
+                        lay.handles[dname] = ax.add_collection(dstruct['data'])
+                    except:
+                        if style_as_string:
+                            #Check if data are two or three dimensional.
+                            if len(dstruct['data']) == 2:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                            s)[0]
+                            elif len(dstruct['data']) == 3:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
+                                            s)[0]
+                        else:
+                            if len(dstruct['data']) == 2:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                            **s)[0]
+                            elif len(dstruct['data']) == 3:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
+                                            **s)[0]
 
         if rescale is not None:
             # overrides layer scale
@@ -1660,7 +1667,7 @@ class diagnosticGUI(object):
                     if layName in self.timePlots:
                         for data_name, traj in fig_struct.layers[layName].trajs.items():
                             if fig_struct.layers[layName].kind == 'data':
-                                pt_dict[data_name] = traj(self.t)['y']
+                                pt_dict[data_name] = traj(self.t)['y'] #Why is it hardwired to select y coord?
 
             print("figName: ")
             print(figName)

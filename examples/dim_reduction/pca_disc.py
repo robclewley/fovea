@@ -99,6 +99,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
+
     plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
     print("Variance Explained in", layer,"with first",new_dim,"components:")
@@ -135,7 +136,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers,
-                                #'callbacks':'*',
+                                'callbacks':'*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
