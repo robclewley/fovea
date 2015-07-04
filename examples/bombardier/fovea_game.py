@@ -194,12 +194,16 @@ class GUIrocket(object):
         if cla:
             self.ax.cla()
         self.plot_bodies()
-        #gui.plot_traj()
-        if gui.points is not None:
-            gui.plotter.addData(gui.points, figure='master', layer='layer1', subplot='11')
-            #gui.plotter.show(rebuild=False)
-        else:
-            gui.plot_traj()
+        coorddict = {'x':
+                     {'x':'x', 'y':'y', 'collection':True},
+                     'speed':
+                     {'map_color_to':'x'}
+                     }
+
+        gui.addDataPoints4(gui.points, coorddict=coorddict)
+
+        plotter.show(rebuild=False)
+
         #self.addDataTraj()
         # plot additional stuff
         self.plot_context()
