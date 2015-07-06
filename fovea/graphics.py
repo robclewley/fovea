@@ -1155,7 +1155,7 @@ class plotter2D(object):
                 if dname not in lay.handles or force:
                     try:
                         lay.handles[dname] = ax.add_collection(dstruct['data'])
-                    except:
+                    except AttributeError:
                         if style_as_string:
                             #Check if data are two or three dimensional.
                             if len(dstruct['data']) == 2:
@@ -1413,6 +1413,18 @@ class diagnosticGUI(object):
                 except KeyError:
                     pass
 
+                #Extract layer
+                try:
+                    addingDict[key]['layer'] = val['layer']
+                except KeyError:
+                    pass
+
+                #Extract style
+                try:
+                    addingDict[key]['name'] = val['name']
+                except KeyError:
+                    pass
+
                 #Perform color mapping
                 try:
                     vals = data[key]
@@ -1437,18 +1449,23 @@ class diagnosticGUI(object):
                 except KeyError:
                     pass
 
-                plotter.addData(addingDict[key]['data'], figure='master', style = addingDict[key]['style'])
+                try:
+                    lay = addingDict[key]['layer']
+                except KeyError:
+                    lay = None
 
-    #def addDataPoints(self, points):
-        #"""
-        #Provide the pointset for the data to be investigated
-        #"""
-        #self.traj = None
-        #self.points = points
-        #try:
-            #self.times = points['t']
-        #except KeyError:
-            #self.times = None
+                try:
+                    nam = addingDict[key]['name']
+                except KeyError:
+                    nam = None
+
+                plotter.addData(addingDict[key]['data'],
+                                figure='master', #Fix this
+                                style = addingDict[key]['style'],
+                                layer = lay,
+                                name = nam,
+                                force = True)
+
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
         """

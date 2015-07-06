@@ -106,7 +106,7 @@ class GUIrocket(object):
         self.axisbgcol = axisbgcol
 
         #Setup code
-        DOI = [(-10,10),(-10,10)]
+        DOI = [(-xdomain_halfwidth,xdomain_halfwidth),(0,1)]
         plotter.clean() # in case rerun in same session
         plotter.addFig('master',
                         title='Bombardier',
@@ -118,16 +118,16 @@ class GUIrocket(object):
 
         self.name = 'gamespace'
 
-        plotter.arrangeFig([1,2], {'11':
+        plotter.arrangeFig([1,1], {'11':
                                    {'name': self.name,
-                                    'scale': [(-10,10),(-10,10)],
+                                    'scale': DOI,
                                     'layers':'layer1',
                                     'callbacks':'*',
                                     'axes_vars': ['x', 'y']
                                     }
                                    })
 
-        gui.buildPlotter2D((14,6), with_times=False, basic_widgets=False)
+        gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
 
         # Move these to a _recreate method than can be reused for un-pickling
 
@@ -203,7 +203,7 @@ class GUIrocket(object):
         try:
             n = len(gui.points)
             coorddict = {'xq':
-                         {'x':'xq', 'y':'yq', 'style':'kd'}
+                         {'x':'xq', 'y':'yq', 'layer':'layer1', 'name':'data2', 'style':'kd'}
                          }
             quarts = Pointset({'coordarray': np.array([[gui.points['x'][int(0.25*n)], gui.points['x'][int(0.5*n)], gui.points['x'][int(0.75*n)]],
                                            [gui.points['y'][int(0.25*n)], gui.points['y'][int(0.5*n)], gui.points['y'][int(0.75*n)]]]),
@@ -214,13 +214,14 @@ class GUIrocket(object):
             pass
 
         coorddict = {'x':
-                     {'x':'x', 'y':'y', 'collection':True},
+                     {'x':'x', 'y':'y','layer':'layer1','name':'data1', 'collection':True},
+                     #{'x':'x', 'y':'y','layer':'layer1', 'collection':True},
                      'speed':
                      {'map_color_to':'x'}
                      }
         gui.addDataPoints(gui.points, coorddict=coorddict)
 
-        plotter.show(rebuild=False)
+        plotter.show(rebuild=True)
 
         #self.addDataTraj()
         # plot additional stuff
