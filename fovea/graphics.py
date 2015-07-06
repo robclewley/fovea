@@ -1382,7 +1382,7 @@ class diagnosticGUI(object):
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def addDataPoints4(self, data, coorddict=None):
+    def addDataPoints(self, data, coorddict=None):
         maxspeed = 2.2
 
         if False:
@@ -1390,16 +1390,9 @@ class diagnosticGUI(object):
         if isinstance(data, Points.Pointset):
             addingDict = {}
 
-            #for i, (key, val) in enumerate(data.items()):
             for key, val in coorddict.items():
-                print(key)
-                #if val['x'] is not None:
-                #xs = data[coorddict[coord]['x']]
-                #ys = data[coorddict[coord]['y']]
 
-                #xs = data.get(val.get('x'))
-                #ys = data.get(val.get('y'))
-
+                #Extract x and y data.
                 try:
                     xs = data[val.get('x')]
                     ys = data[val.get('y')]
@@ -1411,41 +1404,32 @@ class diagnosticGUI(object):
                 except IndexError:
                     pass
 
-
-                #Skip them next time
-                #coorddict[coord]['x'] = None
-                #coorddict[coord]['y'] = None
-
                 if val.get('collection'):
                     addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
 
-                #if val['map_color_to'] is not None:
+                #Extract style
                 try:
-                    #vals = data[val.get('map_color_to')]
+                    addingDict[key]['style'] = val['style']
+                except KeyError:
+                    pass
+
+                #Perform color mapping
+                try:
                     vals = data[key]
                     norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
                     cmap=plt.cm.jet #gist_heat
-                    #addingDict[val['map_color_to']]
                     try:
                         addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
-                        #addingDict[val['map_color_to']]['style'] = 'c'
                     except KeyError:
                         addingDict[val['map_color_to']] = {}
                         addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
-                        #addingDict[val['map_color_to']]['style'] = 'c'
 
                 except KeyError:
                     pass
                 except IndexError:
                     pass
 
-                #if coorddict[coord]['collection'] is not None:
-                    #xs = data[coorddict[coord]['x']]
-                    #ys = data[coorddict[coord]['x']]
-
-                    #segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                    #linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-
+            #addData for each plotting variable in the pointset.
             for key, val in addingDict.items():
                 try:
                     linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
@@ -1455,126 +1439,16 @@ class diagnosticGUI(object):
 
                 plotter.addData(addingDict[key]['data'], figure='master', style = addingDict[key]['style'])
 
-            #for ad, vad in addingDict:
-                ##addData(addingDict[coord]['data'], style= addingDict[coord]['style'])
-                #try:
-                    #linecollection = mpl.collections.LineCollection(vad['segments'], colors=vad['style'])
-                    #addingDict[ad]['data'] = linecollection
-                #except KeyError:
-                    #pass
-
-                #addData(ad['data'], ad['style'])
-
-    def addDataPoints3(self, data, coorddict=None):
-        maxpeed = 2.2
-
-        if False:
-            donothing
-        if isinstance(data, Points.Pointset):
-            addingDict = {}
-
-            #for i, (key, val) in enumerate(data.items()):
-            for coord, arr in data.items():
-                if coorddict[coord]['x'] is not None:
-                    xs = data[coorddict[coord]['x']]
-                    ys = data[coorddict[coord]['y']]
-
-                    #Skip them next time
-                    coorddict[coord]['x'] = None
-                    coorddict[coord]['y'] = None
-
-                    addingDict[coord]['data'] = [xs, ys]
-
-                    if coorddict[coord]['collection']:
-                        addingDict[coord]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-
-
-                if coorddict[coord]['map_color_to'] is not None:
-                    vals = data[coord]
-                    norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
-                    cmap=plt.cm.jet #gist_heat
-                    addingDict[coorddict['map_color_to']]['style'] = cmap(norm(speeds))
-
-                #if coorddict[coord]['collection'] is not None:
-                    #xs = data[coorddict[coord]['x']]
-                    #ys = data[coorddict[coord]['x']]
-
-                    #segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                    #linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-
-
-            for ad in addingDict:
-                #addData(addingDict[coord]['data'], style= addingDict[coord]['style'])
-                try:
-                    linecollection = mpl.collections.LineCollection(ad['segments'], colors=ad['style'])
-                    ad['data'] = linecollection
-                except KeyError:
-                    pass
-
-                addData(ad['data'], ad['style'])
-
-
-    def addDataPoints2(self, data, layers=None, style=None):
-        self.maxspeed = 2.2
-        xs = None
-        ys = None
-        RGBAs = 'r'
-
-        #if data is numeric:
-        if False:
-            dothing
-        if isinstance(data, Points.Pointset):
-            for i, (key, val) in enumerate(data.items()):
-                #Change to key[-3] == '.speed'. Qualify at end.
-                if key == 'speed':
-                    speeds = val
-                    norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
-                    cmap=plt.cm.jet #gist_heat
-                    RGBAs = cmap(norm(speeds))
-                elif key == 'x' or key == 'x':
-                    xs = data[key]
-                elif key =='y' or key == 'y':
-                    ys = data[key]
-                try:
-                    segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                    linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-                    xs= None
-                    ys= None
-                    plotter.addData(linecollection, layer= layers[i])
-                    #plotter.addData(data, figure=None, layer=None,
-                                   #subplot=None,
-                                   #style=None,
-                                   #name=None,
-                                   #display=True,
-                                   #force=False,
-                                   #log=None)
-                except TypeError:
-                    pass
-                except IndexError:
-                    pass
-
-                #if quartiles is None:
-                    #quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
-                                 #self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
-                                 #self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
-                    #else:
-                        #quartiles[0].set_xdata(ptq1['x'])
-                        #quartiles[0].set_ydata(ptq1['y'])
-                        #quartiles[1].set_xdata(ptq2['x'])
-                        #quartiles[1].set_ydata(ptq2['y'])
-                        #quartiles[2].set_xdata(ptq3['x'])
-                        #quartiles[2].set_ydata(ptq3['y'])
-
-    def addDataPoints(self, points):
-        """
-        Provide the pointset for the data to be investigated
-        """
-        self.traj = None
-        self.points = points
-        try:
-            self.times = points['t']
-        except KeyError:
-            self.times = None
+    #def addDataPoints(self, points):
+        #"""
+        #Provide the pointset for the data to be investigated
+        #"""
+        #self.traj = None
+        #self.points = points
+        #try:
+            #self.times = points['t']
+        #except KeyError:
+            #self.times = None
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
         """

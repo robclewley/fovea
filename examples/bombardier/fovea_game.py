@@ -194,13 +194,31 @@ class GUIrocket(object):
         if cla:
             self.ax.cla()
         self.plot_bodies()
+
+        #Make quartiles
+        gui.points
+        xquarts = Point({'x': 4})
+        yquarts = Point({'y': 4})
+
+        try:
+            n = len(gui.points)
+            coorddict = {'xq':
+                         {'x':'xq', 'y':'yq', 'style':'kd'}
+                         }
+            quarts = Pointset({'coordarray': np.array([[gui.points['x'][int(0.25*n)], gui.points['x'][int(0.5*n)], gui.points['x'][int(0.75*n)]],
+                                           [gui.points['y'][int(0.25*n)], gui.points['y'][int(0.5*n)], gui.points['y'][int(0.75*n)]]]),
+                      'coordnames': ['xq', 'yq']})
+            gui.addDataPoints(quarts, coorddict=coorddict)
+
+        except TypeError:
+            pass
+
         coorddict = {'x':
                      {'x':'x', 'y':'y', 'collection':True},
                      'speed':
                      {'map_color_to':'x'}
                      }
-
-        gui.addDataPoints4(gui.points, coorddict=coorddict)
+        gui.addDataPoints(gui.points, coorddict=coorddict)
 
         plotter.show(rebuild=False)
 
