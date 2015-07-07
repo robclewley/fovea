@@ -498,6 +498,63 @@ class plotter2D(object):
 
             fig_struct.layers[label][kw] = kwargs[kw]
 
+    def addPatch(self, data, patch, figure=None, layer=None, subplot=None, name=None,
+                display=True, force=False, log=None, **kwargs):
+        try:
+            size = np.shape(data)
+        except:
+            raise TypeError("Data must be castable to a numpy array")
+
+        # Check to see that there is an x- and y- dataset
+        try:
+            if size[0] != 2:
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
+
+        fig_struct, figure = self._resolveFig(figure)
+        if layer is None:
+            layer = self.active_layer[1]
+            layer_struct = self.active_layer_structs[1]
+        else:
+            layer_struct = self._resolveLayer(figure, layer)
+
+        if layer_struct['kind'] is not 'patch':
+            raise TypeError("Layer kind must be patch")
+
+        # d is a dictionary mapping 'name' to a dictionary of fields for the
+        # numerical plot data (key 'data'), style (key 'style'), and display
+        # boolean (key 'display').
+        #
+        # The numerical data for d is given by the method argument also called data
+        d = layer_struct.data
+
+        # Check to see if data name already exists
+        if name in d and not force:
+            raise KeyError("Data name already exists in layer: %s" %name)
+
+        # Create name if none is provided
+        if name is None:
+            name = get_unique_name(figure+'_'+layer)
+
+        if log:
+            log.msg("Added plot data", figure=figure, layer=layer, name=name)
+
+        #d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
+        #d.update({name: dict(zip([kw for kw in kwargs], [kwargs[kw] for kw in kwargs]))})
+        #d.update({name: dict(zip([kw for kw in kwargs], [kwargs[kw] for kw in kwargs]))})
+        kwargs.update({'data':data,'patch':patch, 'display':display, 'subplot':subplot})
+        d.update({name: kwargs})
+        #for kw in kwargs:
+
+        print(d)
+
+
+        ## ISSUE: _updateTraj only meaningful for time-param'd trajectories
+        ## Maybe a different, more general purpose solution is needed
+        #self._updateTraj(figure, layer)
+
+
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
@@ -1113,8 +1170,6 @@ class plotter2D(object):
             if not dstruct['display']:
                 continue
 
-            # process user-defined style
-            s = dstruct['style']
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
@@ -1125,14 +1180,22 @@ class plotter2D(object):
             except KeyError:
                 ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
 
-            if isinstance(s, str):
-                style_as_string = True
-            elif isinstance(s, dict):
-                style_as_string = False
+            try:
+                # process user-defined style
+                s = dstruct['style']
 
-            if s == "":
-                # default to black lines
-                s = 'k-'
+                if isinstance(s, str):
+                    style_as_string = True
+                elif isinstance(s, dict):
+                    style_as_string = False
+                else:
+                    style_as_string = False
+
+                if s == "":
+                    # default to black lines
+                    s = 'k-'
+            except KeyError:
+                pass
 
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
@@ -1151,7 +1214,17 @@ class plotter2D(object):
                              dstruct['text'],
                              fontsize=20, color=s[0])
 
-            else:
+            elif lay.kind == 'patch':
+                pos = dstruct['data']
+                for i in range(len(pos[0])):
+                    #This must generalize to other patches.
+                    ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
+                                  dstruct['radius'][i],
+                                  color = dstruct['color']))
+
+                print(len(dstruct['data']))
+
+            elif lay.kind == 'data':
                 if dname not in lay.handles or force:
                     try:
                         lay.handles[dname] = ax.add_collection(dstruct['data'])
@@ -1406,6 +1479,7 @@ class diagnosticGUI(object):
 
                 if val.get('collection'):
                     addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+
 
                 #Extract style
                 try:

@@ -114,14 +114,15 @@ class GUIrocket(object):
                         domain=DOI)
 
         #Setup all layers
-        plotter.addLayer('layer1')
+        plotter.addLayer('trajs')
+        plotter.addLayer('bodies', kind='patch')
 
         self.name = 'gamespace'
 
         plotter.arrangeFig([1,1], {'11':
                                    {'name': self.name,
                                     'scale': DOI,
-                                    'layers':'layer1',
+                                    'layers':['trajs', 'bodies'],
                                     'callbacks':'*',
                                     'axes_vars': ['x', 'y']
                                     }
@@ -203,7 +204,7 @@ class GUIrocket(object):
         try:
             n = len(gui.points)
             coorddict = {'xq':
-                         {'x':'xq', 'y':'yq', 'layer':'layer1', 'name':'data2', 'style':'kd'}
+                         {'x':'xq', 'y':'yq', 'layer':'trajs', 'name':'data2', 'style':'kd'}
                          }
             quarts = Pointset({'coordarray': np.array([[gui.points['x'][int(0.25*n)], gui.points['x'][int(0.5*n)], gui.points['x'][int(0.75*n)]],
                                            [gui.points['y'][int(0.25*n)], gui.points['y'][int(0.5*n)], gui.points['y'][int(0.75*n)]]]),
@@ -213,13 +214,30 @@ class GUIrocket(object):
         except TypeError:
             pass
 
+        #Traj Pointset
         coorddict = {'x':
-                     {'x':'x', 'y':'y','layer':'layer1','name':'data1', 'collection':True},
-                     #{'x':'x', 'y':'y','layer':'layer1', 'collection':True},
+                     #{'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
+                     {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'collection':True},
                      'speed':
                      {'map_color_to':'x'}
                      }
         gui.addDataPoints(gui.points, coorddict=coorddict)
+
+        #Bodies Pointset
+        bodsPoints = Pointset({'coordarray': np.array([[self.pos[i][0] for i in range(len(self.pos))],
+                                       [self.pos[i][1] for i in range(len(self.pos))],
+                                       [self.radii[i] for i in range(len(self.radii))]]),
+                  'coordnames': ['px', 'py', 'radii']})
+        coorddict = {'px':
+                     {'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'object':'circle'},
+                     'radii':
+                     {'map_radii_to':'px'}
+                     }
+        #gui.addDataPoints(bodsPoints, coorddict=coorddict)
+        plotter.addPatch(np.array(self.pos).transpose(),
+                         plt.Circle,
+                         radius = np.array(self.radii),
+                         color = 'g')
 
         plotter.show(rebuild=True)
 
