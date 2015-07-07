@@ -116,13 +116,14 @@ class GUIrocket(object):
         #Setup all layers
         plotter.addLayer('trajs')
         plotter.addLayer('bodies', kind='patch')
+        plotter.addLayer('text', kind='text')
 
         self.name = 'gamespace'
 
         plotter.arrangeFig([1,1], {'11':
                                    {'name': self.name,
                                     'scale': DOI,
-                                    'layers':['trajs', 'bodies'],
+                                    'layers':['trajs', 'bodies', 'text'],
                                     'callbacks':'*',
                                     'axes_vars': ['x', 'y']
                                     }
@@ -217,7 +218,7 @@ class GUIrocket(object):
         #Traj Pointset
         coorddict = {'x':
                      #{'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
-                     {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'collection':True},
+                     {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
                      'speed':
                      {'map_color_to':'x'}
                      }
@@ -228,16 +229,30 @@ class GUIrocket(object):
                                        [self.pos[i][1] for i in range(len(self.pos))],
                                        [self.radii[i] for i in range(len(self.radii))]]),
                   'coordnames': ['px', 'py', 'radii']})
+        #coorddict = {'px':
+                     #{'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'style':'g', 'object':'circle'},
+                     #'radii':
+                     #{'map_radii_to':'px'}
+                     #}
         coorddict = {'px':
-                     {'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'object':'circle'},
+                     {'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'style':'g', 'object':'circle'},
                      'radii':
-                     {'map_radii_to':'px'}
+                     {'map_radius_to':'px'}
                      }
+        gui.addDataPoints(bodsPoints, coorddict=coorddict)
+
+        pos = np.array(self.pos).transpose()
         #gui.addDataPoints(bodsPoints, coorddict=coorddict)
-        plotter.addPatch(np.array(self.pos).transpose(),
-                         plt.Circle,
-                         radius = np.array(self.radii),
-                         color = 'g')
+        #plotter.addPatch(pos,
+                         #plt.Circle,
+                         #layer = 'bodies',
+                         #radius = np.array(self.radii),
+                         #color = 'g')
+
+        #plotter.addText(pos[0], pos[1], ['y']*len(pos[0]), style='k', layer='text')
+        for i in range(len(pos[0])):
+            plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
+
 
         plotter.show(rebuild=True)
 

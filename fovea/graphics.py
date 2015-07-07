@@ -519,8 +519,8 @@ class plotter2D(object):
         else:
             layer_struct = self._resolveLayer(figure, layer)
 
-        if layer_struct['kind'] is not 'patch':
-            raise TypeError("Layer kind must be patch")
+        if not layer_struct.kind == 'patch':
+            raise ValueError("Incompatible layer type (should be `patch`)")
 
         # d is a dictionary mapping 'name' to a dictionary of fields for the
         # numerical plot data (key 'data'), style (key 'style'), and display
@@ -1191,7 +1191,7 @@ class plotter2D(object):
                 else:
                     style_as_string = False
 
-                if s == "":
+                if s == "" or s is None:
                     # default to black lines
                     s = 'k-'
             except KeyError:
@@ -1221,8 +1221,6 @@ class plotter2D(object):
                     ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
                                   dstruct['radius'][i],
                                   color = dstruct['color']))
-
-                print(len(dstruct['data']))
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1477,9 +1475,15 @@ class diagnosticGUI(object):
                 except IndexError:
                     pass
 
-                if val.get('collection'):
-                    addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-
+                #Extract object
+                try:
+                    if val['object'] == 'collection':
+                        addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+                    if val['object'] == 'circle':
+                        addingDict[key]['patch'] = plt.Circle
+                        print(addingDict[key]['patch'])
+                except KeyError:
+                    pass
 
                 #Extract style
                 try:
@@ -1497,6 +1501,12 @@ class diagnosticGUI(object):
                 try:
                     addingDict[key]['name'] = val['name']
                 except KeyError:
+                    pass
+
+                #Extract radii
+                try:
+                    addingDict[val['map_radius_to']]['radius'] = data[key]
+                except:
                     pass
 
                 #Perform color mapping
@@ -1533,12 +1543,23 @@ class diagnosticGUI(object):
                 except KeyError:
                     nam = None
 
-                plotter.addData(addingDict[key]['data'],
-                                figure='master', #Fix this
-                                style = addingDict[key]['style'],
-                                layer = lay,
-                                name = nam,
-                                force = True)
+                try:
+
+                    plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
+                                     figure='master',
+                                     layer = lay,
+                                     name = nam,
+                                     force = True,
+                                     radius = addingDict[key]['radius'],
+                                     color = addingDict[key]['style'])
+
+                except:
+                    plotter.addData(addingDict[key]['data'],
+                                    figure='master', #Fix this
+                                    style = addingDict[key]['style'],
+                                    layer = lay,
+                                    name = nam,
+                                    force = True)
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
