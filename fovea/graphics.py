@@ -1469,21 +1469,17 @@ class diagnosticGUI(object):
                     ys = data[val.get('y')]
                     try:
                         addingDict[key]['data'] = [xs, ys]
-                    except:
+                    except KeyError:
                         addingDict[key] = {}
                         addingDict[key]['data'] = [xs, ys]
                 except IndexError:
                     pass
 
                 #Extract object
-                try:
-                    if val['object'] == 'collection':
-                        addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                    if val['object'] == 'circle':
-                        addingDict[key]['patch'] = plt.Circle
-                        print(addingDict[key]['patch'])
-                except KeyError:
-                    pass
+                if val.get('object') == 'collection':
+                    addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+                elif val.get('object') == 'circle':
+                    addingDict[key]['patch'] = plt.Circle
 
                 #Extract style
                 try:
@@ -1507,7 +1503,11 @@ class diagnosticGUI(object):
                 try:
                     addingDict[val['map_radius_to']]['radius'] = data[key]
                 except:
-                    pass
+                    try:
+                        addingDict[val['map_radius_to']] = {}
+                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                    except KeyError:
+                        pass
 
                 #Perform color mapping
                 try:
@@ -1544,7 +1544,6 @@ class diagnosticGUI(object):
                     nam = None
 
                 try:
-
                     plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
                                      figure='master',
                                      layer = lay,
