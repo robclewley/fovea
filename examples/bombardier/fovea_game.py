@@ -93,14 +93,6 @@ class GUIrocket(object):
         self.startpt = None
         self.endpt = None
         self.quartiles = None
-        # Currently unused
-        #self.vtext = None
-        #self.atext = None
-
-        # ---------
-
-        # ---- Make these generic in a parent class, then
-        # specifcaly configured to bombardier here
 
         # Axes background colour
         self.axisbgcol = axisbgcol
@@ -131,23 +123,11 @@ class GUIrocket(object):
 
         gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
 
-        # Move these to a _recreate method than can be reused for un-pickling
-
-        # self.fig = figure(next_fighandle, figsize=(14,9))
-        #self.fignum = next_fighandle
         self.fignum = 1
         self.fig = gui.masterWin
-        #plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
-        #                       wspace=0.2, hspace=0.23)
-        #self.ax = plt.axes([0.05, 0.12, 0.9, 0.85], axisbg=axisbgcol)
-        #self.ax.set_title(title)
-        #self.name = title
 
         fig_struct, fig = plotter._resolveFig('master')
         self.ax = fig_struct.arrange['11']['axes_obj']
-
-        #evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
-        #evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
         gui.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
                       label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
@@ -179,8 +159,6 @@ class GUIrocket(object):
         # and unset when Generator is created with the new context code included
         self.context_changed = False
         self.setup_gen()
-        self.traj = None
-        self.pts = None
 
         self.mouse_cid = None # event-connection ID
         self.go(run=False)
@@ -195,7 +173,7 @@ class GUIrocket(object):
     def graphics_refresh(self, cla=True):
         if cla:
             self.ax.cla()
-        self.plot_bodies()
+        #self.plot_bodies()
 
         #Make quartiles
         gui.points
@@ -217,7 +195,6 @@ class GUIrocket(object):
 
         #Traj Pointset
         coorddict = {'x':
-                     #{'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
                      {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
                      'speed':
                      {'map_color_to':'x'}
@@ -229,11 +206,6 @@ class GUIrocket(object):
                                        [self.pos[i][1] for i in range(len(self.pos))],
                                        [self.radii[i] for i in range(len(self.radii))]]),
                   'coordnames': ['px', 'py', 'radii']})
-        #coorddict = {'px':
-                     #{'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'style':'g', 'object':'circle'},
-                     #'radii':
-                     #{'map_radii_to':'px'}
-                     #}
         coorddict = {'px':
                      {'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'style':'g', 'object':'circle'},
                      'radii':
@@ -242,34 +214,13 @@ class GUIrocket(object):
         gui.addDataPoints(bodsPoints, coorddict=coorddict)
 
         pos = np.array(self.pos).transpose()
-        #gui.addDataPoints(bodsPoints, coorddict=coorddict)
-        #plotter.addPatch(pos,
-                         #plt.Circle,
-                         #layer = 'bodies',
-                         #radius = np.array(self.radii),
-                         #color = 'g')
-
-        #plotter.addText(pos[0], pos[1], ['y']*len(pos[0]), style='k', layer='text')
         for i in range(len(pos[0])):
             plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
 
 
         plotter.show(rebuild=True)
 
-        #self.addDataTraj()
-        # plot additional stuff
-        self.plot_context()
-        self.ax.set_aspect('equal')
-        self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
-        self.ax.set_ylim(0,1)
         self.fig.canvas.draw()
-
-    def plot_context(self):
-        for con_obj in self.context_objects:
-            con_obj.show()
-        for track_obj in self.tracked_objects:
-            # external to main GUI window
-            track_obj.show()
 
     # Methods for pickling protocol
     def __getstate__(self):
@@ -530,42 +481,9 @@ class GUIrocket(object):
         self.vel = vel
         self.go(run=False)
 
-    def plot_bodies(self):
-        for i in range(self.N):
-            px, py = self.pos[i]
-            if self.radii[i] > 0:
-                if self.density[i] == 0:
-                    col = 'green'
-                else:
-                    col = 'grey'
-                self.ax.add_artist(plt.Circle((px,py),self.radii[i],color=col))
-                self.ax.plot(px,py,'k.')
-                self.ax.text(px-0.016,min(0.96, max(0.01,py-0.008)), str(i))
-
-    def addDataTraj(self, traj, points=None):
-        """
-        Provide the trajectory (or other curve object) for the
-        data to be investigated. In case trajectory is not defined by
-        a standard mesh, a user-defined sampling of points can be
-        optionally provided.
-        """
-        # ISSUE: This structure assumes time-dependent data only
-        #  (not sufficiently general purpose)
-        self.traj = traj
-        if points is None:
-            self.points = traj.sample()
-        else:
-            self.points = points
-        try:
-            self.times = points['t']
-        except KeyError:
-            # trajectory is not parameterized by 't'
-            self.times = None
-
     def run(self, tmax=None):
         self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
-        #self.pts = self.traj.sample()
         gui.addDataTraj(self.traj)
         self.pts = gui.points #Shouldn't have to do this.
         if self.calc_context is not None:
