@@ -196,6 +196,7 @@ class GUIrocket(object):
         #Traj Pointset
         coorddict = {'x':
                      {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
+                     # {'x':'x', 'y':'y','layer':'trajs', 'object':'collection'},
                      'speed':
                      {'map_color_to':'x'}
                      }
@@ -557,6 +558,30 @@ class GUIrocket(object):
     def onselect_box(self, eclick, erelease):
         self.mouse_wait_state_owner = None
 
+    def get_forces(self, x, y):
+        """
+        For given x, y coord arguments, returns two dictionaries keyed
+        by body number (1-N):
+        net force magnitude, force vector
+        """
+        # Bombardier specific
+        Fxs = []
+        Fys = []
+        Fs = []
+        pars = self.model.query('pars')
+        ixs = range(self.N)
+        for i in ixs:
+            m = pars['m%i'%i]
+            bx = pars['bx%i'%i]
+            by = pars['by%i'%i]
+            p = pow(pp.distfun(x,y,bx,by),3)
+            Fx = -m*(x-bx)/p
+            Fy = -m*(y-by)/p
+            Fxs.append(Fx)
+            Fys.append(Fy)
+            Fs.append(sqrt(Fx*Fx+Fy*Fy))
+        return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))
+
 
 # Scenario specification (codes refer to usage document)
 # ! W1a Objects:
@@ -566,7 +591,7 @@ game1 = GUIrocket(body_setup1, "Scenario 1: Game 1", axisbgcol='white')
 # ! W1b Initial conditions
 game1.set( (-79, 0.7) )
 
-ltarget = gx.line_GUI(game1, game1.ax, pp.Point2D(0.36, 0.74),
+ltarget = gx.line_GUI(game1, '11', pp.Point2D(0.36, 0.74),
                       pp.Point2D(0.42, 0.8))
 ltarget.make_event_def('target1', 1)
 game1.setup_gen()
@@ -609,11 +634,7 @@ def body4_dominant_at_point(pt_array, fsign=None):
     net_Fs = game1.get_forces(pt_array[0],pt_array[1])[0]
     return net_Fs[4]/sum(list(net_Fs.values())) - dom_thresh
 
+gui.assign_user_func(game1.get_forces)
 gui.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
-
-"""
-User now clicks near body 4 to center the initial domain, and again a little further
-away to seed the initial radius.
-"""
 
 halt = True

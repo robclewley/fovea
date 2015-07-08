@@ -500,6 +500,9 @@ class plotter2D(object):
 
     def addPatch(self, data, patch, figure=None, layer=None, subplot=None, name=None,
                 display=True, force=False, log=None, **kwargs):
+        """
+        patch is a callable matplotlib patch object. Accepts kwargs for patch objects.
+        """
         try:
             size = np.shape(data)
         except:
@@ -507,7 +510,7 @@ class plotter2D(object):
 
         # Check to see that there is an x- and y- dataset
         try:
-            if size[0] != 2:
+            if not size[0] == 2:
                 raise ValueError("Data must contain 2 or 3 seqs of data points")
         except IndexError:
             pass
@@ -540,21 +543,8 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
 
-        #d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
-        #d.update({name: dict(zip([kw for kw in kwargs], [kwargs[kw] for kw in kwargs]))})
-        #d.update({name: dict(zip([kw for kw in kwargs], [kwargs[kw] for kw in kwargs]))})
         kwargs.update({'data':data,'patch':patch, 'display':display, 'subplot':subplot})
         d.update({name: kwargs})
-        #for kw in kwargs:
-
-        print(d)
-
-
-        ## ISSUE: _updateTraj only meaningful for time-param'd trajectories
-        ## Maybe a different, more general purpose solution is needed
-        #self._updateTraj(figure, layer)
-
-
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
