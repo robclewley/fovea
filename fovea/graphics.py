@@ -2088,8 +2088,12 @@ class line_GUI(context_object):
         # angle relative to horizontal, in radians
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
+
         # hook back to linked axes object in GUI
-        self.gui_axes = gui_axes
+        if isinstance(gui_axes, str):
+            self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
+        else:
+            self.gui_axes = gui_axes
         # declare self to GUI
         gui.declare_in_context(self)
         # move self to the currently selected object in GUI
