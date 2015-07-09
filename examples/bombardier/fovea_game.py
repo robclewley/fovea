@@ -116,7 +116,7 @@ class GUIrocket(object):
                                    {'name': self.name,
                                     'scale': DOI,
                                     'layers':['trajs', 'bodies', 'text'],
-                                    'callbacks':'*',
+                                    'callbacks':True,
                                     'axes_vars': ['x', 'y']
                                     }
                                    })
@@ -635,9 +635,5 @@ def body4_dominant_at_point(pt_array, fsign=None):
 
 gui.assign_user_func(game1.get_forces)
 gui.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
-
-game1.updateAng(maxangle-1)
-game1.updateVel(game1.maxspeed-0.5)
-game1.go()
 
 halt = True
