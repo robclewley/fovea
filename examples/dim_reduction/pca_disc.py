@@ -99,6 +99,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
+
     plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
     print("Variance Explained in", layer,"with first",new_dim,"components:")
@@ -135,7 +136,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers,
-                                #'callbacks':'*',
+                                'callbacks':'*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
@@ -171,7 +172,7 @@ class ControlSys:
         #Initialize Bombardier callbacks on 2D subplot.
         #gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
         gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
-        gui.assign_spatial_func(self.get_displacements)
+        gui.assign_user_func(self.get_displacements)
 
         #User tips
         print("Press left or right arrow keys to view different rotations of Hi-D data and their PC's.")

@@ -13,6 +13,7 @@ import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import shapely.geometry as geom
+import warnings
 from shapely.geometry import polygon as P
 from descartes.patch import PolygonPatch
 import numpy as np
@@ -68,7 +69,8 @@ class polygon_domain(object):
         # check that p1 satifies same sign
         if not self.boolfunc(p1):
             #raise dst.PyDSTool_ValueError("f(p1) has different sign to f(c)")\
-            print("Error: f(p1) has different sign to f(c)")
+            #print("Error: f(p1) has different sign to f(c)")
+            warnings.warn("Warning: f(p1) has different sign to f(c)")
         else:
             # distance scale and initial trust radius
             self.r0 = np.linalg.norm(p1-c)

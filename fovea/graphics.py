@@ -24,7 +24,7 @@ from math import *
 import hashlib, time
 import euclid as euc
 
-from PyDSTool import args, numeric_to_traj, Point
+from PyDSTool import args, numeric_to_traj, Point, Points
 import PyDSTool.Toolbox.phaseplane as pp
 # for potentially generalizable functions and classes to use
 import PyDSTool as dst
@@ -452,6 +452,7 @@ class plotter2D(object):
         layAttrs = args()
         layAttrs.data = {}
         layAttrs.display = True
+        layAttrs.force = False
         # ISSUE: zindex ordering not actually used
         # default zindex based on order of layer declaration
         layAttrs.zindex = len(fig_struct.layers)+1
@@ -498,6 +499,54 @@ class plotter2D(object):
 
             fig_struct.layers[label][kw] = kwargs[kw]
 
+    def addPatch(self, data, patch, figure=None, layer=None, subplot=None, name=None,
+                display=True, force=False, log=None, **kwargs):
+        """
+        patch is a callable matplotlib patch object. Accepts kwargs for patch objects.
+        """
+        try:
+            size = np.shape(data)
+        except:
+            raise TypeError("Data must be castable to a numpy array")
+
+        # Check to see that there is an x- and y- dataset
+        try:
+            if not size[0] == 2:
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
+
+        fig_struct, figure = self._resolveFig(figure)
+        if layer is None:
+            layer = self.active_layer[1]
+            layer_struct = self.active_layer_structs[1]
+        else:
+            layer_struct = self._resolveLayer(figure, layer)
+
+        if not layer_struct.kind == 'patch':
+            raise ValueError("Incompatible layer type (should be `patch`)")
+
+        # d is a dictionary mapping 'name' to a dictionary of fields for the
+        # numerical plot data (key 'data'), style (key 'style'), and display
+        # boolean (key 'display').
+        #
+        # The numerical data for d is given by the method argument also called data
+        d = layer_struct.data
+
+        # Check to see if data name already exists
+        if name in d and not force:
+            raise KeyError("Data name already exists in layer: %s" %name)
+
+        # Create name if none is provided
+        if name is None:
+            name = get_unique_name(figure+'_'+layer)
+
+        if log:
+            log.msg("Added plot data", figure=figure, layer=layer, name=name)
+
+        kwargs.update({'data':data,'patch':patch, 'display':display, 'subplot':subplot})
+        d.update({name: kwargs})
+        layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
@@ -513,7 +562,6 @@ class plotter2D(object):
         *display* option (default True) controls whether the data will be
         visible by default.
         """
-
         # Check to see that data is a list or array
         try:
             size = np.shape(data)
@@ -521,8 +569,11 @@ class plotter2D(object):
             raise TypeError("Data must be castable to a numpy array")
 
         # Check to see that there is an x- and y- (or z-) dataset
-        if size[0] not in (2,3):
-            raise ValueError("Data must contain 2 or 3 seqs of data points")
+        try:
+            if size[0] not in (2,3):
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
 
         fig_struct, figure = self._resolveFig(figure)
         if layer is None:
@@ -553,6 +604,7 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
+        layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
@@ -633,7 +685,10 @@ class plotter2D(object):
                                         coordnames=['y'],
                                         indepvar=dstruct['data'][0],
                                         discrete=False)
-            except ValueError:
+            except ValueError: #Issue: need to store trajectories of linecollections as well.
+                pass
+            #Maybe PyDSTool needs a linecollection_to_traj method
+            except TypeError:
                 pass
 
 
@@ -911,7 +966,7 @@ class plotter2D(object):
                     except TypeError:
                         pass
 
-                self.buildLayers(layer_info, ax, force=rebuild)
+                self.buildLayers(layer_info, ax, rebuild=rebuild)
 
 
     def show(self, update='current', rebuild=False, force_wait=None):
@@ -988,12 +1043,12 @@ class plotter2D(object):
 
 
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
-                    force=False):
+                    rebuild=False):
         """
         Convenience function to group layer refresh/build calls. Current figure for
         given list of layer names is assumed unless optionally specified.
 
-        Optional force = True argument will rebuild all plots, overwriting any
+        Optional rebuild = True argument will rebuild all plots, overwriting any
         previous object handles.
         """
         fig_struct, figure = self._resolveFig(figure)
@@ -1001,7 +1056,8 @@ class plotter2D(object):
             return
 
         for layer_name in layer_list:
-            self.buildLayer(figure, layer_name, ax, rescale, force=force)
+            self.buildLayer(figure, layer_name, ax, rescale, force=(rebuild or
+                                                                    fig_struct['layers'][layer_name].force))
 
 
     def updateDynamic(self, time, dynamicFns, hard_reset=False):
@@ -1092,6 +1148,9 @@ class plotter2D(object):
             return
 
         if force:
+            #Remove handles from axes before clearing dictioanry.
+            for h in lay.handles.values():
+                h.remove()
             lay.handles = {}
 
         for dname, dstruct in lay.data.items():
@@ -1108,8 +1167,6 @@ class plotter2D(object):
             if not dstruct['display']:
                 continue
 
-            # process user-defined style
-            s = dstruct['style']
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
@@ -1120,14 +1177,22 @@ class plotter2D(object):
             except KeyError:
                 ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
 
-            if isinstance(s, str):
-                style_as_string = True
-            elif isinstance(s, dict):
-                style_as_string = False
+            try:
+                # process user-defined style
+                s = dstruct['style']
 
-            if s == "":
-                # default to black lines
-                s = 'k-'
+                if isinstance(s, str):
+                    style_as_string = True
+                elif isinstance(s, dict):
+                    style_as_string = False
+                else:
+                    style_as_string = False
+
+                if s == "" or s is None:
+                    # default to black lines
+                    s = 'k-'
+            except KeyError:
+                pass
 
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
@@ -1146,28 +1211,40 @@ class plotter2D(object):
                              dstruct['text'],
                              fontsize=20, color=s[0])
 
-            else:
-                if dname not in lay.handles or force:
-                    if style_as_string:
-                        #Check if data are two or three dimensional.
-                        if len(dstruct['data']) == 2:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                        s)[0]
-                        elif len(dstruct['data']) == 3:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                        s)[0]
+            elif lay.kind == 'patch':
+                pos = dstruct['data']
+                for i in range(len(pos[0])):
+                    #This must generalize to other patches.
+                    ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
+                                  dstruct['radius'][i],
+                                  color = dstruct['color']))
 
-                    else:
-                        if len(dstruct['data']) == 2:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                        **s)[0]
-                        elif len(dstruct['data']) == 3:
-                            lay.handles[dname] = \
-                                ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
-                                        **s)[0]
+            elif lay.kind == 'data':
+                if dname not in lay.handles or force:
+                    try:
+                        lay.handles[dname] = ax.add_collection(dstruct['data'])
+                    except AttributeError:
+                        if style_as_string:
+                            #Check if data are two or three dimensional.
+                            if len(dstruct['data']) == 2:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                            s)[0]
+                            elif len(dstruct['data']) == 3:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
+                                            s)[0]
+                        else:
+                            if len(dstruct['data']) == 2:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
+                                            **s)[0]
+                            elif len(dstruct['data']) == 3:
+                                lay.handles[dname] = \
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
+                                            **s)[0]
+
+                    lay.force = False
 
         if rescale is not None:
             # overrides layer scale
@@ -1257,7 +1334,6 @@ class diagnosticGUI(object):
         #INIT FROM GUIROCKET
         self.fig = fig
         self.context_objects = []
-        self.pts = None
         self.selected_object_temphandle = None
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
@@ -1266,6 +1342,95 @@ class diagnosticGUI(object):
         #self.RS_line.set_active(False)
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
+
+    def plot_traj(self, pts=None, with_speeds=True, startpt=None, endpt=None, trajline=None, quartiles=None):
+        """
+        with_speeds option makes a "heat map" like color code along trajectory that denotes speed.
+        """
+        #TEMP VARS
+        self.ax = self.cb_axes[0]
+        self.maxspeed = 2.2
+
+        if pts is None:
+            if self.points is not None:
+                pts = self.points
+            else:
+                # nothing to plot
+                return
+        #if self.axisbgcol == 'black':
+            #col = 'w'
+        #else:
+            #col = 'k'
+        col='k'
+        firstpt = pts[0]
+        lastpt = pts[-1]
+
+        if startpt is None:
+            #self.startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
+            startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
+        else:
+            #self.startpt.set_xdata(firstpt['x'])
+            #self.startpt.set_ydata(firstpt['y'])
+            startpt.set_xdata(firstpt['x'])
+            startpt.set_ydata(firstpt['y'])
+
+        #if self.trajline is not None:
+            #self.trajline.remove()
+        if trajline is not None:
+            trajline.remove()
+
+        if with_speeds:
+            speeds = pts['speed']
+            norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
+            cmap=plt.cm.jet #gist_heat
+            RGBAs = cmap(norm(speeds))
+            xs = pts['x'][1:-1]
+            ys = pts['y'][1:-1]
+            segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+            linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
+            #self.trajline = self.ax.add_collection(linecollection)
+            trajline = self.ax.add_collection(linecollection)
+        else:
+            #self.trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
+            trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
+
+        #if self.endpt is None:
+            #self.endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
+        if endpt is None:
+            endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
+        else:
+            self.endpt.set_xdata(lastpt['x'])
+            self.endpt.set_ydata(lastpt['y'])
+            endpt.set_xdata(lastpt['x'])
+            endpt.set_ydata(lastpt['y'])
+
+        n = len(pts)
+        ptq1 = pts[int(0.25*n)]
+        ptq2 = pts[int(0.5*n)]
+        ptq3 = pts[int(0.75*n)]
+        #if self.quartiles is None:
+            #self.quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
+                              #self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
+                              #self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
+        #else:
+            #self.quartiles[0].set_xdata(ptq1['x'])
+            #self.quartiles[0].set_ydata(ptq1['y'])
+            #self.quartiles[1].set_xdata(ptq2['x'])
+            #self.quartiles[1].set_ydata(ptq2['y'])
+            #self.quartiles[2].set_xdata(ptq3['x'])
+            #self.quartiles[2].set_ydata(ptq3['y'])
+        if quartiles is None:
+            quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
+                              self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
+                              self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
+        else:
+            quartiles[0].set_xdata(ptq1['x'])
+            quartiles[0].set_ydata(ptq1['y'])
+            quartiles[1].set_xdata(ptq2['x'])
+            quartiles[1].set_ydata(ptq2['y'])
+            quartiles[2].set_xdata(ptq3['x'])
+            quartiles[2].set_ydata(ptq3['y'])
+        plt.draw()
 
     def addDataTraj(self, traj, points=None):
         """
@@ -1282,24 +1447,140 @@ class diagnosticGUI(object):
         else:
             self.points = points
         try:
-            self.times = points['t']
+            self.times = self.points['t']
         except KeyError:
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def addDataPoints(self, points):
+    def addDataPoints(self, data, coorddict=None):
+        maxspeed = 2.2
+
+        if False:
+            donothing
+        if isinstance(data, Points.Pointset):
+            addingDict = {}
+
+            for key, val in coorddict.items():
+
+                #Extract x and y data.
+                try:
+                    xs = data[val.get('x')]
+                    ys = data[val.get('y')]
+                    try:
+                        addingDict[key]['data'] = [xs, ys]
+                    except KeyError:
+                        addingDict[key] = {}
+                        addingDict[key]['data'] = [xs, ys]
+                except IndexError:
+                    pass
+
+                #Extract object
+                if val.get('object') == 'collection':
+                    addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+                elif val.get('object') == 'circle':
+                    addingDict[key]['patch'] = plt.Circle
+
+                #Extract style
+                try:
+                    addingDict[key]['style'] = val['style']
+                except KeyError:
+                    pass
+
+                #Extract layer
+                try:
+                    addingDict[key]['layer'] = val['layer']
+                except KeyError:
+                    pass
+
+                #Extract style
+                try:
+                    addingDict[key]['name'] = val['name']
+                except KeyError:
+                    pass
+
+                #Extract radii
+                try:
+                    addingDict[val['map_radius_to']]['radius'] = data[key]
+                except:
+                    try:
+                        addingDict[val['map_radius_to']] = {}
+                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                    except KeyError:
+                        pass
+
+                #Perform color mapping
+                try:
+                    vals = data[key]
+                    norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
+                    cmap=plt.cm.jet #gist_heat
+                    try:
+                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                    except KeyError:
+                        addingDict[val['map_color_to']] = {}
+                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+
+                except KeyError:
+                    pass
+                except IndexError:
+                    pass
+
+            #addData for each plotting variable in the pointset.
+            for key, val in addingDict.items():
+                try:
+                    linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
+                    addingDict[key]['data'] = linecollection
+                except KeyError:
+                    pass
+
+                try:
+                    lay = addingDict[key]['layer']
+                except KeyError:
+                    lay = None
+
+                try:
+                    nam = addingDict[key]['name']
+                except KeyError:
+                    nam = None
+
+                try:
+                    plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
+                                     figure='master',
+                                     layer = lay,
+                                     name = nam,
+                                     force = True,
+                                     radius = addingDict[key]['radius'],
+                                     color = addingDict[key]['style'])
+
+                except:
+                    plotter.addData(addingDict[key]['data'],
+                                    figure='master', #Fix this
+                                    style = addingDict[key]['style'],
+                                    layer = lay,
+                                    name = nam,
+                                    force = True)
+
+
+    def addWidget(self, widg, axlims, callback=None, **kwargs):
         """
-        Provide the pointset for the data to be investigated
+        Create a matplotlib widget
         """
-        self.traj = None
-        self.points = points
+        if not issubclass(widg, mpl.widgets.Widget):
+            raise TypeError("widg must be a subclass of matplotlib.widget")
+        if not callable(callback) and callback is not None:
+            raise TypeError("callback must be callable")
+
+        ax=plt.axes(axlims)
+
+        widget = widg(ax=ax, **kwargs)
+        self.widgets[kwargs['label']] = widget
         try:
-            self.times = points['t']
-        except KeyError:
-            self.times = None
+            self.widgets[kwargs['label']].on_changed(callback)
+        except AttributeError:
+            self.widgets[kwargs['label']].on_clicked(callback)
 
 
-    def buildPlotter2D(self, figsize=None, with_times=True):
+
+    def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
         """
         Create time bar widget.
         Create capture points widget.
@@ -1320,7 +1601,7 @@ class diagnosticGUI(object):
             else:
                 fig_handle = plt.figure(fig_struct.fignum)
             fig_handle.canvas.set_window_title(fig_struct.title + " : Master window")
-            if figName != 'Master':
+            if figName != 'Master' and figName != 'master':
                 continue
             # ====== Set up master window controls
             plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
@@ -1351,21 +1632,27 @@ class diagnosticGUI(object):
                 p_dt_Button = Button(plt.axes([0.18, 0.02, 0.017, 0.03]), '+dt')
                 self.widgets['plus_dt'] = p_dt_Button
 
-            # Capture point button in lower left
-            captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
-            self.widgets['capturePoint'] = captureButton
+            if basic_widgets:
+                # Capture point button in lower left
+                captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
+                self.widgets['capturePoint'] = captureButton
 
-            # Refresh button
-            refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
-            self.widgets['refresh'] = refreshButton
+                # Refresh button
+                refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
+                self.widgets['refresh'] = refreshButton
 
-            # Go back to last point button
-            backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
-            self.widgets['goBack'] = backButton
+                # Go back to last point button
+                backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
+                self.widgets['goBack'] = backButton
 
-            # Go back to last point button
-            saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
-            self.widgets['save'] = saveButton
+                # Go back to last point button
+                saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
+                self.widgets['save'] = saveButton
+
+                self.widgets['capturePoint'].on_clicked(self.capturePoint)
+                self.widgets['refresh'].on_clicked(self.refresh)
+                self.widgets['goBack'].on_clicked(self.goBack)
+                self.widgets['save'].on_clicked(self.save)
 
             self.plotter.show(update='all', rebuild=True, force_wait=False)
 
@@ -1406,10 +1693,10 @@ class diagnosticGUI(object):
             print("3D Axes can be rotated by clicking and dragging.")
 
         # Activate button & slider callbacks
-        self.widgets['capturePoint'].on_clicked(self.capturePoint)
-        self.widgets['refresh'].on_clicked(self.refresh)
-        self.widgets['goBack'].on_clicked(self.goBack)
-        self.widgets['save'].on_clicked(self.save)
+        #self.widgets['capturePoint'].on_clicked(self.capturePoint)
+        #self.widgets['refresh'].on_clicked(self.refresh)
+        #self.widgets['goBack'].on_clicked(self.goBack)
+        #self.widgets['save'].on_clicked(self.save)
         if with_times:
             self.widgets['timeBar'].on_changed(self.updatePlots)
             self.widgets['minus_dt'].on_clicked(self.minus_dt)
@@ -1547,7 +1834,7 @@ class diagnosticGUI(object):
                     if layName in self.timePlots:
                         for data_name, traj in fig_struct.layers[layName].trajs.items():
                             if fig_struct.layers[layName].kind == 'data':
-                                pt_dict[data_name] = traj(self.t)['y']
+                                pt_dict[data_name] = traj(self.t)['y'] #Why is it hardwired to select y coord?
 
             print("figName: ")
             print(figName)
@@ -1674,9 +1961,9 @@ class diagnosticGUI(object):
             self.RS_line.set_active(True)
             self.mouse_wait_state_owner = 'line'
         elif k == ' ':
-            print("Forces at clicked mouse point")
-            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_force)
-            self.mouse_wait_state_owner = 'forces'
+            print("Output of user function at clicked mouse point")
+            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_user_function)
+            self.mouse_wait_state_owner = 'user_func'
         elif k == 's':
             print("Snap clicked mouse point to closest point on trajectory")
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
@@ -1703,10 +1990,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            print("Self.ax is...")
-            print(self.ax)
-
-            self.selected_object = line_GUI(self, self.ax,
+            self.selected_object = line_GUI(self, self.RS_line.ax,
                                             pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
@@ -1714,14 +1998,14 @@ class diagnosticGUI(object):
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
-        if self.pts is None:
+        if self.points is None:
             print("No trajectory defined")
             return
         print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
         # have to guess phase, use widest tolerance
 
         try:
-            data = pp.find_pt_nophase_2D(self.pts, pp.Point2D(ev.xdata, ev.ydata),
+            data = pp.find_pt_nophase_2D(self.points, pp.Point2D(ev.xdata, ev.ydata),
                                          eps=0.1)
         except ValueError:
             print("No nearby point found. Try again")
@@ -1733,7 +2017,7 @@ class diagnosticGUI(object):
         self.selected_object = pp.Point2D(x_snap, y_snap)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
-        self.selected_object_temphandle = self.ax.plot(x_snap, y_snap, 'go')[0]
+        self.selected_object_temphandle = self.RS_line.ax.plot(x_snap, y_snap, 'go')[0]
         self.fig.canvas.draw()
         print("Last output = (index, distance, point)")
         print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
@@ -1741,13 +2025,13 @@ class diagnosticGUI(object):
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
-    def mouse_event_force(self, ev):
+    def mouse_event_user_function(self, ev):
         if ev.inaxes not in self.cb_axes:
             print('Must select axes for which callbacks have been defined.')
             return
 
         print("\n(%.4f, %.4f)" %(ev.xdata, ev.ydata))
-        fs, fvecs = self.spatial_func(ev.xdata, ev.ydata)
+        fs, fvecs = self.user_func(ev.xdata, ev.ydata)
         print(fs)
         self.last_output = (fs, fvecs)
         self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
@@ -1758,8 +2042,8 @@ class diagnosticGUI(object):
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
-    def assign_spatial_func(self, func):
-        self.spatial_func = func
+    def assign_user_func(self, func):
+        self.user_func = func
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is
@@ -1803,8 +2087,12 @@ class line_GUI(context_object):
         # angle relative to horizontal, in radians
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
+
         # hook back to linked axes object in GUI
-        self.gui_axes = gui_axes
+        if isinstance(gui_axes, str):
+            self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
+        else:
+            self.gui_axes = gui_axes
         # declare self to GUI
         gui.declare_in_context(self)
         # move self to the currently selected object in GUI
