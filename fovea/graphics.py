@@ -36,6 +36,13 @@ from fovea.diagnostics import get_unique_name
 
 # ----------------------------------------------
 
+#Test python version
+try:
+    input = raw_input
+except NameError:
+    # python 3
+    pass
+
 
 def force_line_to_extent(a, b, p_domain, coordnames):
     """
