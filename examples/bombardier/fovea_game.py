@@ -183,7 +183,7 @@ class GUIrocket(object):
         try:
             n = len(gui.points)
             coorddict = {'xq':
-                         {'x':'xq', 'y':'yq', 'layer':'trajs', 'name':'data2', 'style':'kd'}
+                         {'x':'xq', 'y':'yq', 'layer':'trajs', 'name':'quarts1', 'style':'kd'}
                          }
             quarts = Pointset({'coordarray': np.array([[gui.points['x'][int(0.25*n)], gui.points['x'][int(0.5*n)], gui.points['x'][int(0.75*n)]],
                                            [gui.points['y'][int(0.25*n)], gui.points['y'][int(0.5*n)], gui.points['y'][int(0.75*n)]]]),
@@ -196,7 +196,7 @@ class GUIrocket(object):
         #Traj Pointset
         coorddict = {'x':
                      {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
-                     # {'x':'x', 'y':'y','layer':'trajs', 'object':'collection'},
+                      #{'x':'x', 'y':'y','layer':'trajs', 'object':'collection'},
                      'speed':
                      {'map_color_to':'x'}
                      }
@@ -218,10 +218,9 @@ class GUIrocket(object):
         for i in range(len(pos[0])):
             plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
 
+        plotter.show(rebuild=False)
 
-        plotter.show(rebuild=True)
-
-        self.fig.canvas.draw()
+        #self.fig.canvas.draw()
 
     # Methods for pickling protocol
     def __getstate__(self):
@@ -636,5 +635,9 @@ def body4_dominant_at_point(pt_array, fsign=None):
 
 gui.assign_user_func(game1.get_forces)
 gui.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
+
+game1.updateAng(maxangle-1)
+game1.updateVel(game1.maxspeed-0.5)
+game1.go()
 
 halt = True

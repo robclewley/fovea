@@ -452,6 +452,7 @@ class plotter2D(object):
         layAttrs = args()
         layAttrs.data = {}
         layAttrs.display = True
+        layAttrs.force = False
         # ISSUE: zindex ordering not actually used
         # default zindex based on order of layer declaration
         layAttrs.zindex = len(fig_struct.layers)+1
@@ -545,6 +546,7 @@ class plotter2D(object):
 
         kwargs.update({'data':data,'patch':patch, 'display':display, 'subplot':subplot})
         d.update({name: kwargs})
+        layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
@@ -602,6 +604,7 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
+        layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
@@ -963,7 +966,7 @@ class plotter2D(object):
                     except TypeError:
                         pass
 
-                self.buildLayers(layer_info, ax, force=rebuild)
+                self.buildLayers(layer_info, ax, rebuild=rebuild)
 
 
     def show(self, update='current', rebuild=False, force_wait=None):
@@ -1040,12 +1043,12 @@ class plotter2D(object):
 
 
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
-                    force=False):
+                    rebuild=False):
         """
         Convenience function to group layer refresh/build calls. Current figure for
         given list of layer names is assumed unless optionally specified.
 
-        Optional force = True argument will rebuild all plots, overwriting any
+        Optional rebuild = True argument will rebuild all plots, overwriting any
         previous object handles.
         """
         fig_struct, figure = self._resolveFig(figure)
@@ -1053,7 +1056,8 @@ class plotter2D(object):
             return
 
         for layer_name in layer_list:
-            self.buildLayer(figure, layer_name, ax, rescale, force=force)
+            self.buildLayer(figure, layer_name, ax, rescale, force=(rebuild or
+                                                                    fig_struct['layers'][layer_name].force))
 
 
     def updateDynamic(self, time, dynamicFns, hard_reset=False):
@@ -1144,6 +1148,9 @@ class plotter2D(object):
             return
 
         if force:
+            #Remove handles from axes before clearing dictioanry.
+            for h in lay.handles.values():
+                h.remove()
             lay.handles = {}
 
         for dname, dstruct in lay.data.items():
@@ -1236,6 +1243,8 @@ class plotter2D(object):
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
                                             **s)[0]
+
+                    lay.force = False
 
         if rescale is not None:
             # overrides layer scale
