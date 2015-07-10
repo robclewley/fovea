@@ -24,6 +24,8 @@ from math import *
 import hashlib, time
 import euclid as euc
 
+from PyDSTool import * #Need Events from here.
+
 from PyDSTool import args, numeric_to_traj, Point, Points
 import PyDSTool.Toolbox.phaseplane as pp
 # for potentially generalizable functions and classes to use
@@ -2029,6 +2031,121 @@ class diagnosticGUI(object):
         self.context_changed = True
         self.context_objects.append(con_obj)
 
+    def setup_gen(self):
+        if self.context_changed:
+            self.context_changed = False
+            self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
+        else:
+            try:
+                gui.model = gui.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
+            except:
+                gui.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
+            else:
+                gui.model.set(pars=self.body_pars)
+
+    def make_gen(self, pardict, name):
+        # scrape GUI diagnostic object extras for generator
+        extra_events = []
+        extra_fnspecs = {}
+        extra_pars = {}
+        extra_auxvars = {}
+        for gui_obj in self.context_objects:
+            extra_events.append(gui_obj.extra_events)
+            extra_fnspecs.update(gui_obj.extra_fnspecs)
+            extra_pars.update(gui_obj.extra_pars)
+            extra_auxvars.update(gui_obj.extra_auxvars)
+
+        Fx_str = ""
+        Fy_str = ""
+        for i in range(self.N):
+            Fx_str += "-G*m%i*(x-bx%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
+            Fy_str += "-G*m%i*(y-by%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
+
+        DSargs = args()
+        DSargs.varspecs = {'vx': Fx_str, 'x': 'vx',
+                           'vy': Fy_str, 'y': 'vy',
+                           'Fx_out': 'Fx(x,y)', 'Fy_out': 'Fy(x,y)',
+                           'speed': 'sqrt(vx*vx+vy*vy)',
+                           'bearing': '90-180*atan2(vy,vx)/pi'}
+        DSargs.varspecs.update(extra_auxvars)
+        auxfndict = {'Fx': (['x', 'y'], Fx_str),
+                     'Fy': (['x', 'y'], Fy_str),
+                     'd': (['xx', 'yy', 'x1', 'y1'], "sqrt((xx-x1)*(xx-x1)+(yy-y1)*(yy-y1))")
+                    }
+        DSargs.auxvars = ['Fx_out', 'Fy_out', 'speed', 'bearing'] + \
+            list(extra_auxvars.keys())
+        DSargs.pars = pardict
+        DSargs.pars.update(extra_pars)
+        DSargs.fnspecs = auxfndict
+        DSargs.fnspecs.update(extra_fnspecs)
+        DSargs.algparams = {'init_step':0.001,
+                            'max_step': 0.01,
+                            'max_pts': 20000,
+                            'maxevtpts': 2,
+                            'refine': 5}
+
+        targetlang = \
+            gui.gen_versioner._targetlangs[self.gen_versioner.gen_type]
+
+        xdomain_halfwidth = 0.7
+
+        # Events for external boundaries (left, right, top, bottom)
+        Lev = Events.makeZeroCrossEvent('x+%f'%xdomain_halfwidth, -1,
+                                        {'name': 'Lev',
+                                         'eventtol': 1e-5,
+                                         'precise': True,
+                                         'term': True},
+                                        varnames=['x'],
+                                        targetlang=targetlang)
+        Rev = Events.makeZeroCrossEvent('x-%f'%xdomain_halfwidth, 1,
+                                        {'name': 'Rev',
+                                         'eventtol': 1e-5,
+                                         'precise': True,
+                                         'term': True},
+                                        varnames=['x'],
+                                        targetlang=targetlang)
+        Tev = Events.makeZeroCrossEvent('y-1', 1,
+                                        {'name': 'Tev',
+                                         'eventtol': 1e-5,
+                                         'precise': True,
+                                         'term': True},
+                                        varnames=['y'],
+                                        targetlang=targetlang)
+        Bev = Events.makeZeroCrossEvent('y', -1,
+                                        {'name': 'Bev',
+                                         'eventtol': 1e-5,
+                                         'precise': True,
+                                         'term': True},
+                                        varnames=['y'],
+                                        targetlang=targetlang)
+
+        # Events for planetoids
+        bevs = []
+        for i in range(self.N):
+            bev = Events.makeZeroCrossEvent('d(x,y,bx%i,by%i)-r%i' % (i,i,i),
+                                            -1,
+                                        {'name': 'b%iev' %i,
+                                         'eventtol': 1e-5,
+                                         'precise': True,
+                                         'term': True},
+                                        varnames=['x','y'],
+                                        parnames=list(pardict.keys()),
+                                        fnspecs=auxfndict,
+                                        targetlang=targetlang)
+            bevs.append(bev)
+
+        DSargs.events = [Lev, Rev, Tev, Bev] + bevs + extra_events
+        DSargs.checklevel = 2
+        DSargs.ics = {'x': self.icpos[0], 'y': self.icpos[1],
+                      'vx': 0., 'vy': 1.5}
+        DSargs.name = name
+        DSargs.tdomain = [0, 10000]
+        DSargs.tdata = [0, 50]
+
+        # turns arguments into Generator then embed into Model object
+        gui.model = gui.gen_versioner.make(DSargs)
+
+
 class context_object(object):
     # Abstract base class
     pass
@@ -2090,8 +2207,6 @@ class line_GUI(context_object):
         self.l = None
         self.name = '<untitled>'
 
-        print("self.name: ")
-        print(self.name)
         gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
                            style= None, name=self.name, force= True, display= True)
 
