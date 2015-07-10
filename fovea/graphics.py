@@ -562,6 +562,53 @@ class plotter2D(object):
         d.update({name: kwargs})
         layer_struct.force = force
 
+    def addObj(self, data, obj, figure=None, layer=None, subplot=None, name=None,
+                 display=True, force=False, log=None, **kwargs):
+        ##ISSUE: May want to combine this with patch.
+        try:
+            size = np.shape(data)
+        except:
+            raise TypeError("Data must be castable to a numpy array")
+
+        # Check to see that there is an x- and y- dataset
+        try:
+            if not size[0] == 2:
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
+
+        fig_struct, figure = self._resolveFig(figure)
+        if layer is None:
+            layer = self.active_layer[1]
+            layer_struct = self.active_layer_structs[1]
+        else:
+            layer_struct = self._resolveLayer(figure, layer)
+
+        if not layer_struct.kind == 'obj':
+            raise ValueError("Incompatible layer type (should be `obj`)")
+
+        # d is a dictionary mapping 'name' to a dictionary of fields for the
+        # numerical plot data (key 'data'), style (key 'style'), and display
+        # boolean (key 'display').
+        #
+        # The numerical data for d is given by the method argument also called data
+        d = layer_struct.data
+
+        # Check to see if data name already exists
+        if name in d and not force:
+            raise KeyError("Data name already exists in layer: %s" %name)
+
+        # Create name if none is provided
+        if name is None:
+            name = get_unique_name(figure+'_'+layer)
+
+        if log:
+            log.msg("Added plot data", figure=figure, layer=layer, name=name)
+
+        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot})
+        d.update({name: kwargs})
+        layer_struct.force = force
+
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
                 display=True, force=False, log=None):
         """
@@ -665,7 +712,7 @@ class plotter2D(object):
                 # for non-dict updates, e.g. display=True
                 layer_struct[kw] = kwargs[kw]
             except KeyError:
-                raise KeyError("Parameter '%s' is not a property of the layer." %kw)
+                raise KeyError("Parameter '%s' is not a property of the data." %kw)
             else:
                 # dict update: check whether data was changed and propogate to plot
                 # object
@@ -1181,9 +1228,6 @@ class plotter2D(object):
                 pass
             else:
                 obj.set_visible(dstruct['display'])
-            if not dstruct['display']:
-                continue
-
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
@@ -1214,7 +1258,7 @@ class plotter2D(object):
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
 
-            if lay.kind == 'text':
+            if lay.kind == 'text' and dstruct['display']:
                 if dname not in lay.handles or force:
                     if dstruct['use_axis_coords']:
                         lay.handles[dname] = ax.text(dstruct['data'][ix0],
@@ -1232,9 +1276,15 @@ class plotter2D(object):
                 pos = dstruct['data']
                 for i in range(len(pos[0])):
                     #This must generalize to other patches.
-                    ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
+                    lay.handles[dname] = ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
                                   dstruct['radius'][i],
-                                  color = dstruct['color']))
+                                  color = dstruct['color'],
+                                  visible = dstruct['display']))
+
+            elif lay.kind == 'obj':
+                coords = dstruct['data']
+                l = dstruct['obj'](coords[0], coords[1], linewidth=1, color='y', visible= dstruct['display'])
+                lay.handles[dname] = ax.add_artist(l)
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1246,12 +1296,13 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s)[0]
+                                            s, visible= dstruct['display'])[0]
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                            s)[0]
+                                            s, visible= dstruct['display'])[0]
                         else:
+                            #Display? Visibility?
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
@@ -1918,8 +1969,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self,pp.Point2D(x1, y1), pp.Point2D(x2, y2),
-                                            axes=self.RS_line.ax)
+            self.selected_object = line_GUI(self,pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
             self.RS_line.set_active(False)
@@ -1990,7 +2040,7 @@ class line_GUI(context_object):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, guiR, pt1, pt2, layer='gx_objects', subplot=None, axes= None):
+    def __init__(self, guiR, pt1, pt2, layer='gx_objects', subplot=None):
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
@@ -2000,18 +2050,10 @@ class line_GUI(context_object):
 
         fig_struct, figure = gui.plotter._resolveFig(None)
         try:
-            layer_struct = gui.plotter._resolveLayer(figure, layer)
+            gui.plotter._resolveLayer(figure, layer)
         except KeyError:
-            gui.plotter.addLayer(layer, subplot = subplot) #Set to active layer? True.
-            layer_struct = gui.plotter._resolveLayer(figure, layer)
+            gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
             print("Created layer", layer, "to support Line_GUI object")
-
-        if axes is not None and subplot is not None:
-                raise ValueError("Cannot enter both axes object and subplot specification.")
-        if subplot is not None:
-            self.gui_axes = fig_struct['arrange'][subplot]['axes_obj']
-        elif axes is not None:
-            self.gui_axes = axes
 
         if x1 > x2:
             # ensure correct ordering for angles
@@ -2032,13 +2074,6 @@ class line_GUI(context_object):
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
 
-        # hook back to linked axes object in GUI
-
-        #if isinstance(gui_axes, str):
-            #self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
-        #else:
-            #self.gui_axes = gui_axes
-
         # declare self to GUI
         guiR.declare_in_context(self)
         # move self to the currently selected object in GUI
@@ -2054,6 +2089,12 @@ class line_GUI(context_object):
         self.layer = layer
         self.l = None
         self.name = '<untitled>'
+
+        print("self.name: ")
+        print(self.name)
+        gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
+                           style= None, name=self.name, force= True, display= True)
+
         self.show()
 
     def __repr__(self):
@@ -2066,19 +2107,17 @@ class line_GUI(context_object):
 
     def show(self):
         fig_struct, figure = gui.plotter._resolveFig(None)
-        if self.l is None:
-            self.l = self.gui_axes.plot([self.x1,self.x2],
-                                       [self.y1,self.y2],
-                                   'y-')[0]
-            fig_struct.layers[self.layer]['handles'][self.name] = self.l
-            gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
-        else:
-            self.l.set_visible(True)
-        plt.draw()
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
+
+        gui.plotter.show()
 
     def unshow(self):
-        self.l.set_visible(False)
-        plt.draw()
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
+
+        gui.plotter.show()
 
     def remove(self):
         fig_struct, figure = gui.plotter._resolveFig(None)
@@ -2103,8 +2142,13 @@ class line_GUI(context_object):
     def make_event_def(self, uniquename, dircode=0):
         fig_struct, figure = gui.plotter._resolveFig(None)
 
-        fig_struct.layers[self.layer]['handles'][uniquename] = \
-            fig_struct.layers[self.layer]['handles'].pop(self.name)
+        for field in ['handles', 'data', 'trajs']:
+            fig_struct.layers[self.layer][field][uniquename] = \
+                fig_struct.layers[self.layer][field].pop(self.name)
+
+        #Update changes the diagnosticGUI object.
+        gui.plotter.figs[figure] = fig_struct
+
         self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
                                           ['x', 'y'], True)
