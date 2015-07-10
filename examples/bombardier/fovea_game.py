@@ -590,8 +590,9 @@ game1 = GUIrocket(body_setup1, "Scenario 1: Game 1", axisbgcol='white')
 # ! W1b Initial conditions
 game1.set( (-79, 0.7) )
 
-ltarget = gx.line_GUI(game1, '11', pp.Point2D(0.36, 0.74),
-                      pp.Point2D(0.42, 0.8))
+ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
+                      pp.Point2D(0.42, 0.8), subplot = '11')
+
 ltarget.make_event_def('target1', 1)
 game1.setup_gen()
 

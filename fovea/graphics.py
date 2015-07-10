@@ -428,7 +428,7 @@ class plotter2D(object):
         fig_struct.arrange = arrPlots
 
 
-    def addLayer(self, layer_name, figure=None, set_to_active=True,
+    def addLayer(self, layer_name, figure=None, set_to_active=True, subplot=None,
                  **kwargs):
         """
         User method to add data sets to a layer in a figure.
@@ -483,6 +483,13 @@ class plotter2D(object):
         fig_struct.layers[layer_name] = layAttrs
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
+
+        try:
+            fig_struct['arrange'][subplot]['layers'] += [layer_name]
+        except KeyError:
+            pass
+        except TypeError:
+            pass
 
 
     def setLayer(self, label, figure=None, **kwargs):
@@ -1911,8 +1918,8 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self, self.RS_line.ax,
-                                            pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.selected_object = line_GUI(self,pp.Point2D(x1, y1), pp.Point2D(x2, y2),
+                                            axes=self.RS_line.ax)
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
             self.RS_line.set_active(False)
@@ -1983,13 +1990,29 @@ class line_GUI(context_object):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, gui, gui_axes, pt1, pt2):
+    def __init__(self, guiR, pt1, pt2, layer='gx_objects', subplot=None, axes= None):
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
             raise ValueError("Coordinate name mismatch")
         x1, y1 = pt1.coordarray
         x2, y2 = pt2.coordarray
+
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        try:
+            layer_struct = gui.plotter._resolveLayer(figure, layer)
+        except KeyError:
+            gui.plotter.addLayer(layer, subplot = subplot) #Set to active layer? True.
+            layer_struct = gui.plotter._resolveLayer(figure, layer)
+            print("Created layer", layer, "to support Line_GUI object")
+
+        if axes is not None and subplot is not None:
+                raise ValueError("Cannot enter both axes object and subplot specification.")
+        if subplot is not None:
+            self.gui_axes = fig_struct['arrange'][subplot]['axes_obj']
+        elif axes is not None:
+            self.gui_axes = axes
+
         if x1 > x2:
             # ensure correct ordering for angles
             xt = x1
@@ -2010,15 +2033,17 @@ class line_GUI(context_object):
         self.ang_deg = 180*self.ang/pi
 
         # hook back to linked axes object in GUI
-        if isinstance(gui_axes, str):
-            self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
-        else:
-            self.gui_axes = gui_axes
+
+        #if isinstance(gui_axes, str):
+            #self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
+        #else:
+            #self.gui_axes = gui_axes
+
         # declare self to GUI
-        gui.declare_in_context(self)
+        guiR.declare_in_context(self)
         # move self to the currently selected object in GUI
-        gui.selected_object = self
-        self.gui = gui
+        guiR.selected_object = self
+        self.guiR = guiR
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2026,6 +2051,7 @@ class line_GUI(context_object):
         print("Created line and moved to currently selected object")
 
         # actual MPL line object handle
+        self.layer = layer
         self.l = None
         self.name = '<untitled>'
         self.show()
@@ -2039,10 +2065,13 @@ class line_GUI(context_object):
                                           self.x2, self.y2, self.name, ev_str)
 
     def show(self):
+        fig_struct, figure = gui.plotter._resolveFig(None)
         if self.l is None:
             self.l = self.gui_axes.plot([self.x1,self.x2],
                                        [self.y1,self.y2],
                                    'y-')[0]
+            fig_struct.layers[self.layer]['handles'][self.name] = self.l
+            gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
         else:
             self.l.set_visible(True)
         plt.draw()
@@ -2052,6 +2081,10 @@ class line_GUI(context_object):
         plt.draw()
 
     def remove(self):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct.layers[self.layer]['handles'].pop(self.name)
+        gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
+
         self.l.remove()
         plt.draw()
 
@@ -2068,6 +2101,10 @@ class line_GUI(context_object):
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
 
     def make_event_def(self, uniquename, dircode=0):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+
+        fig_struct.layers[self.layer]['handles'][uniquename] = \
+            fig_struct.layers[self.layer]['handles'].pop(self.name)
         self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
                                           ['x', 'y'], True)
@@ -2079,7 +2116,7 @@ class line_GUI(context_object):
         self.extra_pars[parname_base+'dp_y'] = self.dy
         self.extra_fnspecs.update(res['auxfn'])
         targetlang = \
-            self.gui.gen_versioner._targetlangs[self.gui.gen_versioner.gen_type]
+            self.guiR.gen_versioner._targetlangs[self.guiR.gen_versioner.gen_type]
         self.extra_events = [dst.Events.makeZeroCrossEvent(
                                               expr='exit_fn_%s(x,y)' %uniquename,
                                               dircode=dircode,
