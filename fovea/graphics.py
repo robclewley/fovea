@@ -1433,11 +1433,17 @@ class diagnosticGUI(object):
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def addDataPoints(self, data, coorddict=None):
+    def addDataPoints(self, data, figure=None, layer=None, subplot=None,
+                           style=None, name=None, display=True, force=False,
+                           log=None, coorddict=None):
         maxspeed = 2.2
 
-        if False:
-            donothing
+
+        if isinstance(data, numpy.ndarray) or isinstance(data, list):
+            plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
+                           style=style, name=name,
+                           display=display,
+                           force=force, log=log)
         if isinstance(data, Points.Pointset):
             addingDict = {}
 
@@ -2157,7 +2163,7 @@ class line_GUI(context_object):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, guiR, pt1, pt2, layer='gx_objects', subplot=None):
+    def __init__(self, pt1, pt2, layer='gx_objects', subplot=None):
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
@@ -2192,10 +2198,9 @@ class line_GUI(context_object):
         self.ang_deg = 180*self.ang/pi
 
         # declare self to GUI
-        guiR.declare_in_context(self)
+        gui.declare_in_context(self)
         # move self to the currently selected object in GUI
-        guiR.selected_object = self
-        self.guiR = guiR
+        gui.selected_object = self
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2275,7 +2280,7 @@ class line_GUI(context_object):
         self.extra_pars[parname_base+'dp_y'] = self.dy
         self.extra_fnspecs.update(res['auxfn'])
         targetlang = \
-            self.guiR.gen_versioner._targetlangs[self.guiR.gen_versioner.gen_type]
+            gui.gen_versioner._targetlangs[gui.gen_versioner.gen_type]
         self.extra_events = [dst.Events.makeZeroCrossEvent(
                                               expr='exit_fn_%s(x,y)' %uniquename,
                                               dircode=dircode,

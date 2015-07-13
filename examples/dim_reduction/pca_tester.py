@@ -29,7 +29,7 @@ def disc():
 
     pca_disc.setupDisplay(rot_layers, rot_styles, DOI)
 
-    plotter.addData([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='y.')
+    gui.addDataPoints([pts[:,0], pts[:,1], pts[:,2]], layer='orig_data', style='y.')
 
     d=2
     ctrl_sys = ControlSys(gui.masterWin, X, rot_layers, rot_styles, 2)
@@ -57,7 +57,7 @@ def hypersphere(dim):
 
     #Plot the entire dataset in blue.
     X_all = np.concatenate((X1,X2,X3))
-    plotter.addData(np.dot(X_all, proj_vecsHI).transpose(), layer='orig_data', style='y.')
+    gui.addDataPoints(np.dot(X_all, proj_vecsHI).transpose(), layer='orig_data', style='y.')
 
     d = 2
     ctrl_sys = ControlSys(gui.masterWin, X, clus_layers, clus_styles, 2, proj_vecsLO, proj_vecsHI)

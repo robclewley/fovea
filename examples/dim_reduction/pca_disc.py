@@ -89,18 +89,18 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
-    plotter.addData([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
+    gui.addDataPoints([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
-    plotter.addData([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
+    gui.addDataPoints([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
 
     for j in range(0, len(pcPts), 2):
-        plotter.addData([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
-        plotter.addData([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
+        gui.addDataPoints([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
+        gui.addDataPoints([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
 
-    plotter.addData([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
+    gui.addDataPoints([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
     print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
