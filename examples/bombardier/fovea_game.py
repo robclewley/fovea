@@ -603,8 +603,7 @@ target = target4D_line('test_line', pars=args(pt1=pp.Point2D((ltarget.x1, ltarge
                                           pt2=pp.Point2D((ltarget.x2, ltarget.y2)),
                                           speed_inter=Interval('speed', float, (1,2)),
                                           bearing_inter=Interval('bearing', float, (-15,45)),
-                                          loc_event_name='exit_ev_target1')
-                       )
+                                          loc_event_name='exit_ev_target1'))
 
 gui.calc_context = calc_context_forces(gui, 'con1')
 con1 = gui.calc_context
@@ -616,7 +615,7 @@ game1.go()
 test_model = intModelInterface(gui.model)
 print("Success? %s"%(str(target(test_model))))
 
-print("Variability of net force felt along trajectory = %.3f" % con1.variability_force())
+#print("Variability of net force felt along trajectory = %.3f" % con1.variability_force())
 print(" (smaller is better)")
 
 # alternative (deprecated) method, shown for reference
@@ -636,5 +635,7 @@ def body4_dominant_at_point(pt_array, fsign=None):
 
 gui.assign_user_func(game1.get_forces)
 gui.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
+
+fig_struct, figure = gui.plotter._resolveFig(None)
 
 halt = True
