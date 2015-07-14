@@ -448,32 +448,26 @@ gui.addTimeFromPoints(trajPts)
 plotter.clean()
 plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
                tdom=[0, t_end], domain=[(-100,50), (0,1)])
-
-# Add layers and their data
-
-plotter.addLayer('V')
-plotter.addData([trajPts['t'], trajPts['V']], layer='V', style='k-',
-                name='V')
-plotter.addData([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
-                name='Vinf')
-
-plotter.addLayer('activs')
-plotter.addData([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
-                name='m')
-plotter.addData([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
-                name='minf')
-
-plotter.addData([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
-                name='n')
-plotter.addData([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
-                name='ninf')
-
-plotter.addData([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
-                name='tauv')
-plotter.addData([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
-                name='taum')
-plotter.addData([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
-                name='taun')
+coorddict = {'V':
+             {'x':'t', 'y':'V','layer':'V','name':'V', 'style':'k-'},
+             'vinf':
+             {'x':'t', 'y':'vinf','layer':'V','name':'Vinf', 'style':'k:'},
+             'Na.m':
+             {'x':'t', 'y':'Na.m', 'layer':'activs', 'name':'minf', 'style':'g--'},
+             'Na.minf':
+             {'x':'t', 'y':'Na.minf', 'layer':'activs', 'name':'minf', 'style':'g--'},
+             'K.n':
+             {'x':'t', 'y':'K.n', 'layer':'activs', 'name':'n', 'style':'r-'},
+             'K.ninf':
+             {'x':'t', 'y':'K.ninf', 'layer':'activs', 'name':'ninf', 'style':'r--'},
+             'tauv':
+             {'x':'t', 'y':'tauv', 'layer':'activs','name':'tauv', 'style':'b:'},
+             'Na.taum':
+             {'x':'t', 'y':'Na.taum', 'layer':'activs','name':'taum', 'style':'g:'},
+             'K.taun':
+             {'x':'t', 'y':'K.taun', 'layer':'activs','name':'taun', 'style':'r:'}
+             }
+gui.addDataPoints(trajPts, coorddict = coorddict)
 
 print("Key for activations / time scales window")
 print("  Activations: line=activation, dashed=asymptotic")

@@ -1439,11 +1439,17 @@ class diagnosticGUI(object):
                            log=None, coorddict=None):
         maxspeed = 2.2
 
+        #if layer is None:
+            #plotter.addLayer(layer)
+            #print("Added new layer",layer,"to plotter.")
+        fig_struct, figure = plotter._resolveFig(None)
+
         if isinstance(data, numpy.ndarray) or isinstance(data, list):
             plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
                            style=style, name=name,
                            display=display,
                            force=force, log=log)
+
         if isinstance(data, Points.Pointset):
             #Newly created code
             if coorddict is not None:
@@ -1477,6 +1483,9 @@ class diagnosticGUI(object):
 
                     #Extract layer
                     try:
+                        if val['layer'] not in fig_struct.layers.keys():
+                            plotter.addLayer(val['layer'])
+                            print("Added new layer",val['layer'],"to plotter.")
                         addingDict[key]['layer'] = val['layer']
                     except KeyError:
                         pass
@@ -1533,7 +1542,7 @@ class diagnosticGUI(object):
 
                     try:
                         plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
-                                         figure='master',
+                                         #figure='master',
                                          layer = lay,
                                          name = nam,
                                          force = True,
@@ -1542,7 +1551,7 @@ class diagnosticGUI(object):
 
                     except:
                         plotter.addData(addingDict[key]['data'],
-                                        figure='master', #Fix this
+                                        #figure='master', #Fix this
                                         style = addingDict[key]['style'],
                                         layer = lay,
                                         name = nam,
