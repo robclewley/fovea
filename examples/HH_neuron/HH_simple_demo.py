@@ -438,7 +438,7 @@ else:
 # re-sample traj at constant dt and declare to GUI
 #trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
 trajPts = ref_traj.sample(dt=0.01)[:len(ref_traj.sample(dt=0.01))-40] #[:-40] syntax not working in python 3
-gui.addDataPoints(trajPts)
+gui.addTimeFromPoints(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -558,3 +558,5 @@ gui.buildPlotter2D((14,8))
 plotter.show_legends(subplot='Times')
 
 plt.show()
+
+halt = True

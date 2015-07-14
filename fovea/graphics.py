@@ -1214,9 +1214,13 @@ class plotter2D(object):
             return
 
         if force:
-            #Remove handles from axes before clearing dictioanry.
             for h in lay.handles.values():
-                h.remove()
+                ##ISSUE: Error in MPL: list.remove(x): x not in list, when using HH_simple_demo
+                try:
+                    h.remove()
+                except ValueError:
+                    pass
+
             lay.handles = {}
 
         for dname, dstruct in lay.data.items():
@@ -1438,113 +1442,114 @@ class diagnosticGUI(object):
                            log=None, coorddict=None):
         maxspeed = 2.2
 
-
         if isinstance(data, numpy.ndarray) or isinstance(data, list):
             plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
                            style=style, name=name,
                            display=display,
                            force=force, log=log)
         if isinstance(data, Points.Pointset):
-            addingDict = {}
+            #Newly created code
+            if coorddict is not None:
+                addingDict = {}
 
-            for key, val in coorddict.items():
+                for key, val in coorddict.items():
 
-                #Extract x and y data.
-                try:
-                    xs = data[val.get('x')]
-                    ys = data[val.get('y')]
+                    #Extract x and y data.
                     try:
-                        addingDict[key]['data'] = [xs, ys]
-                    except KeyError:
-                        addingDict[key] = {}
-                        addingDict[key]['data'] = [xs, ys]
-                except IndexError:
-                    pass
+                        xs = data[val.get('x')]
+                        ys = data[val.get('y')]
+                        try:
+                            addingDict[key]['data'] = [xs, ys]
+                        except KeyError:
+                            addingDict[key] = {}
+                            addingDict[key]['data'] = [xs, ys]
+                    except IndexError:
+                        pass
 
-                #Extract object
-                if val.get('object') == 'collection':
-                    addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                elif val.get('object') == 'circle':
-                    addingDict[key]['patch'] = plt.Circle
+                    #Extract object
+                    if val.get('object') == 'collection':
+                        addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+                    elif val.get('object') == 'circle':
+                        addingDict[key]['patch'] = plt.Circle
 
-                #Extract style
-                try:
-                    addingDict[key]['style'] = val['style']
-                except KeyError:
-                    pass
-
-                #Extract layer
-                try:
-                    addingDict[key]['layer'] = val['layer']
-                except KeyError:
-                    pass
-
-                #Extract style
-                try:
-                    addingDict[key]['name'] = val['name']
-                except KeyError:
-                    pass
-
-                #Extract radii
-                try:
-                    addingDict[val['map_radius_to']]['radius'] = data[key]
-                except:
+                    #Extract style
                     try:
-                        addingDict[val['map_radius_to']] = {}
-                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                        addingDict[key]['style'] = val['style']
                     except KeyError:
                         pass
 
-                #Perform color mapping
-                try:
-                    vals = data[key]
-                    norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
-                    cmap=plt.cm.jet #gist_heat
+                    #Extract layer
                     try:
-                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        addingDict[key]['layer'] = val['layer']
                     except KeyError:
-                        addingDict[val['map_color_to']] = {}
-                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        pass
 
-                except KeyError:
-                    pass
-                except IndexError:
-                    pass
+                    #Extract style
+                    try:
+                        addingDict[key]['name'] = val['name']
+                    except KeyError:
+                        pass
 
-            #addData for each plotting variable in the pointset.
-            for key, val in addingDict.items():
-                try:
-                    linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
-                    addingDict[key]['data'] = linecollection
-                except KeyError:
-                    pass
+                    #Extract radii
+                    try:
+                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                    except:
+                        try:
+                            addingDict[val['map_radius_to']] = {}
+                            addingDict[val['map_radius_to']]['radius'] = data[key]
+                        except KeyError:
+                            pass
 
-                try:
-                    lay = addingDict[key]['layer']
-                except KeyError:
-                    lay = None
+                    #Perform color mapping
+                    try:
+                        vals = data[key]
+                        norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
+                        cmap=plt.cm.jet #gist_heat
+                        try:
+                            addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        except KeyError:
+                            addingDict[val['map_color_to']] = {}
+                            addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
 
-                try:
-                    nam = addingDict[key]['name']
-                except KeyError:
-                    nam = None
+                    except KeyError:
+                        pass
+                    except IndexError:
+                        pass
 
-                try:
-                    plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
-                                     figure='master',
-                                     layer = lay,
-                                     name = nam,
-                                     force = True,
-                                     radius = addingDict[key]['radius'],
-                                     color = addingDict[key]['style'])
+                #addData for each plotting variable in the pointset.
+                for key, val in addingDict.items():
+                    try:
+                        linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
+                        addingDict[key]['data'] = linecollection
+                    except KeyError:
+                        pass
 
-                except:
-                    plotter.addData(addingDict[key]['data'],
-                                    figure='master', #Fix this
-                                    style = addingDict[key]['style'],
-                                    layer = lay,
-                                    name = nam,
-                                    force = True)
+                    try:
+                        lay = addingDict[key]['layer']
+                    except KeyError:
+                        lay = None
+
+                    try:
+                        nam = addingDict[key]['name']
+                    except KeyError:
+                        nam = None
+
+                    try:
+                        plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
+                                         figure='master',
+                                         layer = lay,
+                                         name = nam,
+                                         force = True,
+                                         radius = addingDict[key]['radius'],
+                                         color = addingDict[key]['style'])
+
+                    except:
+                        plotter.addData(addingDict[key]['data'],
+                                        figure='master', #Fix this
+                                        style = addingDict[key]['style'],
+                                        layer = lay,
+                                        name = nam,
+                                        force = True)
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
@@ -1565,6 +1570,16 @@ class diagnosticGUI(object):
         except AttributeError:
             self.widgets[kwargs['label']].on_clicked(callback)
 
+
+    def addTimeFromPoints(self, points):
+        self.traj = None
+        self.points = points
+        try:
+            self.times = points['t']
+        except KeyError:
+            self.times = None
+        except PyDSTool_KeyError:
+            pass
 
 
     def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
