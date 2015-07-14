@@ -116,7 +116,7 @@ class GUIrocket(object):
                                    {'name': self.name,
                                     'scale': DOI,
                                     'layers':['trajs', 'bodies', 'text'],
-                                    'callbacks':True,
+                                    'callbacks':'*',
                                     'axes_vars': ['x', 'y']
                                     }
                                    })

@@ -136,7 +136,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers,
-                                'callbacks':True,
+                                'callbacks':'*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
