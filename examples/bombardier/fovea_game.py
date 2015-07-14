@@ -112,16 +112,25 @@ class GUIrocket(object):
 
         self.name = 'gamespace'
 
-        plotter.arrangeFig([1,1], {'11':
-                                   {'name': self.name,
-                                    'scale': DOI,
-                                    'layers':['trajs', 'bodies', 'text'],
-                                    'callbacks':'*',
-                                    'axes_vars': ['x', 'y']
-                                    }
-                                   })
+        #plotter.arrangeFig([1,1], {'11':
+                                   #{'name': self.name,
+                                    #'scale': DOI,
+                                    #'layers':['trajs', 'bodies', 'text'],
+                                    #'callbacks':'*',
+                                    #'axes_vars': ['x', 'y']
+                                    #}
+                                   #})
 
-        gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
+        #gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
+        gui.setup({'11':
+                    {'name': self.name,
+                     'scale': DOI,
+                     'layers':['trajs', 'bodies', 'text'],
+                     'callbacks':'*',
+                     'axes_vars': ['x', 'y']
+                     }
+                    },
+                  size=(9, 7), with_times=False, basic_widgets=False)
 
         gui.fignum = 1
         self.fig = gui.masterWin

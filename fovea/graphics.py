@@ -1442,7 +1442,13 @@ class diagnosticGUI(object):
         #if layer is None:
             #plotter.addLayer(layer)
             #print("Added new layer",layer,"to plotter.")
-        fig_struct, figure = plotter._resolveFig(None)
+
+        try:
+            fig_struct, figure = plotter._resolveFig(None)
+        except ValueError:
+            gui.plotter.clean()
+            gui.plotter.addFig('Master', domain= [(0,1), (0,1)])
+            fig_struct, figure = plotter._resolveFig(None)
 
         if isinstance(data, numpy.ndarray) or isinstance(data, list):
             plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
@@ -2051,6 +2057,21 @@ class diagnosticGUI(object):
 
     def assign_user_func(self, func):
         self.user_func = func
+
+    def setup(self, arrPlots, size=None, shape=None, with_times=True, basic_widgets=True):
+        if shape is None:
+            numrows = 1
+            numcols = 1
+            for k in arrPlots.keys():
+                if int(k[0]) > numrows:
+                    numrows = int(k[0])
+                if int(k[1]) > numcols:
+                    numcols = int(k[1])
+
+            shape = [numrows, numcols]
+
+        self.plotter.arrangeFig(shape, arrPlots)
+        self.buildPlotter2D(figsize=size, with_times=with_times, basic_widgets=basic_widgets)
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is

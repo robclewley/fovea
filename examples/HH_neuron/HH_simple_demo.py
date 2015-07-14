@@ -545,9 +545,7 @@ dPlot22 = {'name': pp2_name,
 
 dPlot_dict = {'11': dPlot11, '12': dPlot12, '21': dPlot21, '22': dPlot22}
 
-plotter.arrangeFig([2,2], dPlot_dict)
-
-gui.buildPlotter2D((14,8))
+gui.setup(dPlot_dict, size=(14, 8))
 
 plotter.show_legends(subplot='Times')
 
