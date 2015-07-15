@@ -1462,11 +1462,7 @@ class diagnosticGUI(object):
                 addingDict = {}
 
                 for key, val in coorddict.items():
-
                     #Extract x and y data.
-                    if not key in addingDict.keys():
-                        addingDict[key] = {}
-
                     try:
                         xs = data[val.get('x')]
                     except IndexError:
@@ -1483,14 +1479,22 @@ class diagnosticGUI(object):
                         except UnboundLocalError:
                             pass
 
+                    if not key in addingDict.keys() and ('xs' in locals() or 'ys' in locals()):
+                        addingDict[key] = {}
+
                     try:
                         addingDict[key]['data'] = [xs, ys]
 
                     #If only x/y provided, use key data for other coordinate.
                     except NameError:
-                        addingDict[key]['data'] = [xs, data[key]]
-                    except NameError:
-                        addingDict[key]['data'] = [data[key], ys]
+                        try:
+                            addingDict[key]['data'] = [xs, data[key]]
+                        except UnboundLocalError:
+                            pass
+                        try:
+                            addingDict[key]['data'] = [data[key], ys]
+                        except UnboundLocalError:
+                            pass
 
                     #Extract object
                     if val.get('object') == 'collection':
