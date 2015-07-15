@@ -449,23 +449,23 @@ plotter.clean()
 plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
                tdom=[0, t_end], domain=[(-100,50), (0,1)])
 coorddict = {'V':
-             {'x':'t', 'y':'V','layer':'V','name':'V', 'style':'k-'},
+             {'x':'t', 'layer':'V','name':'V', 'style':'k-'},
              'vinf':
-             {'x':'t', 'y':'vinf','layer':'V','name':'Vinf', 'style':'k:'},
+             {'x':'t', 'layer':'V','name':'Vinf', 'style':'k:'},
              'Na.m':
-             {'x':'t', 'y':'Na.m', 'layer':'activs', 'name':'minf', 'style':'g--'},
+             {'x':'t', 'layer':'activs', 'name':'m', 'style':'g--'},
              'Na.minf':
-             {'x':'t', 'y':'Na.minf', 'layer':'activs', 'name':'minf', 'style':'g--'},
+             {'x':'t', 'layer':'activs', 'name':'minf', 'style':'g--'},
              'K.n':
-             {'x':'t', 'y':'K.n', 'layer':'activs', 'name':'n', 'style':'r-'},
+             {'x':'t', 'layer':'activs', 'name':'n', 'style':'r-'},
              'K.ninf':
-             {'x':'t', 'y':'K.ninf', 'layer':'activs', 'name':'ninf', 'style':'r--'},
+             {'x':'t', 'layer':'activs', 'name':'ninf', 'style':'r--'},
              'tauv':
-             {'x':'t', 'y':'tauv', 'layer':'activs','name':'tauv', 'style':'b:'},
+             {'x':'t','layer':'activs','name':'tauv', 'style':'b:'},
              'Na.taum':
-             {'x':'t', 'y':'Na.taum', 'layer':'activs','name':'taum', 'style':'g:'},
+             {'x':'t', 'layer':'activs','name':'taum', 'style':'g:'},
              'K.taun':
-             {'x':'t', 'y':'K.taun', 'layer':'activs','name':'taun', 'style':'r:'}
+             {'x':'t', 'layer':'activs','name':'taun', 'style':'r:'}
              }
 gui.addDataPoints(trajPts, coorddict = coorddict)
 
@@ -550,5 +550,7 @@ gui.setup(dPlot_dict, size=(14, 8))
 plotter.show_legends(subplot='Times')
 
 plt.show()
+
+gui.plus_dt(0)
 
 halt = True
