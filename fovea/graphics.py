@@ -2117,15 +2117,17 @@ class diagnosticGUI(object):
         self.context_changed = True
         self.context_objects.append(con_obj)
 
-    def setup_gen(self):
+    def setup_gen(self, name_scheme):
+        name = name_scheme()
+
         if self.context_changed:
             self.context_changed = False
-            self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
+            self.make_gen(self.body_pars, name)
         else:
             try:
-                self.model = gui.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
+                self.model = gui.gen_versioner.load_gen(name)
             except:
-                self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
+                self.make_gen(self.body_pars, name)
             else:
                 self.model.set(pars=self.body_pars)
 

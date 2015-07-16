@@ -168,8 +168,7 @@ class GUIrocket(gx.diagnosticGUI):
         # context_changed flag set when new objects created using declare_in_context(),
         # and unset when Generator is created with the new context code included
         self.context_changed = False
-        #self.setup_gen()
-        self.setup_gen()
+        self.setup_gen(self.model_namer)
 
         self.mouse_cid = None # event-connection ID
         self.go(run=False)
@@ -592,6 +591,10 @@ class GUIrocket(gx.diagnosticGUI):
             Fs.append(sqrt(Fx*Fx+Fy*Fy))
         return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))
 
+    def model_namer(self):
+        name = 'sim_N%i'%self.N+'_fig%i'%self.fignum
+        return name
+
 
 # Scenario specification (codes refer to usage document)
 # ! W1a Objects:
@@ -605,7 +608,7 @@ ltarget = gx.line_GUI(pp.Point2D(0.36, 0.74),
                       pp.Point2D(0.42, 0.8), subplot = '11')
 
 ltarget.make_event_def('target1', 1)
-game1.setup_gen()
+game1.setup_gen(game1.model_namer)
 
 # make event terminal
 game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
