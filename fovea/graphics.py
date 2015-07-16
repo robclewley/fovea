@@ -1370,6 +1370,17 @@ class diagnosticGUI(object):
             self.addPoints(points)
 
         # ---------------
+        # Rocket stuff
+        # ---------------
+
+        self.model = None
+        self.N = None
+        self.gen_versioner = None
+        self.context_changed = None
+        self.fignum = 1
+
+
+        # ---------------
         # Internal stuff
         # ---------------
 
@@ -1400,6 +1411,12 @@ class diagnosticGUI(object):
                              'shift': 10,
                              'control': 1}
         self._last_ix = None
+
+        global plotter
+        plotter = objPlotter
+
+        global gui
+        gui = self
 
     def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
@@ -2025,7 +2042,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self,pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.selected_object = line_GUI(pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
             self.RS_line.set_active(False)
@@ -2106,114 +2123,25 @@ class diagnosticGUI(object):
             self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
         else:
             try:
-                gui.model = gui.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
+                self.model = gui.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
             except:
-                gui.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
+                self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
             else:
-                gui.model.set(pars=self.body_pars)
+                self.model.set(pars=self.body_pars)
 
     def make_gen(self, pardict, name):
-        # scrape GUI diagnostic object extras for generator
-        extra_events = []
-        extra_fnspecs = {}
-        extra_pars = {}
-        extra_auxvars = {}
-        for gui_obj in self.context_objects:
-            extra_events.append(gui_obj.extra_events)
-            extra_fnspecs.update(gui_obj.extra_fnspecs)
-            extra_pars.update(gui_obj.extra_pars)
-            extra_auxvars.update(gui_obj.extra_auxvars)
+        """
+        Empty method, which must be overridden by the user. Requires a dictionary object containing model parameters and their values (pardict)
+        as well as a string (name). Uses elements of pardict to create an instance of PyDSTool.common.args,
+        DSargs, which must be used to assign a model to the diagnosticGUI object at the end of the function:
 
-        Fx_str = ""
-        Fy_str = ""
-        for i in range(self.N):
-            Fx_str += "-G*m%i*(x-bx%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
-            Fy_str += "-G*m%i*(y-by%i)/pow(d(x,y,bx%i,by%i),3)" % (i,i,i,i)
+        self.model = self.gen_versioner.make(DSargs)
 
-        DSargs = args()
-        DSargs.varspecs = {'vx': Fx_str, 'x': 'vx',
-                           'vy': Fy_str, 'y': 'vy',
-                           'Fx_out': 'Fx(x,y)', 'Fy_out': 'Fy(x,y)',
-                           'speed': 'sqrt(vx*vx+vy*vy)',
-                           'bearing': '90-180*atan2(vy,vx)/pi'}
-        DSargs.varspecs.update(extra_auxvars)
-        auxfndict = {'Fx': (['x', 'y'], Fx_str),
-                     'Fy': (['x', 'y'], Fy_str),
-                     'd': (['xx', 'yy', 'x1', 'y1'], "sqrt((xx-x1)*(xx-x1)+(yy-y1)*(yy-y1))")
-                    }
-        DSargs.auxvars = ['Fx_out', 'Fy_out', 'speed', 'bearing'] + \
-            list(extra_auxvars.keys())
-        DSargs.pars = pardict
-        DSargs.pars.update(extra_pars)
-        DSargs.fnspecs = auxfndict
-        DSargs.fnspecs.update(extra_fnspecs)
-        DSargs.algparams = {'init_step':0.001,
-                            'max_step': 0.01,
-                            'max_pts': 20000,
-                            'maxevtpts': 2,
-                            'refine': 5}
+        In order to create events in the model, a targetlang must also be assigned for PyDSTool:
 
-        targetlang = \
-            gui.gen_versioner._targetlangs[self.gen_versioner.gen_type]
+        targetlang = self.gen_versioner._targetlangs[self.gen_versioner.gen_type]
 
-        xdomain_halfwidth = 0.7
-
-        # Events for external boundaries (left, right, top, bottom)
-        Lev = Events.makeZeroCrossEvent('x+%f'%xdomain_halfwidth, -1,
-                                        {'name': 'Lev',
-                                         'eventtol': 1e-5,
-                                         'precise': True,
-                                         'term': True},
-                                        varnames=['x'],
-                                        targetlang=targetlang)
-        Rev = Events.makeZeroCrossEvent('x-%f'%xdomain_halfwidth, 1,
-                                        {'name': 'Rev',
-                                         'eventtol': 1e-5,
-                                         'precise': True,
-                                         'term': True},
-                                        varnames=['x'],
-                                        targetlang=targetlang)
-        Tev = Events.makeZeroCrossEvent('y-1', 1,
-                                        {'name': 'Tev',
-                                         'eventtol': 1e-5,
-                                         'precise': True,
-                                         'term': True},
-                                        varnames=['y'],
-                                        targetlang=targetlang)
-        Bev = Events.makeZeroCrossEvent('y', -1,
-                                        {'name': 'Bev',
-                                         'eventtol': 1e-5,
-                                         'precise': True,
-                                         'term': True},
-                                        varnames=['y'],
-                                        targetlang=targetlang)
-
-        # Events for planetoids
-        bevs = []
-        for i in range(self.N):
-            bev = Events.makeZeroCrossEvent('d(x,y,bx%i,by%i)-r%i' % (i,i,i),
-                                            -1,
-                                        {'name': 'b%iev' %i,
-                                         'eventtol': 1e-5,
-                                         'precise': True,
-                                         'term': True},
-                                        varnames=['x','y'],
-                                        parnames=list(pardict.keys()),
-                                        fnspecs=auxfndict,
-                                        targetlang=targetlang)
-            bevs.append(bev)
-
-        DSargs.events = [Lev, Rev, Tev, Bev] + bevs + extra_events
-        DSargs.checklevel = 2
-        DSargs.ics = {'x': self.icpos[0], 'y': self.icpos[1],
-                      'vx': 0., 'vy': 1.5}
-        DSargs.name = name
-        DSargs.tdomain = [0, 10000]
-        DSargs.tdata = [0, 50]
-
-        # turns arguments into Generator then embed into Model object
-        gui.model = gui.gen_versioner.make(DSargs)
-
+        """
 
 class context_object(object):
     # Abstract base class
@@ -2541,7 +2469,7 @@ def _escape_underscore(text):
 
 # ---------------------------------------------------------
 
-global gui, tracker
+#global gui, tracker
 
 # singleton pattern
 
