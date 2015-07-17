@@ -296,19 +296,6 @@ class GUIrocket(gx.diagnosticGUI):
         self.icpos = np.array((0.0, 0.08))
         self.icvel = np.array((0.0, 0.0))
 
-    #def setup_gen(self):
-        #if self.context_changed:
-            #self.context_changed = False
-            #self.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-        #else:
-            #try:
-                #gui.model = gui.gen_versioner.load_gen('sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-            #except:
-                #gui.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-            #else:
-                #gui.model.set(pars=gui.body_pars)
-
-
     def make_gen(self, pardict, name):
         # scrape GUI diagnostic object extras for generator
         extra_events = []

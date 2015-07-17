@@ -1010,9 +1010,10 @@ class plotter2D(object):
                     ax = subplot_struct['axes_obj']
 
                 if 'callbacks' in subplot_struct:
-                    gui.cb_axes.append(ax)
-                    gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
-                    gui.RS_line.set_active(False)
+                    if ax not in gui.cb_axes:
+                        gui.cb_axes.append(ax)
+                        gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
+                        gui.RS_line.set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1426,8 +1427,11 @@ class diagnosticGUI(object):
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
         self.mouse_wait_state_owner = None
+
+        ##Handled in plotter2d._subplots
         #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
         #self.RS_line.set_active(False)
+
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
@@ -2004,6 +2008,21 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
+        ##Navigation keys
+        step_size = 0.02
+        so = self.selected_object
+
+        if isinstance(so, line_GUI):
+            if k == 'left':
+                so.update(x1 = (so.x1 - step_size), x2 = (so.x2 - step_size))
+            elif k == 'right':
+                so.update(x1 = (so.x1 + step_size), x2 = (so.x2 + step_size))
+            elif k == 'up':
+                so.update(y1 = (so.y1 + step_size), y2 = (so.y2 + step_size))
+            elif k == 'down':
+                so.update(y1 = (so.y1 - step_size), y2 = (so.y2 - step_size))
+
+        ##Toggle tools keys
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -2044,7 +2063,7 @@ class diagnosticGUI(object):
 
             self.selected_object = line_GUI(pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
-            print("  by writing this object's selected_object.name attribute")
+            print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
             self.mouse_wait_state_owner = None
 
@@ -2217,6 +2236,38 @@ class line_GUI(context_object):
             ev_str = '(with event)'
         return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
                                           self.x2, self.y2, self.name, ev_str)
+
+    def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        show = False
+
+        if name is not None:
+            fig_struct.layers[self.layer]['data'][name] = fig_struct.layers[self.layer]['data'][self.name]
+            fig_struct.layers[self.layer]['data'][self.name] = []
+            self.name = name
+
+        if y1 is not None:
+            self.y1 = y1
+            fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
+            show = True
+
+        if x1 is not None:
+            self.x1 = x1
+            fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+            show = True
+
+        if x2 is not None:
+            self.x2 = x2
+            fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
+            show = True
+
+        if y2 is not None:
+            self.y2 = y2
+            fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+            show = True
+
+        if show:
+            gui.plotter.show()
 
     def show(self):
         fig_struct, figure = gui.plotter._resolveFig(None)
