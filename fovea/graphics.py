@@ -2009,18 +2009,30 @@ class diagnosticGUI(object):
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
         ##Navigation keys
-        step_size = 0.02
         so = self.selected_object
 
         if isinstance(so, line_GUI):
+
+            xl = self.ax.get_xlim()
+            yl = self.ax.get_ylim()
+
+            step_sizeH = 0.02*abs(xl[0]-xl[1])
+            step_sizeV = 0.02*abs(yl[0]-yl[1])
+
             if k == 'left':
-                so.update(x1 = (so.x1 - step_size), x2 = (so.x2 - step_size))
+                so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
             elif k == 'right':
-                so.update(x1 = (so.x1 + step_size), x2 = (so.x2 + step_size))
+                so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
             elif k == 'up':
-                so.update(y1 = (so.y1 + step_size), y2 = (so.y2 + step_size))
+                so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
             elif k == 'down':
-                so.update(y1 = (so.y1 - step_size), y2 = (so.y2 - step_size))
+                so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
+
+            if k == 'm':
+                if abs(so.ang_deg) > 45:
+                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                else:
+                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
         ##Toggle tools keys
         if self.mouse_wait_state_owner == 'domain' and \
