@@ -56,7 +56,7 @@ game1.set( (-79, 0.7) )
 
 #ltarget = game1.selected_object
 
-ltarget = gx.line_GUI(game1, game1.ax, pp.Point2D(0.36, 0.74),
+ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
                       pp.Point2D(0.42, 0.8))
 ltarget.make_event_def('target1', 1)
 game1.setup_gen()

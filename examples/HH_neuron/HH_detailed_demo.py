@@ -567,7 +567,7 @@ else:
 
 # re-sample traj at constant dt and declare to GUI
 trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
-gui.addDataPoints(trajPts)
+#gui.addDataPoints(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##

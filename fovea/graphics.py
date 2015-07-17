@@ -24,6 +24,8 @@ from math import *
 import hashlib, time
 import euclid as euc
 
+from PyDSTool import * #Need Events from here.
+
 from PyDSTool import args, numeric_to_traj, Point, Points
 import PyDSTool.Toolbox.phaseplane as pp
 # for potentially generalizable functions and classes to use
@@ -35,6 +37,13 @@ import fovea.domain2D as dom
 from fovea.diagnostics import get_unique_name
 
 # ----------------------------------------------
+
+#Test python version
+try:
+    input = raw_input
+except NameError:
+    # python 3
+    pass
 
 
 def force_line_to_extent(a, b, p_domain, coordnames):
@@ -421,7 +430,7 @@ class plotter2D(object):
         fig_struct.arrange = arrPlots
 
 
-    def addLayer(self, layer_name, figure=None, set_to_active=True,
+    def addLayer(self, layer_name, figure=None, set_to_active=True, subplot=None,
                  **kwargs):
         """
         User method to add data sets to a layer in a figure.
@@ -476,6 +485,13 @@ class plotter2D(object):
         fig_struct.layers[layer_name] = layAttrs
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
+
+        try:
+            fig_struct['arrange'][subplot]['layers'] += [layer_name]
+        except KeyError:
+            pass
+        except TypeError:
+            pass
 
 
     def setLayer(self, label, figure=None, **kwargs):
@@ -545,6 +561,53 @@ class plotter2D(object):
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
 
         kwargs.update({'data':data,'patch':patch, 'display':display, 'subplot':subplot})
+        d.update({name: kwargs})
+        layer_struct.force = force
+
+    def addObj(self, data, obj, figure=None, layer=None, subplot=None, name=None,
+                 display=True, force=False, log=None, **kwargs):
+        ##ISSUE: May want to combine this with patch.
+        try:
+            size = np.shape(data)
+        except:
+            raise TypeError("Data must be castable to a numpy array")
+
+        # Check to see that there is an x- and y- dataset
+        try:
+            if not size[0] == 2:
+                raise ValueError("Data must contain 2 or 3 seqs of data points")
+        except IndexError:
+            pass
+
+        fig_struct, figure = self._resolveFig(figure)
+        if layer is None:
+            layer = self.active_layer[1]
+            layer_struct = self.active_layer_structs[1]
+        else:
+            layer_struct = self._resolveLayer(figure, layer)
+
+        if not layer_struct.kind == 'obj':
+            raise ValueError("Incompatible layer type (should be `obj`)")
+
+        # d is a dictionary mapping 'name' to a dictionary of fields for the
+        # numerical plot data (key 'data'), style (key 'style'), and display
+        # boolean (key 'display').
+        #
+        # The numerical data for d is given by the method argument also called data
+        d = layer_struct.data
+
+        # Check to see if data name already exists
+        if name in d and not force:
+            raise KeyError("Data name already exists in layer: %s" %name)
+
+        # Create name if none is provided
+        if name is None:
+            name = get_unique_name(figure+'_'+layer)
+
+        if log:
+            log.msg("Added plot data", figure=figure, layer=layer, name=name)
+
+        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot})
         d.update({name: kwargs})
         layer_struct.force = force
 
@@ -651,7 +714,7 @@ class plotter2D(object):
                 # for non-dict updates, e.g. display=True
                 layer_struct[kw] = kwargs[kw]
             except KeyError:
-                raise KeyError("Parameter '%s' is not a property of the layer." %kw)
+                raise KeyError("Parameter '%s' is not a property of the data." %kw)
             else:
                 # dict update: check whether data was changed and propogate to plot
                 # object
@@ -1148,9 +1211,13 @@ class plotter2D(object):
             return
 
         if force:
-            #Remove handles from axes before clearing dictioanry.
             for h in lay.handles.values():
-                h.remove()
+                ##ISSUE: Error in MPL: list.remove(x): x not in list, when using HH_simple_demo
+                try:
+                    h.remove()
+                except ValueError:
+                    pass
+
             lay.handles = {}
 
         for dname, dstruct in lay.data.items():
@@ -1164,9 +1231,6 @@ class plotter2D(object):
                 pass
             else:
                 obj.set_visible(dstruct['display'])
-            if not dstruct['display']:
-                continue
-
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
@@ -1197,7 +1261,7 @@ class plotter2D(object):
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
 
-            if lay.kind == 'text':
+            if lay.kind == 'text' and dstruct['display']:
                 if dname not in lay.handles or force:
                     if dstruct['use_axis_coords']:
                         lay.handles[dname] = ax.text(dstruct['data'][ix0],
@@ -1215,9 +1279,15 @@ class plotter2D(object):
                 pos = dstruct['data']
                 for i in range(len(pos[0])):
                     #This must generalize to other patches.
-                    ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
+                    lay.handles[dname] = ax.add_artist(dstruct['patch']((pos[0][i], pos[1][i]),
                                   dstruct['radius'][i],
-                                  color = dstruct['color']))
+                                  color = dstruct['color'],
+                                  visible = dstruct['display']))
+
+            elif lay.kind == 'obj':
+                coords = dstruct['data']
+                l = dstruct['obj'](coords[0], coords[1], linewidth=1, color='y', visible= dstruct['display'])
+                lay.handles[dname] = ax.add_artist(l)
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1229,12 +1299,13 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s)[0]
+                                            s, visible= dstruct['display'])[0]
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                            s)[0]
+                                            s, visible= dstruct['display'])[0]
                         else:
+                            #Display? Visibility?
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
@@ -1299,6 +1370,17 @@ class diagnosticGUI(object):
             self.addPoints(points)
 
         # ---------------
+        # Rocket stuff
+        # ---------------
+
+        self.model = None
+        self.N = None
+        self.gen_versioner = None
+        self.context_changed = None
+        self.fignum = 1
+
+
+        # ---------------
         # Internal stuff
         # ---------------
 
@@ -1330,6 +1412,12 @@ class diagnosticGUI(object):
                              'control': 1}
         self._last_ix = None
 
+        global plotter
+        plotter = objPlotter
+
+        global gui
+        gui = self
+
     def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
         self.fig = fig
@@ -1342,95 +1430,6 @@ class diagnosticGUI(object):
         #self.RS_line.set_active(False)
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
-
-    def plot_traj(self, pts=None, with_speeds=True, startpt=None, endpt=None, trajline=None, quartiles=None):
-        """
-        with_speeds option makes a "heat map" like color code along trajectory that denotes speed.
-        """
-        #TEMP VARS
-        self.ax = self.cb_axes[0]
-        self.maxspeed = 2.2
-
-        if pts is None:
-            if self.points is not None:
-                pts = self.points
-            else:
-                # nothing to plot
-                return
-        #if self.axisbgcol == 'black':
-            #col = 'w'
-        #else:
-            #col = 'k'
-        col='k'
-        firstpt = pts[0]
-        lastpt = pts[-1]
-
-        if startpt is None:
-            #self.startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
-            startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
-        else:
-            #self.startpt.set_xdata(firstpt['x'])
-            #self.startpt.set_ydata(firstpt['y'])
-            startpt.set_xdata(firstpt['x'])
-            startpt.set_ydata(firstpt['y'])
-
-        #if self.trajline is not None:
-            #self.trajline.remove()
-        if trajline is not None:
-            trajline.remove()
-
-        if with_speeds:
-            speeds = pts['speed']
-            norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
-            cmap=plt.cm.jet #gist_heat
-            RGBAs = cmap(norm(speeds))
-            xs = pts['x'][1:-1]
-            ys = pts['y'][1:-1]
-            segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-            linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-            #self.trajline = self.ax.add_collection(linecollection)
-            trajline = self.ax.add_collection(linecollection)
-        else:
-            #self.trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
-            trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
-
-        #if self.endpt is None:
-            #self.endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
-        if endpt is None:
-            endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
-        else:
-            self.endpt.set_xdata(lastpt['x'])
-            self.endpt.set_ydata(lastpt['y'])
-            endpt.set_xdata(lastpt['x'])
-            endpt.set_ydata(lastpt['y'])
-
-        n = len(pts)
-        ptq1 = pts[int(0.25*n)]
-        ptq2 = pts[int(0.5*n)]
-        ptq3 = pts[int(0.75*n)]
-        #if self.quartiles is None:
-            #self.quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
-                              #self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
-                              #self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
-        #else:
-            #self.quartiles[0].set_xdata(ptq1['x'])
-            #self.quartiles[0].set_ydata(ptq1['y'])
-            #self.quartiles[1].set_xdata(ptq2['x'])
-            #self.quartiles[1].set_ydata(ptq2['y'])
-            #self.quartiles[2].set_xdata(ptq3['x'])
-            #self.quartiles[2].set_ydata(ptq3['y'])
-        if quartiles is None:
-            quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
-        else:
-            quartiles[0].set_xdata(ptq1['x'])
-            quartiles[0].set_ydata(ptq1['y'])
-            quartiles[1].set_xdata(ptq2['x'])
-            quartiles[1].set_ydata(ptq2['y'])
-            quartiles[2].set_xdata(ptq3['x'])
-            quartiles[2].set_ydata(ptq3['y'])
-        plt.draw()
 
     def addDataTraj(self, traj, points=None):
         """
@@ -1452,112 +1451,155 @@ class diagnosticGUI(object):
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def addDataPoints(self, data, coorddict=None):
+    def addDataPoints(self, data, figure=None, layer=None, subplot=None,
+                           style=None, name=None, display=True, force=False,
+                           log=None, coorddict=None):
         maxspeed = 2.2
 
-        if False:
-            donothing
+        #if layer is None:
+            #plotter.addLayer(layer)
+            #print("Added new layer",layer,"to plotter.")
+
+        try:
+            fig_struct, figure = plotter._resolveFig(None)
+        except ValueError:
+            gui.plotter.clean()
+            gui.plotter.addFig('Master', domain= [(0,1), (0,1)])
+            fig_struct, figure = plotter._resolveFig(None)
+
+        if isinstance(data, numpy.ndarray) or isinstance(data, list):
+            plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
+                           style=style, name=name,
+                           display=display,
+                           force=force, log=log)
+
         if isinstance(data, Points.Pointset):
-            addingDict = {}
+            #Newly created code
+            if coorddict is not None:
+                addingDict = {}
 
-            for key, val in coorddict.items():
-
-                #Extract x and y data.
-                try:
-                    xs = data[val.get('x')]
-                    ys = data[val.get('y')]
+                for key, val in coorddict.items():
+                    #Extract x and y data.
                     try:
-                        addingDict[key]['data'] = [xs, ys]
-                    except KeyError:
+                        xs = data[val.get('x')]
+                    except IndexError:
+                        try:
+                            del xs
+                        except UnboundLocalError:
+                            pass
+
+                    try:
+                        ys = data[val.get('y')]
+                    except IndexError:
+                        try:
+                            del ys
+                        except UnboundLocalError:
+                            pass
+
+                    if not key in addingDict.keys() and ('xs' in locals() or 'ys' in locals()):
                         addingDict[key] = {}
-                        addingDict[key]['data'] = [xs, ys]
-                except IndexError:
-                    pass
 
-                #Extract object
-                if val.get('object') == 'collection':
-                    addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-                elif val.get('object') == 'circle':
-                    addingDict[key]['patch'] = plt.Circle
-
-                #Extract style
-                try:
-                    addingDict[key]['style'] = val['style']
-                except KeyError:
-                    pass
-
-                #Extract layer
-                try:
-                    addingDict[key]['layer'] = val['layer']
-                except KeyError:
-                    pass
-
-                #Extract style
-                try:
-                    addingDict[key]['name'] = val['name']
-                except KeyError:
-                    pass
-
-                #Extract radii
-                try:
-                    addingDict[val['map_radius_to']]['radius'] = data[key]
-                except:
                     try:
-                        addingDict[val['map_radius_to']] = {}
-                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                        addingDict[key]['data'] = [xs, ys]
+
+                    #If only x/y provided, use key data for other coordinate.
+                    except NameError:
+                        try:
+                            addingDict[key]['data'] = [xs, data[key]]
+                        except UnboundLocalError:
+                            pass
+                        try:
+                            addingDict[key]['data'] = [data[key], ys]
+                        except UnboundLocalError:
+                            pass
+
+                    #Extract object
+                    if val.get('object') == 'collection':
+                        addingDict[key]['segments'] = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
+                    elif val.get('object') == 'circle':
+                        addingDict[key]['patch'] = plt.Circle
+
+                    #Extract style
+                    try:
+                        addingDict[key]['style'] = val['style']
                     except KeyError:
                         pass
 
-                #Perform color mapping
-                try:
-                    vals = data[key]
-                    norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
-                    cmap=plt.cm.jet #gist_heat
+                    #Extract layer
                     try:
-                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        if val['layer'] not in fig_struct.layers.keys():
+                            plotter.addLayer(val['layer'])
+                            print("Added new layer",val['layer'],"to plotter.")
+                        addingDict[key]['layer'] = val['layer']
                     except KeyError:
-                        addingDict[val['map_color_to']] = {}
-                        addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        pass
 
-                except KeyError:
-                    pass
-                except IndexError:
-                    pass
+                    #Extract style
+                    try:
+                        addingDict[key]['name'] = val['name']
+                    except KeyError:
+                        pass
 
-            #addData for each plotting variable in the pointset.
-            for key, val in addingDict.items():
-                try:
-                    linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
-                    addingDict[key]['data'] = linecollection
-                except KeyError:
-                    pass
+                    #Extract radii
+                    try:
+                        addingDict[val['map_radius_to']]['radius'] = data[key]
+                    except:
+                        try:
+                            addingDict[val['map_radius_to']] = {}
+                            addingDict[val['map_radius_to']]['radius'] = data[key]
+                        except KeyError:
+                            pass
 
-                try:
-                    lay = addingDict[key]['layer']
-                except KeyError:
-                    lay = None
+                    #Perform color mapping
+                    try:
+                        vals = data[key]
+                        norm = mpl.colors.Normalize(vmin=0, vmax=maxspeed)
+                        cmap=plt.cm.jet #gist_heat
+                        try:
+                            addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
+                        except KeyError:
+                            addingDict[val['map_color_to']] = {}
+                            addingDict[val['map_color_to']]['style'] = cmap(norm(vals))
 
-                try:
-                    nam = addingDict[key]['name']
-                except KeyError:
-                    nam = None
+                    except KeyError:
+                        pass
+                    except IndexError:
+                        pass
 
-                try:
-                    plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
-                                     figure='master',
-                                     layer = lay,
-                                     name = nam,
-                                     force = True,
-                                     radius = addingDict[key]['radius'],
-                                     color = addingDict[key]['style'])
+                #addData for each plotting variable in the pointset.
+                for key, val in addingDict.items():
+                    try:
+                        linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
+                        addingDict[key]['data'] = linecollection
+                    except KeyError:
+                        pass
 
-                except:
-                    plotter.addData(addingDict[key]['data'],
-                                    figure='master', #Fix this
-                                    style = addingDict[key]['style'],
-                                    layer = lay,
-                                    name = nam,
-                                    force = True)
+                    try:
+                        lay = addingDict[key]['layer']
+                    except KeyError:
+                        lay = None
+
+                    try:
+                        nam = addingDict[key]['name']
+                    except KeyError:
+                        nam = None
+
+                    try:
+                        plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
+                                         #figure='master',
+                                         layer = lay,
+                                         name = nam,
+                                         force = True,
+                                         radius = addingDict[key]['radius'],
+                                         color = addingDict[key]['style'])
+
+                    except:
+                        plotter.addData(addingDict[key]['data'],
+                                        #figure='master', #Fix this
+                                        style = addingDict[key]['style'],
+                                        layer = lay,
+                                        name = nam,
+                                        force = True)
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
@@ -1578,6 +1620,16 @@ class diagnosticGUI(object):
         except AttributeError:
             self.widgets[kwargs['label']].on_clicked(callback)
 
+
+    def addTimeFromPoints(self, points):
+        self.traj = None
+        self.points = points
+        try:
+            self.times = points['t']
+        except KeyError:
+            self.times = None
+        except PyDSTool_KeyError:
+            pass
 
 
     def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
@@ -1990,8 +2042,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self, self.RS_line.ax,
-                                            pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.selected_object = line_GUI(pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by writing this object's selected_object.name attribute")
             self.RS_line.set_active(False)
@@ -2045,11 +2096,54 @@ class diagnosticGUI(object):
     def assign_user_func(self, func):
         self.user_func = func
 
+    def setup(self, arrPlots, size=None, shape=None, with_times=True, basic_widgets=True):
+        if shape is None:
+            numrows = 1
+            numcols = 1
+            for k in arrPlots.keys():
+                if int(k[0]) > numrows:
+                    numrows = int(k[0])
+                if int(k[1]) > numcols:
+                    numcols = int(k[1])
+
+            shape = [numrows, numcols]
+
+        self.plotter.arrangeFig(shape, arrPlots)
+        self.buildPlotter2D(figsize=size, with_times=with_times, basic_widgets=basic_widgets)
+
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is
         # created with the new context code included
         self.context_changed = True
         self.context_objects.append(con_obj)
+
+    def setup_gen(self, name_scheme):
+        name = name_scheme()
+
+        if self.context_changed:
+            self.context_changed = False
+            self.make_gen(self.body_pars, name)
+        else:
+            try:
+                self.model = gui.gen_versioner.load_gen(name)
+            except:
+                self.make_gen(self.body_pars, name)
+            else:
+                self.model.set(pars=self.body_pars)
+
+    def make_gen(self, pardict, name):
+        """
+        Empty method, which must be overridden by the user. Requires a dictionary object containing model parameters and their values (pardict)
+        as well as a string (name). Uses elements of pardict to create an instance of PyDSTool.common.args,
+        DSargs, which must be used to assign a model to the diagnosticGUI object at the end of the function:
+
+        self.model = self.gen_versioner.make(DSargs)
+
+        In order to create events in the model, a targetlang must also be assigned for PyDSTool:
+
+        targetlang = self.gen_versioner._targetlangs[self.gen_versioner.gen_type]
+
+        """
 
 class context_object(object):
     # Abstract base class
@@ -2062,13 +2156,21 @@ class line_GUI(context_object):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, gui, gui_axes, pt1, pt2):
+    def __init__(self, pt1, pt2, layer='gx_objects', subplot=None):
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
             raise ValueError("Coordinate name mismatch")
         x1, y1 = pt1.coordarray
         x2, y2 = pt2.coordarray
+
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        try:
+            gui.plotter._resolveLayer(figure, layer)
+        except KeyError:
+            gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
+            print("Created layer", layer, "to support Line_GUI object")
+
         if x1 > x2:
             # ensure correct ordering for angles
             xt = x1
@@ -2088,16 +2190,10 @@ class line_GUI(context_object):
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
 
-        # hook back to linked axes object in GUI
-        if isinstance(gui_axes, str):
-            self.gui_axes = plotter.figs['master']['arrange'][gui_axes]['axes_obj'] #Should not be master
-        else:
-            self.gui_axes = gui_axes
         # declare self to GUI
         gui.declare_in_context(self)
         # move self to the currently selected object in GUI
         gui.selected_object = self
-        self.gui = gui
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2105,8 +2201,13 @@ class line_GUI(context_object):
         print("Created line and moved to currently selected object")
 
         # actual MPL line object handle
+        self.layer = layer
         self.l = None
         self.name = '<untitled>'
+
+        gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
+                           style= None, name=self.name, force= True, display= True)
+
         self.show()
 
     def __repr__(self):
@@ -2118,19 +2219,24 @@ class line_GUI(context_object):
                                           self.x2, self.y2, self.name, ev_str)
 
     def show(self):
-        if self.l is None:
-            self.l = self.gui_axes.plot([self.x1,self.x2],
-                                       [self.y1,self.y2],
-                                   'y-')[0]
-        else:
-            self.l.set_visible(True)
-        plt.draw()
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
+
+        gui.plotter.show()
 
     def unshow(self):
-        self.l.set_visible(False)
-        plt.draw()
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
+
+        gui.plotter.show()
 
     def remove(self):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct.layers[self.layer]['handles'].pop(self.name)
+        gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
+
         self.l.remove()
         plt.draw()
 
@@ -2147,6 +2253,15 @@ class line_GUI(context_object):
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
 
     def make_event_def(self, uniquename, dircode=0):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+
+        for field in ['handles', 'data', 'trajs']:
+            fig_struct.layers[self.layer][field][uniquename] = \
+                fig_struct.layers[self.layer][field].pop(self.name)
+
+        #Update changes the diagnosticGUI object.
+        gui.plotter.figs[figure] = fig_struct
+
         self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
                                           ['x', 'y'], True)
@@ -2158,7 +2273,7 @@ class line_GUI(context_object):
         self.extra_pars[parname_base+'dp_y'] = self.dy
         self.extra_fnspecs.update(res['auxfn'])
         targetlang = \
-            self.gui.gen_versioner._targetlangs[self.gui.gen_versioner.gen_type]
+            gui.gen_versioner._targetlangs[gui.gen_versioner.gen_type]
         self.extra_events = [dst.Events.makeZeroCrossEvent(
                                               expr='exit_fn_%s(x,y)' %uniquename,
                                               dircode=dircode,
@@ -2356,7 +2471,7 @@ def _escape_underscore(text):
 
 # ---------------------------------------------------------
 
-global gui, tracker
+#global gui, tracker
 
 # singleton pattern
 

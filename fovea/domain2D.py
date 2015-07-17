@@ -308,17 +308,16 @@ class GUI_domain_handler(object):
             return
 
     def show_domain(self):
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        try:
+            self.gui.plotter._resolveLayer(figure, 'gx_objects')
+        except KeyError:
+            self.gui.plotter.addLayer('gx_objects', subplot='11', kind = 'obj') #subplot='11' needs to be changed.
+            print("Created layer gx_objects to support domain polygon")
+
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
-##        if self.gui.selected_object_temphandle is not None:
-            #print("show_domain ignoring: ", self.gui.selected_object_temphandle)
-##            try:
-##                self.gui.selected_object_temphandle.remove()
-##            except ValueError:
-##                # sequence
-##                for th in self.gui.selected_object_temphandle:
-##                    th.remove()
-        self.gui.selected_object_temphandle = self.curr_axes.plot(xs, ys, 'y-', lw=2, zorder=2)[0]
-        self.gui.fig.canvas.draw()
+        self.gui.plotter.addObj([xs, ys], mpl.lines.Line2D, layer='gx_objects', style= 'y-')
+        self.gui.plotter.show()
 
     def unshow_domain(self):
         if self.gui.selected_object_temphandle is not None:

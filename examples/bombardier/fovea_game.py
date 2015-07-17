@@ -37,16 +37,13 @@ from fovea.graphics import tracker
 import fovea
 import fovea.domain2D as dom
 from fovea import common, prep, graphics
-from fovea.graphics import gui
 
 import yaml
 with open('bodies_setup.yaml') as f:
     setup = yaml.load(f)
 
-plotter= gui.plotter
-
 # -------------------------------------
-class GUIrocket(object):
+class GUIrocket(gx.diagnosticGUI):
     def __init__(self, bodies, title, axisbgcol='black'):
         """
         bodies is a dict-like mapping of 1 or more:
@@ -56,8 +53,12 @@ class GUIrocket(object):
         """
         global next_fighandle
 
+        global plotter
+        plotter = gx.plotter2D()
+        super().__init__(plotter)
+
         # Sim setup
-        self.model = None
+
         # context objects (lines of interest, domains, etc)
         self.context_objects = []
         # external tracked objects (measures, etc)
@@ -112,28 +113,37 @@ class GUIrocket(object):
 
         self.name = 'gamespace'
 
-        plotter.arrangeFig([1,1], {'11':
-                                   {'name': self.name,
-                                    'scale': DOI,
-                                    'layers':['trajs', 'bodies', 'text'],
-                                    'callbacks':'*',
-                                    'axes_vars': ['x', 'y']
-                                    }
-                                   })
+        #plotter.arrangeFig([1,1], {'11':
+                                   #{'name': self.name,
+                                    #'scale': DOI,
+                                    #'layers':['trajs', 'bodies', 'text'],
+                                    #'callbacks':'*',
+                                    #'axes_vars': ['x', 'y']
+                                    #}
+                                   #})
 
-        gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
+        #gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
+        self.setup({'11':
+                    {'name': self.name,
+                     'scale': DOI,
+                     'layers':['trajs', 'bodies', 'text'],
+                     'callbacks':'*',
+                     'axes_vars': ['x', 'y']
+                     }
+                    },
+                  size=(9, 7), with_times=False, basic_widgets=False)
 
         self.fignum = 1
-        self.fig = gui.masterWin
+        self.fig = self.masterWin
 
         fig_struct, fig = plotter._resolveFig('master')
         self.ax = fig_struct.arrange['11']['axes_obj']
 
-        gui.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
+        self.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
                       label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
                       valinit= self.ang, color='b', dragging=False, valfmt='%2.3f')
 
-        gui.addWidget(Slider, callback=self.updateVel, axlims=(0.1, 0.02, 0.65, 0.03),
+        self.addWidget(Slider, callback=self.updateVel, axlims=(0.1, 0.02, 0.65, 0.03),
                       label='Shoot Speed', valmin=0.01, valmax=2,
                       valinit=self.vel, color='b',
                       dragging=False, valfmt='%1.4f')
@@ -153,12 +163,12 @@ class GUIrocket(object):
 
         # Move these to a _recreate method than can be reused for un-pickling
 
-        gui.addWidget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03), label='Go!')
+        self.addWidget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03), label='Go!')
 
         # context_changed flag set when new objects created using declare_in_context(),
         # and unset when Generator is created with the new context code included
         self.context_changed = False
-        self.setup_gen()
+        self.setup_gen(self.model_namer)
 
         self.mouse_cid = None # event-connection ID
         self.go(run=False)
@@ -176,19 +186,19 @@ class GUIrocket(object):
         #self.plot_bodies()
 
         #Make quartiles
-        gui.points
+        self.points
         xquarts = Point({'x': 4})
         yquarts = Point({'y': 4})
 
         try:
-            n = len(gui.points)
+            n = len(self.points)
             coorddict = {'xq':
                          {'x':'xq', 'y':'yq', 'layer':'trajs', 'name':'quarts1', 'style':'kd'}
                          }
-            quarts = Pointset({'coordarray': np.array([[gui.points['x'][int(0.25*n)], gui.points['x'][int(0.5*n)], gui.points['x'][int(0.75*n)]],
-                                           [gui.points['y'][int(0.25*n)], gui.points['y'][int(0.5*n)], gui.points['y'][int(0.75*n)]]]),
+            quarts = Pointset({'coordarray': np.array([[self.points['x'][int(0.25*n)], self.points['x'][int(0.5*n)], self.points['x'][int(0.75*n)]],
+                                           [self.points['y'][int(0.25*n)], self.points['y'][int(0.5*n)], self.points['y'][int(0.75*n)]]]),
                       'coordnames': ['xq', 'yq']})
-            gui.addDataPoints(quarts, coorddict=coorddict)
+            self.addDataPoints(quarts, coorddict=coorddict)
 
         except TypeError:
             pass
@@ -200,7 +210,7 @@ class GUIrocket(object):
                      'speed':
                      {'map_color_to':'x'}
                      }
-        gui.addDataPoints(gui.points, coorddict=coorddict)
+        self.addDataPoints(self.points, coorddict=coorddict)
 
         #Bodies Pointset
         bodsPoints = Pointset({'coordarray': np.array([[self.pos[i][0] for i in range(len(self.pos))],
@@ -212,7 +222,7 @@ class GUIrocket(object):
                      'radii':
                      {'map_radius_to':'px'}
                      }
-        gui.addDataPoints(bodsPoints, coorddict=coorddict)
+        self.addDataPoints(bodsPoints, coorddict=coorddict)
 
         pos = np.array(self.pos).transpose()
         for i in range(len(pos[0])):
@@ -248,11 +258,11 @@ class GUIrocket(object):
     def _recreate(self):
         raise NotImplementedError
 
-    def declare_in_context(self, con_obj):
-        # context_changed flag set when new objects created and unset when Generator is
-        # created with the new context code included
-        self.context_changed = True
-        self.context_objects.append(con_obj)
+    #def declare_in_context(self, con_obj):
+        ## context_changed flag set when new objects created and unset when Generator is
+        ## created with the new context code included
+        #self.context_changed = True
+        #self.context_objects.append(con_obj)
 
     def __str__(self):
         return self.name
@@ -286,17 +296,17 @@ class GUIrocket(object):
         self.icpos = np.array((0.0, 0.08))
         self.icvel = np.array((0.0, 0.0))
 
-    def setup_gen(self):
-        if self.context_changed:
-            self.context_changed = False
-            self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
-        else:
-            try:
-                self.model = self.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
-            except:
-                self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
-            else:
-                self.model.set(pars=self.body_pars)
+    #def setup_gen(self):
+        #if self.context_changed:
+            #self.context_changed = False
+            #self.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
+        #else:
+            #try:
+                #gui.model = gui.gen_versioner.load_gen('sim_N%i'%gui.N+'_fig%i'%gui.fignum)
+            #except:
+                #gui.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
+            #else:
+                #gui.model.set(pars=gui.body_pars)
 
 
     def make_gen(self, pardict, name):
@@ -461,10 +471,10 @@ class GUIrocket(object):
 
 
     def setAng(self, ang):
-        gui.widgets['Shoot Angle'].set_val(ang)
+        self.widgets['Shoot Angle'].set_val(ang)
 
     def setVel(self, vel):
-        gui.widgets['Shoot Speed'].set_val(vel)
+        self.widgets['Shoot Speed'].set_val(vel)
 
     def updateAng(self, ang):
         if ang < -maxangle:
@@ -484,8 +494,8 @@ class GUIrocket(object):
     def run(self, tmax=None):
         self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
-        gui.addDataTraj(self.traj)
-        self.pts = gui.points #Shouldn't have to do this.
+        self.addDataTraj(self.traj)
+        self.pts = self.points #Shouldn't have to do this.
         if self.calc_context is not None:
             # Update calc context
             self.calc_context()
@@ -543,10 +553,10 @@ class GUIrocket(object):
 
         self.model.set(pars=pardict)
         self.body_pars.update(pardict)
-        self.ax.cla()
-        self.ax.set_aspect('equal')
-        self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
-        self.ax.set_ylim(0,1)
+        #self.ax.cla()
+        #self.ax.set_aspect('equal')
+        #self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
+        #self.ax.set_ylim(0,1)
 
         self.trajline = None
         self.startpt = None
@@ -581,6 +591,10 @@ class GUIrocket(object):
             Fs.append(sqrt(Fx*Fx+Fy*Fy))
         return dict(zip(ixs, Fs)), dict(zip(ixs, zip(Fxs, Fys)))
 
+    def model_namer(self):
+        name = 'sim_N%i'%self.N+'_fig%i'%self.fignum
+        return name
+
 
 # Scenario specification (codes refer to usage document)
 # ! W1a Objects:
@@ -590,10 +604,11 @@ game1 = GUIrocket(body_setup1, "Scenario 1: Game 1", axisbgcol='white')
 # ! W1b Initial conditions
 game1.set( (-79, 0.7) )
 
-ltarget = gx.line_GUI(game1, '11', pp.Point2D(0.36, 0.74),
-                      pp.Point2D(0.42, 0.8))
+ltarget = gx.line_GUI(pp.Point2D(0.36, 0.74),
+                      pp.Point2D(0.42, 0.8), subplot = '11')
+
 ltarget.make_event_def('target1', 1)
-game1.setup_gen()
+game1.setup_gen(game1.model_namer)
 
 # make event terminal
 game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
@@ -602,8 +617,7 @@ target = target4D_line('test_line', pars=args(pt1=pp.Point2D((ltarget.x1, ltarge
                                           pt2=pp.Point2D((ltarget.x2, ltarget.y2)),
                                           speed_inter=Interval('speed', float, (1,2)),
                                           bearing_inter=Interval('bearing', float, (-15,45)),
-                                          loc_event_name='exit_ev_target1')
-                       )
+                                          loc_event_name='exit_ev_target1'))
 
 game1.calc_context = calc_context_forces(game1, 'con1')
 con1 = game1.calc_context
@@ -615,7 +629,7 @@ game1.go()
 test_model = intModelInterface(game1.model)
 print("Success? %s"%(str(target(test_model))))
 
-print("Variability of net force felt along trajectory = %.3f" % con1.variability_force())
+#print("Variability of net force felt along trajectory = %.3f" % con1.variability_force())
 print(" (smaller is better)")
 
 # alternative (deprecated) method, shown for reference
@@ -630,14 +644,12 @@ def body4_dominant_at_point(pt_array, fsign=None):
     Returns scalar relative to user threshold of %age dominant out of net force
     """
     global dom_thresh
-    net_Fs = game1.get_forces(pt_array[0],pt_array[1])[0]
+    net_Fs = game1.user_func(pt_array[0],pt_array[1])[0]
     return net_Fs[4]/sum(list(net_Fs.values())) - dom_thresh
 
-gui.assign_user_func(game1.get_forces)
-gui.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
+game1.assign_user_func(game1.get_forces)
+game1.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
 
-game1.updateAng(maxangle-1)
-game1.updateVel(game1.maxspeed-0.5)
-game1.go()
+fig_struct, figure = game1.plotter._resolveFig(None)
 
 halt = True

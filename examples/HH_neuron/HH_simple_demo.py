@@ -438,7 +438,7 @@ else:
 # re-sample traj at constant dt and declare to GUI
 #trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
 trajPts = ref_traj.sample(dt=0.01)[:len(ref_traj.sample(dt=0.01))-40] #[:-40] syntax not working in python 3
-gui.addDataPoints(trajPts)
+gui.addTimeFromPoints(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -448,32 +448,26 @@ gui.addDataPoints(trajPts)
 plotter.clean()
 plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
                tdom=[0, t_end], domain=[(-100,50), (0,1)])
-
-# Add layers and their data
-
-plotter.addLayer('V')
-plotter.addData([trajPts['t'], trajPts['V']], layer='V', style='k-',
-                name='V')
-plotter.addData([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
-                name='Vinf')
-
-plotter.addLayer('activs')
-plotter.addData([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
-                name='m')
-plotter.addData([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
-                name='minf')
-
-plotter.addData([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
-                name='n')
-plotter.addData([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
-                name='ninf')
-
-plotter.addData([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
-                name='tauv')
-plotter.addData([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
-                name='taum')
-plotter.addData([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
-                name='taun')
+coorddict = {'V':
+             {'x':'t', 'layer':'V','name':'V', 'style':'k-'},
+             'vinf':
+             {'x':'t', 'layer':'V','name':'Vinf', 'style':'k:'},
+             'Na.m':
+             {'x':'t', 'layer':'activs', 'name':'m', 'style':'g--'},
+             'Na.minf':
+             {'x':'t', 'layer':'activs', 'name':'minf', 'style':'g--'},
+             'K.n':
+             {'x':'t', 'layer':'activs', 'name':'n', 'style':'r-'},
+             'K.ninf':
+             {'x':'t', 'layer':'activs', 'name':'ninf', 'style':'r--'},
+             'tauv':
+             {'x':'t','layer':'activs','name':'tauv', 'style':'b:'},
+             'Na.taum':
+             {'x':'t', 'layer':'activs','name':'taum', 'style':'g:'},
+             'K.taun':
+             {'x':'t', 'layer':'activs','name':'taun', 'style':'r:'}
+             }
+gui.addDataPoints(trajPts, coorddict = coorddict)
 
 print("Key for activations / time scales window")
 print("  Activations: line=activation, dashed=asymptotic")
@@ -551,10 +545,12 @@ dPlot22 = {'name': pp2_name,
 
 dPlot_dict = {'11': dPlot11, '12': dPlot12, '21': dPlot21, '22': dPlot22}
 
-plotter.arrangeFig([2,2], dPlot_dict)
-
-gui.buildPlotter2D((14,8))
+gui.setup(dPlot_dict, size=(14, 8))
 
 plotter.show_legends(subplot='Times')
 
 plt.show()
+
+gui.plus_dt(0)
+
+halt = True
