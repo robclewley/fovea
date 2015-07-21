@@ -1431,6 +1431,7 @@ class diagnosticGUI(object):
         ##Handled in plotter2d._subplots
         #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
         #self.RS_line.set_active(False)
+        self.fig.canvas.mpl_disconnect(fig.canvas.manager.key_press_handler_id)
 
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
@@ -1477,7 +1478,7 @@ class diagnosticGUI(object):
                            display=display,
                            force=force, log=log)
 
-        if isinstance(data, Points.Pointset):
+        elif isinstance(data, Points.Pointset):
             #Newly created code
             if coorddict is not None:
                 addingDict = {}
@@ -1604,6 +1605,8 @@ class diagnosticGUI(object):
                                         layer = lay,
                                         name = nam,
                                         force = True)
+        else:
+            print("Unsupported datatype")
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
@@ -2009,6 +2012,7 @@ class diagnosticGUI(object):
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
         ##Navigation keys
+        #Only need this if selected_object exists.
         so = self.selected_object
 
         if isinstance(so, line_GUI):
@@ -2034,7 +2038,7 @@ class diagnosticGUI(object):
                 else:
                     so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        ##Toggle tools keys
+        #Toggle tools keys
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -2077,6 +2081,7 @@ class diagnosticGUI(object):
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
+
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
@@ -2254,8 +2259,10 @@ class line_GUI(context_object):
         show = False
 
         if name is not None:
-            fig_struct.layers[self.layer]['data'][name] = fig_struct.layers[self.layer]['data'][self.name]
-            fig_struct.layers[self.layer]['data'][self.name] = []
+            for field in ['handles', 'data', 'trajs']:
+                fig_struct.layers[self.layer][field][name] = fig_struct.layers[self.layer][field][self.name]
+                del(fig_struct.layers[self.layer][field][self.name])
+
             self.name = name
 
         if y1 is not None:

@@ -34,7 +34,6 @@ import fovea
 import fovea.graphics as gx
 from fovea.graphics import tracker
 
-import fovea
 import fovea.domain2D as dom
 from fovea import common, prep, graphics
 
@@ -113,16 +112,6 @@ class GUIrocket(gx.diagnosticGUI):
 
         self.name = 'gamespace'
 
-        #plotter.arrangeFig([1,1], {'11':
-                                   #{'name': self.name,
-                                    #'scale': DOI,
-                                    #'layers':['trajs', 'bodies', 'text'],
-                                    #'callbacks':'*',
-                                    #'axes_vars': ['x', 'y']
-                                    #}
-                                   #})
-
-        #gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
         self.setup({'11':
                     {'name': self.name,
                      'scale': DOI,
