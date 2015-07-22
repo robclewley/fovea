@@ -41,11 +41,12 @@ class spikesorter(graphics.diagnosticGUI):
 
         #Setup all layers
         plotter.addLayer('spikes')
+        plotter.addLayer('thresh_crosses')
 
         self.setup({'11':
                    {'name': 'spikesort',
                     'scale': DOI,
-                    'layers':['spikes'],
+                    'layers':['spikes', 'thresh_crosses'],
                     'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     }
@@ -74,29 +75,34 @@ class spikesorter(graphics.diagnosticGUI):
         y = lfilter(b, a, data)
         return y
 
+    def user_nav_func(self):
+        cutoff =  ltarget.y1
+
+        SS_event_args = {'name': 'SS_zerothresh',
+                         'eventtol': 1e-2,
+                         'eventdelay': 1e-3,
+                         'starttime': 0,
+                         'active': True}
+        #dircode = 1 is crossing from below
+        SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
+                                                            ssort.traj.variables['x'])
+
+        #If I search the entire interval at once, it returns a partial list. Why?
+        result = SS_thresh_ev.searchForEvents((0, 5000))
+        result += SS_thresh_ev.searchForEvents((5000, 10000))
+        result += SS_thresh_ev.searchForEvents((10000, 15000))
+
+        crosses = [num[0] for num in result]
+
+        self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
+        plotter.show()
+
 ssort = spikesorter("SSort")
 
-cutoff = 15
+cutoff = 20
 
 ltarget = fovea.graphics.line_GUI(pp.Point2D(0, cutoff),
                                   pp.Point2D(15000, cutoff), subplot = '11')
 ltarget.update(name ='threshline')
-
-SS_event_args = {'name': 'SS_zerothresh',
-                 'eventtol': 1e-2,
-                 'eventdelay': 1e-3,
-                 'starttime': 0,
-                 'active': True}
-#dircode = 1 is crossing from below
-SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
-                                                    ssort.traj.variables['x'])
-
-#If I search the entire interval at once, it returns a partial list. Why?
-result = SS_thresh_ev.searchForEvents((0, 5000))
-result += SS_thresh_ev.searchForEvents((5000, 10000))
-result += SS_thresh_ev.searchForEvents((10000, 15000))
-
-for num in result:
-    plt.plot(num[0], cutoff, 'r*')
 
 halt = True
