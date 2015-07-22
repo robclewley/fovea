@@ -34,7 +34,6 @@ import fovea
 import fovea.graphics as gx
 from fovea.graphics import tracker
 
-import fovea
 import fovea.domain2D as dom
 from fovea import common, prep, graphics
 
@@ -113,16 +112,6 @@ class GUIrocket(gx.diagnosticGUI):
 
         self.name = 'gamespace'
 
-        #plotter.arrangeFig([1,1], {'11':
-                                   #{'name': self.name,
-                                    #'scale': DOI,
-                                    #'layers':['trajs', 'bodies', 'text'],
-                                    #'callbacks':'*',
-                                    #'axes_vars': ['x', 'y']
-                                    #}
-                                   #})
-
-        #gui.buildPlotter2D((9,7), with_times=False, basic_widgets=False)
         self.setup({'11':
                     {'name': self.name,
                      'scale': DOI,
@@ -295,19 +284,6 @@ class GUIrocket(gx.diagnosticGUI):
         self.body_pars = pardict
         self.icpos = np.array((0.0, 0.08))
         self.icvel = np.array((0.0, 0.0))
-
-    #def setup_gen(self):
-        #if self.context_changed:
-            #self.context_changed = False
-            #self.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-        #else:
-            #try:
-                #gui.model = gui.gen_versioner.load_gen('sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-            #except:
-                #gui.make_gen(gui.body_pars, 'sim_N%i'%gui.N+'_fig%i'%gui.fignum)
-            #else:
-                #gui.model.set(pars=gui.body_pars)
-
 
     def make_gen(self, pardict, name):
         # scrape GUI diagnostic object extras for generator
