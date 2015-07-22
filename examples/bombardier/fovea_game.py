@@ -54,29 +54,7 @@ class GUIrocket(gx.diagnosticGUI):
 
         global plotter
         plotter = gx.plotter2D()
-        super().__init__(plotter)
-
-        # Sim setup
-
-        # context objects (lines of interest, domains, etc)
-        self.context_objects = []
-        # external tracked objects (measures, etc)
-        self.tracked_objects = []
-        #
-        self.selected_object = None
-        self.selected_object_temphandle = None
-        #
-        self.current_domain_handler = dom.GUI_domain_handler(self)
-
-        # name of task controlling mouse click event handler
-        self.mouse_wait_state_owner = None
-
-        # last output from a UI action
-        self.last_output = None
-
-        # if defined, will be refreshed on each Go!
-        self.calc_context = None
-
+        graphics.diagnosticGUI.__init__(self, plotter)
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -99,16 +77,16 @@ class GUIrocket(gx.diagnosticGUI):
 
         #Setup code
         DOI = [(-xdomain_halfwidth,xdomain_halfwidth),(0,1)]
-        plotter.clean() # in case rerun in same session
-        plotter.addFig('master',
+        self.plotter.clean() # in case rerun in same session
+        self.plotter.addFig('master',
                         title='Bombardier',
                         xlabel='x', ylabel='y',
                         domain=DOI)
 
         #Setup all layers
-        plotter.addLayer('trajs')
-        plotter.addLayer('bodies', kind='patch')
-        plotter.addLayer('text', kind='text')
+        self.plotter.addLayer('trajs')
+        self.plotter.addLayer('bodies', kind='patch')
+        self.plotter.addLayer('text', kind='text')
 
         self.name = 'gamespace'
 
@@ -123,9 +101,8 @@ class GUIrocket(gx.diagnosticGUI):
                   size=(9, 7), with_times=False, basic_widgets=False)
 
         self.fignum = 1
-        self.fig = self.masterWin
 
-        fig_struct, fig = plotter._resolveFig('master')
+        fig_struct, fig = self.plotter._resolveFig('master')
         self.ax = fig_struct.arrange['11']['axes_obj']
 
         self.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
@@ -172,10 +149,8 @@ class GUIrocket(gx.diagnosticGUI):
     def graphics_refresh(self, cla=True):
         if cla:
             self.ax.cla()
-        #self.plot_bodies()
 
         #Make quartiles
-        self.points
         xquarts = Point({'x': 4})
         yquarts = Point({'y': 4})
 
@@ -215,11 +190,9 @@ class GUIrocket(gx.diagnosticGUI):
 
         pos = np.array(self.pos).transpose()
         for i in range(len(pos[0])):
-            plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
+            self.plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
 
-        plotter.show(rebuild=False)
-
-        #self.fig.canvas.draw()
+        self.plotter.show(rebuild=False)
 
     # Methods for pickling protocol
     def __getstate__(self):
@@ -412,7 +385,7 @@ class GUIrocket(gx.diagnosticGUI):
         if run:
             self.run()
             self.graphics_refresh(cla=False)
-        self.fig.canvas.draw()
+        self.masterWin.canvas.draw()
         plt.draw()
 
     def set(self, pair, ic=None, by_vel=False):
@@ -529,10 +502,6 @@ class GUIrocket(gx.diagnosticGUI):
 
         self.model.set(pars=pardict)
         self.body_pars.update(pardict)
-        #self.ax.cla()
-        #self.ax.set_aspect('equal')
-        #self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
-        #self.ax.set_ylim(0,1)
 
         self.trajline = None
         self.startpt = None
@@ -580,7 +549,7 @@ game1 = GUIrocket(body_setup1, "Scenario 1: Game 1", axisbgcol='white')
 # ! W1b Initial conditions
 game1.set( (-79, 0.7) )
 
-ltarget = gx.line_GUI(pp.Point2D(0.36, 0.74),
+ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
                       pp.Point2D(0.42, 0.8), subplot = '11')
 
 ltarget.make_event_def('target1', 1)

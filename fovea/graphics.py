@@ -160,7 +160,7 @@ class plotter2D(object):
         of the given figure name (optional, defaults to Master)
         and the named layer struct.
         """
-        fig_struct, figure = plotter._resolveFig(figure)
+        fig_struct, figure = self._resolveFig(figure)
         try:
             layer_struct = fig_struct.layers[layer]
         except KeyError:
@@ -961,7 +961,7 @@ class plotter2D(object):
         fig = plt.figure(fig_struct.fignum)
         if rebuild:
             for axs in fig.get_axes():
-                if axs not in [bttn.ax for bttn in gui.widgets.values()]:
+                if axs not in [bttn.ax for bttn in self.gui.widgets.values()]:
                     fig.delaxes(axs)
 
         # Build up each subplot, left to right, top to bottom
@@ -1010,10 +1010,10 @@ class plotter2D(object):
                     ax = subplot_struct['axes_obj']
 
                 if 'callbacks' in subplot_struct:
-                    if ax not in gui.cb_axes:
-                        gui.cb_axes.append(ax)
-                        gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
-                        gui.RS_line.set_active(False)
+                    if ax not in self.gui.cb_axes:
+                        self.gui.cb_axes.append(ax)
+                        self.gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
+                        self.gui.RS_line.set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1097,13 +1097,14 @@ class plotter2D(object):
                 self.wait_status = False
 
         if self.save_status or do_save:
-            if self.dm is not None:
-                dirpath = self.dm._dirpath
-            else:
-                dirpath = ''
-            f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
-                                                            start=1)+'.png'),
-                      format='png')
+            self.gui.save(None)
+            #if self.dm is not None:
+                #dirpath = self.dm._dirpath
+            #else:
+                #dirpath = ''
+            #f.savefig(os.path.join(dirpath, get_unique_name(fig_name,
+                                                            #start=1)+'.png'),
+                      #format='png')
 
 
     def buildLayers(self, layer_list, ax, rescale=None, figure=None,
@@ -1375,10 +1376,8 @@ class diagnosticGUI(object):
         # ---------------
 
         self.model = None
-        self.N = None
-        self.gen_versioner = None
-        self.context_changed = None
-        self.fignum = 1
+        self.gen_versioner = None #Universal
+        self.context_changed = None #Universal
 
 
         # ---------------
@@ -1396,6 +1395,8 @@ class diagnosticGUI(object):
         self.timeLines = []
 
         self.plotter = objPlotter
+        self.plotter.gui = self
+
         self.widgets = {}
 
         # callback functions for dynamic plots indexed by layer name
@@ -1413,18 +1414,26 @@ class diagnosticGUI(object):
                              'control': 1}
         self._last_ix = None
 
-        global plotter
-        plotter = objPlotter
+        #Delete these.
 
-        global gui
-        gui = self
+        #global plotter
+        #plotter = objPlotter
+
+        #global gui
+        #gui = self
 
     def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
         self.fig = fig
         self.context_objects = []
+
+        self.selected_object = None
         self.selected_object_temphandle = None
         self.current_domain_handler = dom.GUI_domain_handler(self)
+        self.tracked_objects = []
+        self.calc_context = None
+
+        self.last_output = None
 
         self.mouse_wait_state_owner = None
 
@@ -1462,19 +1471,20 @@ class diagnosticGUI(object):
         maxspeed = 2.2 #This should be replaced with something general purpose. Borrowed from Bombardier.
 
         try:
-            fig_struct, figure = plotter._resolveFig(None)
+            fig_struct, figure = self.plotter._resolveFig(None)
         except ValueError:
-            gui.plotter.clean()
-            gui.plotter.addFig('Master', domain= [(0,1), (0,1)])
-            fig_struct, figure = plotter._resolveFig(None)
+            self.plotter.clean()
+            self.plotter.addFig('Master', domain= [(0,1), (0,1)])
+            fig_struct, figure = self.plotter._resolveFig(None)
 
         if isinstance(data, numpy.ndarray) or isinstance(data, list):
-            plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
+            self.plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
                            style=style, name=name,
                            display=display,
                            force=force, log=log)
 
         elif isinstance(data, Points.Pointset):
+            self.points
             #Newly created code
             if coorddict is not None:
                 addingDict = {}
@@ -1511,7 +1521,7 @@ class diagnosticGUI(object):
                             pass
                         try:
                             addingDict[key]['data'] = [data[key], ys]
-                        except UnboundLocalError:
+                        except UnboundLocalError as e:
                             pass
 
                     #Extract object
@@ -1529,7 +1539,7 @@ class diagnosticGUI(object):
                     #Extract layer
                     try:
                         if val['layer'] not in fig_struct.layers.keys():
-                            plotter.addLayer(val['layer'])
+                            self.plotter.addLayer(val['layer'])
                             print("Added new layer",val['layer'],"to plotter.")
                         addingDict[key]['layer'] = val['layer']
                     except KeyError:
@@ -1586,7 +1596,7 @@ class diagnosticGUI(object):
                         nam = None
 
                     try:
-                        plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
+                        self.plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
                                          #figure='master',
                                          layer = lay,
                                          name = nam,
@@ -1595,7 +1605,7 @@ class diagnosticGUI(object):
                                          color = addingDict[key]['style'])
 
                     except:
-                        plotter.addData(addingDict[key]['data'],
+                        self.plotter.addData(addingDict[key]['data'],
                                         #figure='master', #Fix this
                                         style = addingDict[key]['style'],
                                         layer = lay,
@@ -1954,16 +1964,18 @@ class diagnosticGUI(object):
         self.plotter.updateDynamic(self.t, self.dynamicPlotFns)
 
     def refresh(self, ev):
-        """For refresh button, e.g. use after zoom in dynamic plot
+        """
+        For refresh button, e.g. use after zoom in dynamic plot
         """
         hard_reset = self._key_mod == 'shift'
         self.plotter.updateDynamic(self.t, self.dynamicPlotFns,
                                    hard_reset)
 
     def save(self, ev):
-        """For save button. Saves current figure as a .png
+        """
+        For save button. Saves current figure as a .png
         in working directory or dm directory if provided.
-                """
+        """
         fig_struct, fig_name = self.plotter._resolveFig(self.plotter.currFig)
         f = plt.figure(fig_struct.fignum)
 
@@ -2083,7 +2095,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.selected_object = line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
@@ -2098,8 +2110,8 @@ class diagnosticGUI(object):
         # have to guess phase, use widest tolerance
 
         try:
-            data = pp.find_pt_nophase_2D(self.points, pp.Point2D(ev.xdata, ev.ydata),
-                                         eps=0.1)
+            data = pp.find_pt_nophase_2D(self.points, pp.Point2D(ev.xdata, ev.ydata,
+                                                                 xname= self.points.indepvarname, yname= 'x'), eps=0.1)
         except ValueError:
             print("No nearby point found. Try again")
             self.fig.canvas.mpl_disconnect(self.mouse_cid)
@@ -2107,6 +2119,7 @@ class diagnosticGUI(object):
         self.last_output = data
         x_snap = data[2]['x']
         y_snap = data[2]['y']
+
         self.selected_object = pp.Point2D(x_snap, y_snap)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
@@ -2204,7 +2217,9 @@ class line_GUI(context_object):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, pt1, pt2, layer='gx_objects', subplot=None):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+
+        self.gui = gui
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
@@ -2212,11 +2227,11 @@ class line_GUI(context_object):
         x1, y1 = pt1.coordarray
         x2, y2 = pt2.coordarray
 
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
         try:
-            gui.plotter._resolveLayer(figure, layer)
+            self.gui.plotter._resolveLayer(figure, layer)
         except KeyError:
-            gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
+            self.gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
             print("Created layer", layer, "to support Line_GUI object")
 
         if x1 > x2:
@@ -2239,9 +2254,9 @@ class line_GUI(context_object):
         self.ang_deg = 180*self.ang/pi
 
         # declare self to GUI
-        gui.declare_in_context(self)
+        self.gui.declare_in_context(self)
         # move self to the currently selected object in GUI
-        gui.selected_object = self
+        self.gui.selected_object = self
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2253,7 +2268,7 @@ class line_GUI(context_object):
         self.l = None
         self.name = '<untitled>'
 
-        gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
+        self.gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
                            style= None, name=self.name, force= True, display= True)
 
         self.show()
@@ -2267,7 +2282,7 @@ class line_GUI(context_object):
                                           self.x2, self.y2, self.name, ev_str)
 
     def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
         show = False
 
         if name is not None:
@@ -2298,26 +2313,26 @@ class line_GUI(context_object):
             show = True
 
         if show:
-            gui.plotter.show()
+            self.gui.plotter.show()
 
     def show(self):
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
-        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
+        self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
 
-        gui.plotter.show()
+        self.gui.plotter.show()
 
     def unshow(self):
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
 
-        gui.plotter.show()
+        self.gui.plotter.show()
 
     def remove(self):
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
         fig_struct.layers[self.layer]['handles'].pop(self.name)
-        gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
+        self.gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
 
         self.l.remove()
         plt.draw()
@@ -2335,14 +2350,14 @@ class line_GUI(context_object):
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
 
     def make_event_def(self, uniquename, dircode=0):
-        fig_struct, figure = gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
 
         for field in ['handles', 'data', 'trajs']:
             fig_struct.layers[self.layer][field][uniquename] = \
                 fig_struct.layers[self.layer][field].pop(self.name)
 
         #Update changes the diagnosticGUI object.
-        gui.plotter.figs[figure] = fig_struct
+        self.gui.plotter.figs[figure] = fig_struct
 
         self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
@@ -2355,7 +2370,7 @@ class line_GUI(context_object):
         self.extra_pars[parname_base+'dp_y'] = self.dy
         self.extra_fnspecs.update(res['auxfn'])
         targetlang = \
-            gui.gen_versioner._targetlangs[gui.gen_versioner.gen_type]
+            self.gui.gen_versioner._targetlangs[self.gui.gen_versioner.gen_type]
         self.extra_events = [dst.Events.makeZeroCrossEvent(
                                               expr='exit_fn_%s(x,y)' %uniquename,
                                               dircode=dircode,
