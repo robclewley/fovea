@@ -1010,9 +1010,10 @@ class plotter2D(object):
                     ax = subplot_struct['axes_obj']
 
                 if 'callbacks' in subplot_struct:
-                    gui.cb_axes.append(ax)
-                    gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
-                    gui.RS_line.set_active(False)
+                    if ax not in gui.cb_axes:
+                        gui.cb_axes.append(ax)
+                        gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
+                        gui.RS_line.set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1426,8 +1427,12 @@ class diagnosticGUI(object):
         self.current_domain_handler = dom.GUI_domain_handler(self)
 
         self.mouse_wait_state_owner = None
+
+        ##Handled in plotter2d._subplots
         #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
         #self.RS_line.set_active(False)
+        self.fig.canvas.mpl_disconnect(fig.canvas.manager.key_press_handler_id)
+
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
@@ -1454,11 +1459,7 @@ class diagnosticGUI(object):
     def addDataPoints(self, data, figure=None, layer=None, subplot=None,
                            style=None, name=None, display=True, force=False,
                            log=None, coorddict=None):
-        maxspeed = 2.2
-
-        #if layer is None:
-            #plotter.addLayer(layer)
-            #print("Added new layer",layer,"to plotter.")
+        maxspeed = 2.2 #This should be replaced with something general purpose. Borrowed from Bombardier.
 
         try:
             fig_struct, figure = plotter._resolveFig(None)
@@ -1473,7 +1474,7 @@ class diagnosticGUI(object):
                            display=display,
                            force=force, log=log)
 
-        if isinstance(data, Points.Pointset):
+        elif isinstance(data, Points.Pointset):
             #Newly created code
             if coorddict is not None:
                 addingDict = {}
@@ -1600,6 +1601,8 @@ class diagnosticGUI(object):
                                         layer = lay,
                                         name = nam,
                                         force = True)
+        else:
+            print("Unsupported datatype")
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
@@ -2004,6 +2007,44 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
+        ##Navigation keys
+        #Only need this if selected_object exists.
+        so = self.selected_object
+
+        if isinstance(so, line_GUI):
+
+            xl = self.ax.get_xlim()
+            yl = self.ax.get_ylim()
+
+            step_sizeH = 0.02*abs(xl[0]-xl[1])
+            step_sizeV = 0.02*abs(yl[0]-yl[1])
+            nav = False
+
+            if k == 'left':
+                so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
+                nav = True
+            elif k == 'right':
+                so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
+                nav = True
+            elif k == 'up':
+                so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
+                nav = True
+            elif k == 'down':
+                so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
+                nav = True
+
+            if nav:
+                self.user_nav_func()
+                nav = False
+
+            if k == 'm':
+                if abs(so.ang_deg) > 45:
+                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                else:
+                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+
+
+        #Toggle tools keys
         if self.mouse_wait_state_owner == 'domain' and \
            k in change_mouse_state_keys:
             # reset state of domain handler first
@@ -2044,8 +2085,9 @@ class diagnosticGUI(object):
 
             self.selected_object = line_GUI(pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created line as new selected object, now give it a name")
-            print("  by writing this object's selected_object.name attribute")
+            print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
+
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
@@ -2130,6 +2172,12 @@ class diagnosticGUI(object):
                 self.make_gen(self.body_pars, name)
             else:
                 self.model.set(pars=self.body_pars)
+
+    def user_nav_func(self):
+        """
+        Function overridden in user's app, called whenever navigation keys are used to move a graphics object.
+        """
+        print("Hit user_nav_func")
 
     def make_gen(self, pardict, name):
         """
@@ -2217,6 +2265,40 @@ class line_GUI(context_object):
             ev_str = '(with event)'
         return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
                                           self.x2, self.y2, self.name, ev_str)
+
+    def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
+        fig_struct, figure = gui.plotter._resolveFig(None)
+        show = False
+
+        if name is not None:
+            for field in ['handles', 'data', 'trajs']:
+                fig_struct.layers[self.layer][field][name] = fig_struct.layers[self.layer][field][self.name]
+                del(fig_struct.layers[self.layer][field][self.name])
+
+            self.name = name
+
+        if y1 is not None:
+            self.y1 = y1
+            fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
+            show = True
+
+        if x1 is not None:
+            self.x1 = x1
+            fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+            show = True
+
+        if x2 is not None:
+            self.x2 = x2
+            fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
+            show = True
+
+        if y2 is not None:
+            self.y2 = y2
+            fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+            show = True
+
+        if show:
+            gui.plotter.show()
 
     def show(self):
         fig_struct, figure = gui.plotter._resolveFig(None)
