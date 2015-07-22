@@ -55,7 +55,7 @@ class GUIrocket(gx.diagnosticGUI):
 
         global plotter
         plotter = gx.plotter2D()
-        super().__init__(plotter)
+        gx.diagnosticGUI.__init__(self, plotter)
 
         # Sim setup
 
