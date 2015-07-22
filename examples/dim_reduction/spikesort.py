@@ -4,7 +4,6 @@ import fovea
 import fovea.domain2D as dom
 from fovea import common, prep, graphics
 #from fovea.graphics import gui, plotter
-import ButterworthBandpass as bwb
 import PyDSTool as dst
 import PyDSTool.Toolbox.phaseplane as pp
 
@@ -17,7 +16,7 @@ class spikesorter(graphics.diagnosticGUI):
 
         global plotter
         plotter = graphics.plotter2D()
-        super().__init__(plotter)
+        graphics.diagnosticGUI.__init__(self, plotter)
 
         #Recover data:
         data = importPointset('shortsimdata1.dat',t=0,sep=',')
