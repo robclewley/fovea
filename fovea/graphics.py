@@ -2192,6 +2192,7 @@ class diagnosticGUI(object):
         targetlang = self.gen_versioner._targetlangs[self.gen_versioner.gen_type]
 
         """
+        raise NotImplementedError
 
 class context_object(object):
     # Abstract base class
