@@ -77,16 +77,17 @@ class GUIrocket(gx.diagnosticGUI):
 
         #Setup code
         DOI = [(-xdomain_halfwidth,xdomain_halfwidth),(0,1)]
-        self.plotter.clean() # in case rerun in same session
-        self.plotter.addFig('master',
+        self.clean() # in case rerun in same session
+        self.addFig('master',
                         title='Bombardier',
                         xlabel='x', ylabel='y',
                         domain=DOI)
 
         #Setup all layers
-        self.plotter.addLayer('trajs')
-        self.plotter.addLayer('bodies', kind='patch')
-        self.plotter.addLayer('text', kind='text')
+
+        self.addLayer('trajs')
+        self.addLayer('bodies', kind='patch')
+        self.addLayer('text', kind='text')
 
         self.name = 'gamespace'
 

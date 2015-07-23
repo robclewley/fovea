@@ -1858,6 +1858,30 @@ class diagnosticGUI(object):
         """
         self.set_time(ev.xdata)
 
+    def setPoint(self, name, pt, layer, figure=None):
+        """
+        Wrapper method for plotter.setPoint
+        """
+        self.plotter.setPoint(name, pt, layer)
+
+    def addLayer(self, layer_name, figure=None, set_to_active=True, subplot=None, **kwargs):
+        """
+        Wrapper method for plotter.addLayer
+        """
+        self.plotter.addLayer(layer_name, figure=figure, set_to_active=set_to_active, subplot=subplot, **kwargs)
+
+    def addFig(self, label, title="", xlabel="", ylabel="", tdom=None, domain=None, display=True):
+        """
+        Wrapper method for plotter.addFig
+        """
+        self.plotter.addFig(label, title=title, xlabel=xlabel, ylabel=ylabel, tdom=tdom,
+                           domain=domain, display=display)
+
+    def clean(self):
+        """
+        Wrapper method for plotter.clean
+        """
+        self.plotter.clean()
 
     def getDynamicPoint(self, ev):
         """
