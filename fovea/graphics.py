@@ -1483,7 +1483,7 @@ class diagnosticGUI(object):
                            display=display,
                            force=force, log=log)
 
-        elif isinstance(data, Points.Pointset):
+        elif isinstance(data, Points.Pointset) or isinstance(data, pp.Point2D):
             self.points
             #Newly created code
             if coorddict is not None:
@@ -1493,7 +1493,7 @@ class diagnosticGUI(object):
                     #Extract x and y data.
                     try:
                         xs = data[val.get('x')]
-                    except IndexError:
+                    except (IndexError, StopIteration) as e:
                         try:
                             del xs
                         except UnboundLocalError:
@@ -1501,7 +1501,7 @@ class diagnosticGUI(object):
 
                     try:
                         ys = data[val.get('y')]
-                    except IndexError:
+                    except (IndexError, StopIteration) as e:
                         try:
                             del ys
                         except UnboundLocalError:

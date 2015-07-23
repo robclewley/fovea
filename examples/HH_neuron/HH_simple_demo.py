@@ -125,12 +125,17 @@ class PPcallback_m(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
+        #plotter.addData([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
+                         #[pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
+                #layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
+        gui.addDataPoints([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
-                layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
+                        layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['Na.m'], gui.points['V']],
+            #plotter.addData([gui.points['Na.m'], gui.points['V']],
+                            #layer='vfp_mV', name='traj', style='y')
+            gui.addDataPoints([gui.points['Na.m'], gui.points['V']],
                             layer='vfp_mV', name='traj', style='y')
 
         # Virtual fixed point and linearized nullclines
@@ -148,10 +153,14 @@ class PPcallback_m(PPcallback):
             plotter.setPoint('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
             plotter.setPoint('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['Na.m'], pt['V']),
-                         layer='points_mV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['Na.m'], pt['vinf']),
-                         layer='points_mV', style='bx', name='vinf_pt')
+            #plotter.addPoint(Point2D(pt['Na.m'], pt['V']),
+                         #layer='points_mV', style='ko', name='state_pt')
+            #plotter.addPoint(Point2D(pt['Na.m'], pt['vinf']),
+                         #layer='points_mV', style='bx', name='vinf_pt')
+            gui.addDataPoints(Point2D(pt['Na.m'], pt['V']), coorddict = {'x':
+                         {'y':'y', 'style':'ko', 'layer':'points_mV', 'name':'state_pt'}})
+            gui.addDataPoints(Point2D(pt['Na.m'], pt['vinf']),coorddict = {'x':
+                         {'y':'y', 'style':'bx', 'layer':'points_mV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_mV'].data
 
@@ -184,8 +193,10 @@ class PPcallback_m(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_mV', style=self.nullcY_style,
+            gui.addDataPoints(self.nully, layer='nullclines_mV', style=self.nullcY_style,
                             name='yNull_'+str(time), force=force)
+            #plotter.addData(self.nully, layer='nullclines_mV', style=self.nullcY_style,
+                            #name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
             ax.texts = []
@@ -195,9 +206,12 @@ class PPcallback_m(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_mV',
+                gui.addDataPoints(self.nullx, layer='nullclines_mV',
                                 style=self.nullcX_style,
                                 name='xNull', force=force)
+                #plotter.addData(self.nullx, layer='nullclines_mV',
+                                #style=self.nullcX_style,
+                                #name='xNull', force=force)
 
             #if force:
             #    rescale = sc
@@ -274,14 +288,21 @@ class PPcallback_n(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
+        #plotter.addData([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
+                         #[pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
+                #layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
+        gui.addDataPoints([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
-                layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
+                        layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['K.n'], gui.points['V']],
+            #plotter.addData([gui.points['K.n'], gui.points['V']],
+                            #layer='vfp_nV', name='traj', style='y')
+            #plotter.addData([gui.points['K.n'], gui.points['vinf']],
+                            #layer='vfp_nV', name='quasiVnull', style='m--')
+            gui.addDataPoints([gui.points['K.n'], gui.points['V']],
                             layer='vfp_nV', name='traj', style='y')
-            plotter.addData([gui.points['K.n'], gui.points['vinf']],
+            gui.addDataPoints([gui.points['K.n'], gui.points['vinf']],
                             layer='vfp_nV', name='quasiVnull', style='m--')
 ##            vs = np.linspace(sc[1][0], sc[1][1], 50)
 ##            x = dict(pt).copy()
@@ -311,10 +332,14 @@ class PPcallback_n(PPcallback):
             plotter.setPoint('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
             plotter.setPoint('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['K.n'], pt['V']),
-                         layer='points_nV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['K.n'], pt['vinf']),
-                         layer='points_nV', style='bx', name='vinf_pt')
+            #plotter.addPoint(Point2D(pt['K.n'], pt['V']),
+                         #layer='points_nV', style='ko', name='state_pt')
+            #plotter.addPoint(Point2D(pt['K.n'], pt['vinf']),
+                         #layer='points_nV', style='bx', name='vinf_pt')
+            gui.addDataPoints(Point2D(pt['K.n'], pt['V']),coorddict = {'x':
+                {'y':'y', 'style':'ko', 'layer':'points_nV', 'name':'state_pt'}})
+            gui.addDataPoints(Point2D(pt['K.n'], pt['vinf']), coorddict = {'x':
+                {'y':'y', 'style':'bx', 'layer':'points_nV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_nV'].data
 
@@ -347,8 +372,10 @@ class PPcallback_n(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_nV', style=self.nullcY_style,
-                            name='yNull_'+str(time), force=force)
+            #plotter.addData(self.nully, layer='nullclines_nV', style=self.nullcY_style,
+                            #name='yNull_'+str(time), force=force)
+            gui.addDataPoints(self.nully, layer='nullclines_nV', style=self.nullcY_style,
+                              name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
             ax.texts = []
@@ -358,9 +385,11 @@ class PPcallback_n(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_nV',
-                                style=self.nullcX_style,
-                                name='xNull', force=force)
+                #plotter.addData(self.nullx, layer='nullclines_nV',
+                                #style=self.nullcX_style,
+                                #name='xNull', force=force)
+                gui.addDataPoints(self.nullx, layer='nullclines_nV',
+                                  style=self.nullcX_style, name='xNull', force=force)
 
             #if force:
             #    rescale = sc
