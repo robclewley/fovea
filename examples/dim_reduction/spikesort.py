@@ -139,12 +139,12 @@ ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
                                   pp.Point2D(15000, cutoff), subplot = '11')
 ltarget.update(name ='threshline')
 
-class snap_point():
-    def __init__(self, x, y):
-        self.xdata = x
-        self.ydata = y
+#class snap_point():
+    #def __init__(self, x, y):
+        #self.xdata = x
+        #self.ydata = y
 
-sp = snap_point(4007, 17.26)
-ssort.mouse_event_snap(sp)
+#sp = snap_point(-0.51, 0.51)
+#ssort.mouse_event_snap(sp)
 
 halt = True

@@ -598,4 +598,12 @@ game1.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
 
 fig_struct, figure = game1.plotter._resolveFig(None)
 
+#class snap_point():
+    #def __init__(self, x, y):
+        #self.xdata = x
+        #self.ydata = y
+
+#sp = snap_point(-0.51, 0.51)
+#game1.mouse_event_snap(sp)
+
 halt = True

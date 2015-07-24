@@ -612,7 +612,7 @@ class plotter2D(object):
         layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
-                display=True, force=False, log=None):
+                display=True, force=False, traj = None, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
@@ -671,7 +671,8 @@ class plotter2D(object):
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
-        self._updateTraj(figure, layer)
+
+        self._updateTraj(figure, layer, traj = traj)
 
     def setPoint(self, name, pt, layer, figure=None):
         """
@@ -732,27 +733,35 @@ class plotter2D(object):
 
 
 
-    def _updateTraj(self, figure_name, layer_name):
+    def _updateTraj(self, figure_name, layer_name, traj= None):
         """
         Create an interpolated trajectory from the data in the layer
         This may no longer be necessary (it's not general purpose for fovea)
         """
         fig_struct = self.figs[figure_name]
         layer_struct = fig_struct.layers[layer_name]
-        #dstruct = layer.data
+
+        #pointset_to_traj requires an independent variable.
+        try:
+            if traj.indepvartype is None:
+                traj = None
+        except AttributeError:
+            pass
+
         for name, dstruct in layer_struct.data.items():
+            if traj is not None:
+                layer_struct.trajs[name] = pointset_to_traj(traj)
+                layer_struct.trajs[name].name = layer_name+'.'+name
             # catch for when the data is individual points
-            try:
-                layer_struct.trajs[name] = numeric_to_traj([dstruct['data'][1]],
-                                        layer_name+'.'+name,
-                                        coordnames=['y'],
-                                        indepvar=dstruct['data'][0],
-                                        discrete=False)
-            except ValueError: #Issue: need to store trajectories of linecollections as well.
-                pass
-            #Maybe PyDSTool needs a linecollection_to_traj method
-            except TypeError:
-                pass
+            else:
+                try:
+                    layer_struct.trajs[name] = numeric_to_traj([dstruct['data'][0], dstruct['data'][1]],
+                                            layer_name+'.'+name,
+                                            coordnames=['x', 'y'],
+                                            indepvar=dstruct['data'][0],
+                                            discrete=False)
+                except ValueError:
+                    pass
 
 
     def toggleDisplay(self, names=None, layer=None, figure=None, log=None):
@@ -1484,7 +1493,6 @@ class diagnosticGUI(object):
                            force=force, log=log)
 
         elif isinstance(data, Points.Pointset) or isinstance(data, pp.Point2D):
-            self.points
             #Newly created code
             if coorddict is not None:
                 addingDict = {}
@@ -1581,9 +1589,16 @@ class diagnosticGUI(object):
                 for key, val in addingDict.items():
                     try:
                         linecollection = mpl.collections.LineCollection(val['segments'], colors=val['style'])
+                        #addingDict[key]['traj'] = self.reducePointset(data, coorddict, list(addingDict.keys())[0])
                         addingDict[key]['data'] = linecollection
                     except KeyError:
+                        #addingDict[key]['traj'] = self.reducePointset(data, coorddict, list(addingDict.keys())[0])
                         pass
+
+                    try:
+                        tra = self.reducePointset(data, coorddict, list(addingDict.keys())[0])
+                    except KeyError:
+                        tra = None
 
                     try:
                         lay = addingDict[key]['layer']
@@ -1597,7 +1612,6 @@ class diagnosticGUI(object):
 
                     try:
                         self.plotter.addPatch(addingDict[key]['data'], addingDict[key]['patch'],
-                                         #figure='master',
                                          layer = lay,
                                          name = nam,
                                          force = True,
@@ -1606,13 +1620,38 @@ class diagnosticGUI(object):
 
                     except:
                         self.plotter.addData(addingDict[key]['data'],
-                                        #figure='master', #Fix this
                                         style = addingDict[key]['style'],
                                         layer = lay,
                                         name = nam,
+                                        traj = tra,
                                         force = True)
         else:
             print("Unsupported datatype")
+
+    def reducePointset(self, ptset, coorddict, key):
+        """
+        Convenience function for extracting two desired points from a pointset
+        with many variables.
+        """
+        try:
+            x = coorddict[key]['x']
+        except KeyError:
+            x = key
+
+        try:
+            y = coorddict[key]['y']
+        except KeyError:
+            y = key
+
+        try:
+            new_pts = Pointset({'coordarray': [ptset[x], ptset[y]],
+                         'coordnames': ['x', 'y'],
+                         'indepvarname':'t',
+                         'indepvararray': ptset.indepvararray})
+        except TypeError:
+            new_pts = Pointset({'coordarray': [ptset[x], ptset[y]],
+                                'coordnames': ['x', 'y']})
+        return new_pts
 
 
     def addWidget(self, widg, axlims, callback=None, **kwargs):
@@ -1645,7 +1684,7 @@ class diagnosticGUI(object):
             pass
 
 
-    def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True):
+    def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True, callbacks_on= True):
         """
         Create time bar widget.
         Create capture points widget.
@@ -1673,7 +1712,9 @@ class diagnosticGUI(object):
                                wspace=0.2, hspace=0.23)
 
             self.masterWin = fig_handle
-            self.initialize_callbacks(self.masterWin)
+
+            if callbacks_on:
+                self.initialize_callbacks(self.masterWin)
 
             # Time bar controls time lines in figures
             # ISSUE: Not all uses of this class use time
@@ -2127,19 +2168,47 @@ class diagnosticGUI(object):
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
-        if self.points is None:
+
+        fig_struct, figs = self.plotter._resolveFig(None)
+        trajs = []
+        for layer_name in fig_struct['layers'].keys():
+            try:
+                trajs.append(list(fig_struct['layers'][layer_name]['trajs'].values())[0])
+            except:
+                pass
+
+        if trajs == []:
             print("No trajectory defined")
             return
         print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
         # have to guess phase, use widest tolerance
 
-        try:
-            data = pp.find_pt_nophase_2D(self.points, pp.Point2D(ev.xdata, ev.ydata,
-                                                                 xname= self.points.indepvarname, yname= 'x'), eps=0.1)
-        except ValueError:
+        found_pts = []
+        print('trajs',trajs)
+        for traj in trajs:
+            xname = traj.coordnames[0]
+            yname = traj.coordnames[1]
+
+            eps = 0.1
+            eps = 200
+            try:
+                found_pt = pp.find_pt_nophase_2D(traj.sample(), pp.Point2D(ev.xdata, ev.ydata, xname= xname, yname= yname), eps=eps)
+                found_pts.append(found_pt)
+            except ValueError:
+                pass
+
+        if found_pts == []:
             print("No nearby point found. Try again")
             self.fig.canvas.mpl_disconnect(self.mouse_cid)
             return
+
+        #Pick closest point from all trajectories searched.
+        dist = np.inf
+        for pt in found_pts:
+            if math.hypot(ev.xdata - pt[2]['x'], ev.ydata - pt[2]['y']) < dist:
+                data = pt
+                dist = math.hypot(ev.xdata - pt[2]['x'], ev.ydata - pt[2]['y'])
+
         self.last_output = data
         x_snap = data[2]['x']
         y_snap = data[2]['y']
@@ -2152,6 +2221,7 @@ class diagnosticGUI(object):
         print("Last output = (index, distance, point)")
         print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
                                                           x_snap, y_snap))
+
         self.fig.canvas.mpl_disconnect(self.mouse_cid)
         self.mouse_wait_state_owner = None
 
@@ -2229,6 +2299,7 @@ class diagnosticGUI(object):
         targetlang = self.gen_versioner._targetlangs[self.gen_versioner.gen_type]
 
         """
+        raise NotImplementedError
 
 class context_object(object):
     # Abstract base class

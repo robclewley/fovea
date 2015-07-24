@@ -29,6 +29,7 @@ plotter.arrangeFig([1,1], {'11':
                            {'name': 'Bisection method',
                             'scale': DOI,
                             'layers': '*',  # all layers will be selected
+                            'callbacks':'*',
                             'axes_vars': ['x', 'y']}
                            })
 
