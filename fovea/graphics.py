@@ -726,8 +726,9 @@ class plotter2D(object):
                         except KeyError:
                             # object not actually plotted yet
                             pass
-                        else:
-                            obj.set_data(objdata['data'])
+                        #else:
+                            #print("OBJ: ", obj)
+                            #obj.set_data(objdata['data'])
 
         self._updateTraj(figure, layer)
 
@@ -1299,7 +1300,10 @@ class plotter2D(object):
 
             elif lay.kind == 'obj':
                 coords = dstruct['data']
-                l = dstruct['obj'](coords[0], coords[1], linewidth=1, color='y', visible= dstruct['display'])
+                try: #Line
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=1, color='y', visible= dstruct['display'])
+                except TypeError: #Rectangle
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=1, color='y', visible= dstruct['display'], fill= False)
                 lay.handles[dname] = ax.add_artist(l)
 
             elif lay.kind == 'data':
@@ -2177,7 +2181,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.selected_object = box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
             print("Created box as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_box.set_active(False)
@@ -2325,12 +2329,8 @@ class context_object(object):
 class domain_GUI(context_object):
     pass # Not implemented yet!
 
-class line_GUI(context_object):
-    """
-    Line of interest context_object for GUI
-    """
+class shape_GUI(context_object):
     def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
-
         self.gui = gui
 
         xnames = pt1.coordnames
@@ -2360,10 +2360,6 @@ class line_GUI(context_object):
         self.y2 = y2
         self.dy = y2-y1
         self.dx = x2-x1
-        self.length = np.linalg.norm((self.dx, self.dy))
-        # angle relative to horizontal, in radians
-        self.ang = atan2(self.dy,self.dx)
-        self.ang_deg = 180*self.ang/pi
 
         # declare self to GUI
         self.gui.declare_in_context(self)
@@ -2373,25 +2369,31 @@ class line_GUI(context_object):
         self.extra_pars = {}
         self.extra_auxvars = {}
         self.extra_events = []
-        print("Created line and moved to currently selected object")
 
-        # actual MPL line object handle
         self.layer = layer
-        self.l = None
         self.name = '<untitled>'
 
-        self.gui.plotter.addObj(np.array([[x1, x2],[y1, y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
-                           style= None, name=self.name, force= True, display= True)
+    def show(self):
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
 
-        self.show()
+        self.gui.plotter.show()
 
-    def __repr__(self):
-        if self.extra_events == []:
-            ev_str = '(no event)'
-        else:
-            ev_str = '(with event)'
-        return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
-                                          self.x2, self.y2, self.name, ev_str)
+    def unshow(self):
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        dstruct = fig_struct.layers[self.layer]['data'][self.name]
+        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
+
+        self.gui.plotter.show()
+
+    def remove(self):
+        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct.layers[self.layer]['handles'].pop(self.name)
+        self.gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
+
+        #self.l.remove()
+        plt.draw()
 
     def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
@@ -2426,40 +2428,6 @@ class line_GUI(context_object):
 
         if show:
             self.gui.plotter.show()
-
-    def show(self):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
-        dstruct = fig_struct.layers[self.layer]['data'][self.name]
-        self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
-
-        self.gui.plotter.show()
-
-    def unshow(self):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
-        dstruct = fig_struct.layers[self.layer]['data'][self.name]
-        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
-
-        self.gui.plotter.show()
-
-    def remove(self):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
-        fig_struct.layers[self.layer]['handles'].pop(self.name)
-        self.gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
-
-        self.l.remove()
-        plt.draw()
-
-    def distance_to_pos(self, dist):
-        """
-        Calculate absolute (x,y) position of distance dist from (x1,y1) along line
-        """
-        return self.fraction_to_pos(self, dist/self.length)
-
-    def fraction_to_pos(self, fraction):
-        """
-        Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
-        """
-        return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
 
     def make_event_def(self, uniquename, dircode=0):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
@@ -2498,6 +2466,71 @@ class line_GUI(context_object):
                                               parnames=res['pars'],
                                               targetlang=targetlang
                                               )]
+
+
+class box_GUI(shape_GUI):
+    """
+    Box of interest context_object for GUI
+    """
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+
+        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
+
+        print("Created box and moved to currently selected object")
+        self.gui.plotter.addObj(np.array([[self.x1, self.y1],[self.dx, self.dy]]), mpl.patches.Rectangle,
+                                layer=layer, subplot=subplot, style= None, name=self.name, force= True, display= True)
+
+        self.show()
+
+    def __repr__(self):
+        if self.extra_events == []:
+            ev_str = '(no event)'
+        else:
+            ev_str = '(with event)'
+        return "box_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
+                                          self.x2, self.y2, self.name, ev_str)
+
+class line_GUI(shape_GUI):
+    """
+    Line of interest context_object for GUI
+    """
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+
+        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
+
+        self.length = np.linalg.norm((self.dx, self.dy))
+        # angle relative to horizontal, in radians
+        self.ang = atan2(self.dy,self.dx)
+        self.ang_deg = 180*self.ang/pi
+
+        print("Created line and moved to currently selected object")
+
+        # actual MPL line object handle
+        self.gui.plotter.addObj(np.array([[self.x1, self.x2],[self.y1, self.y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
+                           style= None, name=self.name, force= True, display= True)
+
+        self.show()
+
+    def __repr__(self):
+        if self.extra_events == []:
+            ev_str = '(no event)'
+        else:
+            ev_str = '(with event)'
+        return "line_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
+                                          self.x2, self.y2, self.name, ev_str)
+
+    def distance_to_pos(self, dist):
+        """
+        Calculate absolute (x,y) position of distance dist from (x1,y1) along line
+        """
+        return self.fraction_to_pos(self, dist/self.length)
+
+    def fraction_to_pos(self, fraction):
+        """
+        Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
+        """
+        return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
+
 
 class tracker_GUI(object):
     """
