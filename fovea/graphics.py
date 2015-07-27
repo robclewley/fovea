@@ -607,7 +607,7 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
 
-        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot})
+        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
         d.update({name: kwargs})
         layer_struct.force = force
 
@@ -1299,11 +1299,16 @@ class plotter2D(object):
                                   visible = dstruct['display']))
 
             elif lay.kind == 'obj':
+                if dstruct['selected']:
+                    line_width = 2.5
+                else:
+                    line_width = 1
+
                 coords = dstruct['data']
                 try: #Line
-                    l = dstruct['obj'](coords[0], coords[1], linewidth=1, color='y', visible= dstruct['display'])
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=line_width, color='y', visible= dstruct['display'])
                 except TypeError: #Rectangle
-                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=1, color='y', visible= dstruct['display'], fill= False)
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=line_width, color='y', visible= dstruct['display'], fill= False)
                 lay.handles[dname] = ax.add_artist(l)
 
             elif lay.kind == 'data':
@@ -2167,7 +2172,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2)), figure= self.plotter.currFig)
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
@@ -2179,7 +2184,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.selected_object = box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            self.set_selected_object(box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2)), figure= self.plotter.currFig)
             print("Created box as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_box.set_active(False)
@@ -2232,7 +2237,7 @@ class diagnosticGUI(object):
         x_snap = data[2]['x']
         y_snap = data[2]['y']
 
-        self.selected_object = pp.Point2D(x_snap, y_snap)
+        self.set_selected_object(pp.Point2D(x_snap, y_snap), figure=self.plotter.currFig)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
         self.selected_object_temphandle = self.RS_line.ax.plot(x_snap, y_snap, 'go')[0]
@@ -2253,7 +2258,7 @@ class diagnosticGUI(object):
         fs, fvecs = self.user_func(ev.xdata, ev.ydata)
         print(fs)
         self.last_output = (fs, fvecs)
-        self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
+        self.set_selected_object(pp.Point2D(ev.xdata, ev.ydata), figure=self.plotter.currFig)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
         self.selected_object_temphandle = ev.inaxes.plot(ev.xdata, ev.ydata, 'go')[0]
@@ -2303,6 +2308,24 @@ class diagnosticGUI(object):
                 self.make_gen(self.body_pars, name)
             else:
                 self.model.set(pars=self.body_pars)
+
+    def set_selected_object(self, selected_object, figure= None):
+        """
+        Set a context_object as "selected", displaying it in bold.
+        """
+        fig_struct, figure = self.plotter._resolveFig(figure)
+        lay = fig_struct.layers[selected_object.layer]
+        for dname, dstruct in lay.data.items():
+            try:
+                if dname == selected_object.name:
+                    dstruct['selected'] = True
+                else:
+                    dstruct['selected'] = False
+            except AttributeError: #selected_object is a 2D point. May want to make it a context_object as well.
+                dstruct['selected'] = False
+
+        self.selected_object = selected_object
+        self.plotter.show()
 
     def user_nav_func(self):
         """
@@ -2365,7 +2388,6 @@ class shape_GUI(context_object):
         self.dx = x2-x1
 
         # move self to the currently selected object in GUI
-        self.gui.selected_object = self
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2381,12 +2403,15 @@ class shape_GUI(context_object):
         self.name = name
 
         # declare self to GUI
+        self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
         self.gui.declare_in_context(self)
 
     def show(self):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
-        self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': True}})
+        self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
+                                                               'style':dstruct['style'], 'subplot':dstruct['subplot'],
+                                                               'selected':dstruct['selected'],'display': True}})
 
         self.gui.plotter.show()
 
