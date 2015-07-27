@@ -1822,8 +1822,6 @@ class diagnosticGUI(object):
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
 
 
-
-
     def clearAxes(self, subplot, figure=None):
         """
         Clears lines and points in sub-plot axes (given as an axis
@@ -2285,6 +2283,11 @@ class diagnosticGUI(object):
         # context_changed flag set when new objects created and unset when Generator is
         # created with the new context code included
         self.context_changed = True
+
+        for co in self.context_objects:
+            if co.name is con_obj.name:
+                self.context_objects.remove(co)
+
         self.context_objects.append(con_obj)
 
     def setup_gen(self, name_scheme):
@@ -2361,8 +2364,6 @@ class shape_GUI(context_object):
         self.dy = y2-y1
         self.dx = x2-x1
 
-        # declare self to GUI
-        self.gui.declare_in_context(self)
         # move self to the currently selected object in GUI
         self.gui.selected_object = self
         self.extra_fnspecs = {}
@@ -2371,7 +2372,16 @@ class shape_GUI(context_object):
         self.extra_events = []
 
         self.layer = layer
-        self.name = '<untitled>'
+        name = 'untitled1'
+
+        #Increment the number if "untitled" already in use.
+        while name in [con_obj.name for con_obj in self.gui.context_objects]:
+            name = name[:-1]+str(int(name[-1])+1)
+
+        self.name = name
+
+        # declare self to GUI
+        self.gui.declare_in_context(self)
 
     def show(self):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
@@ -2400,6 +2410,11 @@ class shape_GUI(context_object):
         show = False
 
         if name is not None:
+            for con_obj in self.gui.context_objects:
+                if name is con_obj.name:
+                    print("Error: There already exists a context object with that name.")
+                    return
+
             for field in ['handles', 'data', 'trajs']:
                 fig_struct.layers[self.layer][field][name] = fig_struct.layers[self.layer][field][self.name]
                 del(fig_struct.layers[self.layer][field][self.name])
