@@ -1021,8 +1021,10 @@ class plotter2D(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        self.gui.RS_line = RectangleSelector(ax, gui.onselect_line, drawtype='line')
+                        self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
+                        self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
                         self.gui.RS_line.set_active(False)
+                        self.gui.RS_box.set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1648,7 +1650,7 @@ class diagnosticGUI(object):
                          'coordnames': ['x', 'y'],
                          'indepvarname':'t',
                          'indepvararray': ptset.indepvararray})
-        except TypeError:
+        except AttributeError:
             new_pts = Pointset({'coordarray': [ptset[x], ptset[y]],
                                 'coordnames': ['x', 'y']})
         return new_pts
@@ -2130,6 +2132,10 @@ class diagnosticGUI(object):
             print("Make a line of interest")
             self.RS_line.set_active(True)
             self.mouse_wait_state_owner = 'line'
+        elif k == 'b':
+            print("Make a box of interest")
+            self.RS_box.set_active(True)
+            self.mouse_wait_state_owner = 'box'
         elif k == ' ':
             print("Output of user function at clicked mouse point")
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_user_function)
@@ -2156,7 +2162,6 @@ class diagnosticGUI(object):
 
     def onselect_line(self, eclick, erelease):
         if eclick.button == 1:
-            # left (primary)
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
@@ -2164,6 +2169,18 @@ class diagnosticGUI(object):
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)
+
+            self.mouse_wait_state_owner = None
+
+    def onselect_box(self, eclick, erelease):
+        if eclick.button == 1:
+            x1, y1 = eclick.xdata, eclick.ydata
+            x2, y2 = erelease.xdata, erelease.ydata
+
+            self.selected_object = line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2))
+            print("Created box as new selected object, now give it a name")
+            print("  by calling this object's .update() method with the name param")
+            self.RS_box.set_active(False)
 
             self.mouse_wait_state_owner = None
 
