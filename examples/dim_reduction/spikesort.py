@@ -11,9 +11,12 @@ from PyDSTool import *
 import fovea
 import fovea.domain2D as dom
 from fovea import common, prep, graphics
+from fovea.graphics import *
 #from fovea.graphics import gui, plotter
 import PyDSTool as dst
 import PyDSTool.Toolbox.phaseplane as pp
+
+from neuro_data import *
 
 from scipy.signal import butter, lfilter, argrelextrema
 import matplotlib as mpl
@@ -35,10 +38,10 @@ class spikesorter(graphics.diagnosticGUI):
 
         self.traj = numeric_to_traj([vs], 'test_traj', ['x'], ts, discrete=False)
 
-        locminx = argrelextrema(vs, np.less)[0]
+        #locminx = argrelextrema(vs, np.less)[0]
 
-        self.locminx = [x for x in locminx if self.traj(x)['x'] < 0]
-        self.locminy = self.traj(self.locminx)['x']
+        #self.locminx = [x for x in locminx if self.traj(x)['x'] < 0]
+        #self.locminy = self.traj(self.locminx)['x']
 
         self.fovea_setup()
 
@@ -75,9 +78,9 @@ class spikesorter(graphics.diagnosticGUI):
                      {'x':'t', 'layer':'spikes', 'style':'b-'}
                      }
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
-        self.addDataPoints([self.locminx, self.locminy], layer='local_mins', style='g*', name='mins', force= True)
+        #oints([self.locminx, self.locminy], layer='local_mins', style='g*', name='mins', force= True)
 
-        self.find_adjacent_mins(13793, 18.8)
+        #self.find_adjacent_mins(13793, 18.8)
 
         plotter.show()
 
@@ -112,8 +115,42 @@ class spikesorter(graphics.diagnosticGUI):
 
         crosses = [num[0] for num in result]
 
+        self.compute_bbox(crosses)
+
         self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
         plotter.show()
+
+    def compute_bbox(self, crosses):
+        try:
+            search_width = ssort.context_objects['ref_box'].dx
+            ssort.context_objects['ref_box'].remove()
+        except KeyError:
+            print("No 'ref_box' defined. Defaulting spike search width to 260.")
+            search_width = 260
+
+        #Clear existing bounding boxes
+        rem_names = []
+        for con_name, con_obj in self.context_objects.items():
+            if isinstance(con_obj, box_GUI) and con_name is not 'ref_box':
+                rem_names.append(con_name)
+        for name in rem_names:
+            self.context_objects[name].remove(draw= False)
+        self.plotter.show(rebuild= True)
+
+        #Create new bounding boxes
+        c = 0
+        for x in crosses:
+            thresh_ix = round(x)
+            tlo = thresh_ix - round(search_width/2)
+            thi = thresh_ix + round(search_width/2)
+            result = find_internal_extrema(self.traj.sample(tlo= tlo, thi= thi))
+            ssort.set_selected_object(
+                box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
+                        select= False))
+            ssort.selected_object.update(name= 'spike'+str(c))
+            c += 1
+
+        ssort.set_selected_object(ssort.context_objects['threshline'])
 
     def find_adjacent_mins(self, x, y):
         for i in range(0, len(self.locminx)):
@@ -139,6 +176,10 @@ ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
                                   pp.Point2D(15000, cutoff), subplot = '11')
 ltarget.update(name ='threshline')
 
+rets = find_internal_extrema(ssort.traj.sample())
+
+halt = True
+
 #class snap_point():
     #def __init__(self, x, y):
         #self.xdata = x
@@ -146,5 +187,3 @@ ltarget.update(name ='threshline')
 
 #sp = snap_point(-0.51, 0.51)
 #ssort.mouse_event_snap(sp)
-
-halt = True
