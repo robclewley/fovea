@@ -2288,14 +2288,7 @@ class diagnosticGUI(object):
         # context_changed flag set when new objects created and unset when Generator is
         # created with the new context code included
         self.context_changed = True
-
-        #for name, co in self.context_objects:
-            #if name is con_obj.name:
-                #self.context_objects.remove(co)
-
         self.context_objects[con_obj.name] = con_obj
-
-        #self.context_objects.append(con_obj)
 
     def setup_gen(self, name_scheme):
         name = name_scheme()
@@ -2389,7 +2382,6 @@ class shape_GUI(context_object):
         self.dy = y2-y1
         self.dx = x2-x1
 
-        # move self to the currently selected object in GUI
         self.extra_fnspecs = {}
         self.extra_pars = {}
         self.extra_auxvars = {}
@@ -2405,32 +2397,34 @@ class shape_GUI(context_object):
         self.name = name
 
         # declare self to GUI
-        self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
         self.gui.declare_in_context(self)
 
-    def show(self):
+    def show(self, draw= True):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                                'style':dstruct['style'], 'subplot':dstruct['subplot'],
                                                                'selected':dstruct['selected'],'display': True}})
+        if draw:
+            self.gui.plotter.show()
 
-        self.gui.plotter.show()
-
-    def unshow(self):
+    def unshow(self, draw= True):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
-        plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'], 'style':dstruct['style'], 'subplot':dstruct['subplot'], 'display': False}})
+        self.gui.plotter.setData(self.layer,
+                                 data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
+                                                   'style':dstruct['style'], 'subplot':dstruct['subplot'],
+                                                   'selected': dstruct['selected'], 'display': False}})
 
-        self.gui.plotter.show()
+        if draw:
+            self.gui.plotter.show()
 
-    def remove(self):
+    def remove(self, draw= True):
+        self.unshow(draw= draw)
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         fig_struct.layers[self.layer]['handles'].pop(self.name)
         self.gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
-
-        #self.l.remove()
-        plt.draw()
+        self.gui.context_objects.pop(self.name)
 
     def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
@@ -2514,11 +2508,13 @@ class box_GUI(shape_GUI):
     """
     Box of interest context_object for GUI
     """
-    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, select= True):
 
         shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
 
-        print("Created box and moved to currently selected object")
+        if select:
+            self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
+            print("Created box and moved to currently selected object")
         self.gui.plotter.addObj(np.array([[self.x1, self.y1],[self.dx, self.dy]]), mpl.patches.Rectangle,
                                 layer=layer, subplot=subplot, style= None, name=self.name, force= True, display= True)
 
@@ -2536,7 +2532,7 @@ class line_GUI(shape_GUI):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, select= True):
 
         shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
 
@@ -2545,7 +2541,9 @@ class line_GUI(shape_GUI):
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
 
-        print("Created line and moved to currently selected object")
+        if select:
+            self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
+            print("Created line and moved to currently selected object")
 
         # actual MPL line object handle
         self.gui.plotter.addObj(np.array([[self.x1, self.x2],[self.y1, self.y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
