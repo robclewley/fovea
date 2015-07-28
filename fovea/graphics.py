@@ -1445,7 +1445,7 @@ class diagnosticGUI(object):
     def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
         self.fig = fig
-        self.context_objects = []
+        self.context_objects = {}
 
         self.selected_object = None
         self.selected_object_temphandle = None
@@ -2289,11 +2289,13 @@ class diagnosticGUI(object):
         # created with the new context code included
         self.context_changed = True
 
-        for co in self.context_objects:
-            if co.name is con_obj.name:
-                self.context_objects.remove(co)
+        #for name, co in self.context_objects:
+            #if name is con_obj.name:
+                #self.context_objects.remove(co)
 
-        self.context_objects.append(con_obj)
+        self.context_objects[con_obj.name] = con_obj
+
+        #self.context_objects.append(con_obj)
 
     def setup_gen(self, name_scheme):
         name = name_scheme()
@@ -2397,7 +2399,7 @@ class shape_GUI(context_object):
         name = 'untitled1'
 
         #Increment the number if "untitled" already in use.
-        while name in [con_obj.name for con_obj in self.gui.context_objects]:
+        while name in list(self.gui.context_objects.keys()):
             name = name[:-1]+str(int(name[-1])+1)
 
         self.name = name
@@ -2435,15 +2437,15 @@ class shape_GUI(context_object):
         show = False
 
         if name is not None:
-            for con_obj in self.gui.context_objects:
-                if name is con_obj.name:
-                    print("Error: There already exists a context object with that name.")
-                    return
+            if name in list(self.gui.context_objects.keys()):
+                print("Error: There already exists a context object with that name.")
+                return
 
             for field in ['handles', 'data', 'trajs']:
                 fig_struct.layers[self.layer][field][name] = fig_struct.layers[self.layer][field][self.name]
                 del(fig_struct.layers[self.layer][field][self.name])
 
+            self.gui.context_objects[name] = self.gui.context_objects.pop(self.name)
             self.name = name
 
         if y1 is not None:
