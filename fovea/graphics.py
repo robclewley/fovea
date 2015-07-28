@@ -2351,7 +2351,7 @@ class domain_GUI(context_object):
     pass # Not implemented yet!
 
 class shape_GUI(context_object):
-    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', name= None, subplot=None):
         self.gui = gui
 
         xnames = pt1.coordnames
@@ -2388,11 +2388,16 @@ class shape_GUI(context_object):
         self.extra_events = []
 
         self.layer = layer
-        name = 'untitled1'
+        if name is None:
+            name = 'untitled1'
 
-        #Increment the number if "untitled" already in use.
-        while name in list(self.gui.context_objects.keys()):
-            name = name[:-1]+str(int(name[-1])+1)
+            #Increment the number if "untitled" already in use.
+            while name in list(self.gui.context_objects.keys()):
+                name = name[:-1]+str(int(name[-1])+1)
+        else:
+            if name in list(self.gui.context_objects.keys()):
+                raise NameError('Name already in use by another context object.')
+
 
         self.name = name
 
@@ -2508,9 +2513,9 @@ class box_GUI(shape_GUI):
     """
     Box of interest context_object for GUI
     """
-    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, select= True):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, name=None, select= True):
 
-        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
+        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot, name= name)
 
         if select:
             self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
@@ -2532,9 +2537,9 @@ class line_GUI(shape_GUI):
     """
     Line of interest context_object for GUI
     """
-    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, select= True):
+    def __init__(self, gui, pt1, pt2, layer='gx_objects', subplot=None, name= None, select= True):
 
-        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot)
+        shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot, name= name)
 
         self.length = np.linalg.norm((self.dx, self.dy))
         # angle relative to horizontal, in radians
@@ -2548,7 +2553,6 @@ class line_GUI(shape_GUI):
         # actual MPL line object handle
         self.gui.plotter.addObj(np.array([[self.x1, self.x2],[self.y1, self.y2]]), mpl.lines.Line2D, layer=layer, subplot=subplot,
                            style= None, name=self.name, force= True, display= True)
-
         self.show()
 
     def __repr__(self):

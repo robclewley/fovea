@@ -38,11 +38,6 @@ class spikesorter(graphics.diagnosticGUI):
 
         self.traj = numeric_to_traj([vs], 'test_traj', ['x'], ts, discrete=False)
 
-        #locminx = argrelextrema(vs, np.less)[0]
-
-        #self.locminx = [x for x in locminx if self.traj(x)['x'] < 0]
-        #self.locminy = self.traj(self.locminx)['x']
-
         self.fovea_setup()
 
     def fovea_setup(self):
@@ -57,14 +52,20 @@ class spikesorter(graphics.diagnosticGUI):
         #Setup all layers
         plotter.addLayer('spikes')
         plotter.addLayer('thresh_crosses')
-        plotter.addLayer('local_mins')
-        plotter.addLayer('onsets')
+        plotter.addLayer('detected')
 
         self.setup({'11':
-                   {'name': 'spikesort',
+                   {'name': 'waveform',
                     'scale': DOI,
-                    'layers':['spikes', 'thresh_crosses', 'local_mins', 'onsets'],
+                    'layers':['spikes', 'thresh_crosses'],
                     'callbacks':'*',
+                    'axes_vars': ['x', 'y']
+                    },
+                   '12':
+                   {'name': 'detected spikes',
+                    'scale': [(0, 130), (-30, 30)],
+                    'layers':['detected'],
+                    #'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     }
                    },
@@ -78,9 +79,6 @@ class spikesorter(graphics.diagnosticGUI):
                      {'x':'t', 'layer':'spikes', 'style':'b-'}
                      }
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
-        #oints([self.locminx, self.locminy], layer='local_mins', style='g*', name='mins', force= True)
-
-        #self.find_adjacent_mins(13793, 18.8)
 
         plotter.show()
 
@@ -106,7 +104,7 @@ class spikesorter(graphics.diagnosticGUI):
                          'active': True}
         #dircode = 1 is crossing from below
         SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
-                                                            ssort.traj.variables['x'])
+                                                            var= ssort.traj.variables['x'])
 
         #If I search the entire interval at once, it returns a partial list. Why?
         result = SS_thresh_ev.searchForEvents((0, 5000))
@@ -115,18 +113,18 @@ class spikesorter(graphics.diagnosticGUI):
 
         crosses = [num[0] for num in result]
 
+        self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
         self.compute_bbox(crosses)
 
-        self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
-        plotter.show()
+        #plotter.show()
 
     def compute_bbox(self, crosses):
         try:
             search_width = ssort.context_objects['ref_box'].dx
             ssort.context_objects['ref_box'].remove()
         except KeyError:
-            print("No 'ref_box' defined. Defaulting spike search width to 260.")
-            search_width = 260
+            print("No 'ref_box' defined. Defaulting spike search width to 130.")
+            search_width = 130
 
         #Clear existing bounding boxes
         rem_names = []
@@ -144,13 +142,24 @@ class spikesorter(graphics.diagnosticGUI):
             tlo = thresh_ix - round(search_width/2)
             thi = thresh_ix + round(search_width/2)
             result = find_internal_extrema(self.traj.sample(tlo= tlo, thi= thi))
-            ssort.set_selected_object(
-                box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
-                        select= False))
-            ssort.selected_object.update(name= 'spike'+str(c))
+
+            #Center box around spike peak
+            tlo = tlo + result['global_max'][0] - round(search_width/2)
+            thi = tlo + result['global_max'][0] + round(search_width/2)
+            box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
+                        name= 'spike'+str(c),select= False)
+
+            #Pin data
+            pts = self.traj.sample(tlo= tlo, thi= thi)
+            pts['t'] = pts['t'] - tlo
+
+            coorddict = {'x':
+                         {'x':'t', 'layer':'detected', 'style':'b-', 'name':'det_spike'+str(c)}
+                         }
+            self.addDataPoints(pts, coorddict= coorddict)
             c += 1
 
-        ssort.set_selected_object(ssort.context_objects['threshline'])
+        self.set_selected_object(self.context_objects['threshline'])
 
     def find_adjacent_mins(self, x, y):
         for i in range(0, len(self.locminx)):
@@ -165,7 +174,6 @@ class spikesorter(graphics.diagnosticGUI):
 
         self.addDataPoints([leftminx, leftminy], style='y*', layer= 'onsets')
         self.addDataPoints([rightminx, rightminy], style='y*', layer= 'onsets')
-        plotter.show()
 
 
 ssort = spikesorter("SSort")
