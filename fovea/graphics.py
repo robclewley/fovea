@@ -486,12 +486,23 @@ class plotter2D(object):
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
 
-        try:
+        if subplot is None:
+            pass
+        elif isinstance(subplot, str):
             fig_struct['arrange'][subplot]['layers'] += [layer_name]
-        except KeyError:
-            pass
-        except TypeError:
-            pass
+        elif isinstance(subplot, mpl.axes.Axes):
+            for key in fig_struct['arrange'].keys():
+                if subplot is fig_struct['arrange'][key]['axes_obj']:
+                    fig_struct['arrange'][key]['layers'] += [layer_name]
+                    break
+        else:
+            raise TypeError("subplot must be either string or axes object.")
+        #try:
+            #fig_struct['arrange'][subplot]['layers'] += [layer_name]
+        #except TypeError:
+            #pass
+        #except KeyError:
+            #pass
 
 
     def setLayer(self, label, figure=None, **kwargs):
@@ -606,6 +617,14 @@ class plotter2D(object):
 
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
+
+        #Translate axes into subplot string.
+        if isinstance(subplot, mpl.axes.Axes):
+            for key in fig_struct['arrange'].keys():
+                    if subplot is fig_struct['arrange'][key]['axes_obj']:
+                        subplot = key
+                        break
+
 
         kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
         d.update({name: kwargs})
@@ -1254,10 +1273,12 @@ class plotter2D(object):
             if dstruct['subplot'] == None:
                 dstruct['subplot'] = self._retrieveSubplots(layer_name)[0]
 
-            try:
-                ax = self.figs[self.currFig].arrange[dstruct['subplot'][0]]['axes_obj']
-            except KeyError:
-                ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
+            #try:
+                #print('self.figs[self.currFig].arrange[dstruct["subplot"]]', self.figs[self.currFig].arrange[dstruct['subplot']])
+                #ax = self.figs[self.currFig].arrange[dstruct['subplot'][0]]['axes_obj']
+            #except KeyError:
+            print("dstruct['subplot']", dstruct['subplot'])
+            ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
 
             try:
                 # process user-defined style
@@ -2120,38 +2141,51 @@ class diagnosticGUI(object):
 
         ##Navigation keys
         #Only need this if selected_object exists.
-        so = self.selected_object
+        if self.selected_object is not None:
+            so = self.selected_object
+            fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
+            lay = self.plotter._resolveLayer(self.plotter.currFig,
+                                       so.layer)
+            print('lay', lay)
+            ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
 
-        if isinstance(so, line_GUI):
-            xl = ev.inaxes.get_xlim()
-            yl = ev.inaxes.get_ylim()
+            if isinstance(so, line_GUI):
+                xl = ax.get_xlim()
+                yl = ax.get_ylim()
 
-            step_sizeH = 0.02*abs(xl[0]-xl[1])
-            step_sizeV = 0.02*abs(yl[0]-yl[1])
-            nav = False
+                #xl = so.layer
 
-            if k == 'left':
-                so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
-                nav = True
-            elif k == 'right':
-                so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
-                nav = True
-            elif k == 'up':
-                so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
-                nav = True
-            elif k == 'down':
-                so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
-                nav = True
+                #for key in fig_struct['arrange'].keys():
+                        ##if subplot is fig_struct['arrange'][key]['axes_obj']:
+                            ##fig_struct['arrange'][key]['layers'] += [layer_name]
+                            ##break
 
-            if nav:
-                self.user_nav_func()
+                step_sizeH = 0.02*abs(xl[0]-xl[1])
+                step_sizeV = 0.02*abs(yl[0]-yl[1])
                 nav = False
 
-            if k == 'm':
-                if abs(so.ang_deg) > 45:
-                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
-                else:
-                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+                if k == 'left':
+                    so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
+                    nav = True
+                elif k == 'right':
+                    so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
+                    nav = True
+                elif k == 'up':
+                    so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
+                    nav = True
+                elif k == 'down':
+                    so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
+                    nav = True
+
+                if nav:
+                    self.user_nav_func()
+                    nav = False
+
+                if k == 'm':
+                    if abs(so.ang_deg) > 45:
+                        so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                    else:
+                        so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
 
         #Toggle tools keys
@@ -2196,7 +2230,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2)), figure= self.plotter.currFig)
+            self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2), subplot= eclick.inaxes), figure= self.plotter.currFig)
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_line.set_active(False)

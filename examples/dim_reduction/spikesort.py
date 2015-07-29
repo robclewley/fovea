@@ -95,27 +95,28 @@ class spikesorter(graphics.diagnosticGUI):
         return y
 
     def user_nav_func(self):
-        cutoff =  ltarget.y1
+        if self.selected_object.name is 'threshline':
+            cutoff =  self.selected_object.y1
 
-        SS_event_args = {'name': 'SS_zerothresh',
-                         'eventtol': 1e-3,
-                         'eventdelay': 1e-4,
-                         'starttime': 0,
-                         'precise': True,
-                         'active': True}
-        #dircode = 1 is crossing from below
-        SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
-                                                            var= ssort.traj.variables['x'])
+            SS_event_args = {'name': 'SS_zerothresh',
+                             'eventtol': 1e-3,
+                             'eventdelay': 1e-4,
+                             'starttime': 0,
+                             'precise': True,
+                             'active': True}
+            #dircode = 1 is crossing from below
+            SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
+                                                                var= ssort.traj.variables['x'])
 
-        #If I search the entire interval at once, it returns a partial list. Why?
-        ts = ssort.traj.sample()['t']
-        dt = ts[1]-ts[0]  # assumes uniformly timed samples
-        result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
+            #If I search the entire interval at once, it returns a partial list. Why?
+            ts = ssort.traj.sample()['t']
+            dt = ts[1]-ts[0]  # assumes uniformly timed samples
+            result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
 
-        crosses = [num[0] for num in result]
+            crosses = [num[0] for num in result]
 
-        self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
-        self.compute_bbox(crosses)
+            self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
+            self.compute_bbox(crosses)
 
         #plotter.show()
 
@@ -185,9 +186,9 @@ class spikesorter(graphics.diagnosticGUI):
 ssort = spikesorter("SSort")
 
 cutoff = 20
-ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
-                                  pp.Point2D(15000, cutoff), subplot = '11')
-ltarget.update(name ='threshline')
+#ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
+                                  #pp.Point2D(15000, cutoff), subplot = '11')
+#ltarget.update(name ='threshline')
 
 rets = find_internal_extrema(ssort.traj.sample())
 
