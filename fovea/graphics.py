@@ -2221,8 +2221,9 @@ class diagnosticGUI(object):
         trajs = []
         for layer_name in fig_struct['layers'].keys():
             try:
-                trajs.append(list(fig_struct['layers'][layer_name]['trajs'].values())[0])
-            except:
+                #trajs.append(list(fig_struct['layers'][layer_name]['trajs'].values())[0])
+                trajs += list(fig_struct['layers'][layer_name]['trajs'].values())
+            except KeyError:
                 pass
 
         if trajs == []:
@@ -2232,7 +2233,7 @@ class diagnosticGUI(object):
         # have to guess phase, use widest tolerance
 
         found_pts = []
-        print('trajs',trajs)
+        #print('trajs', trajs)
         for traj in trajs:
             xname = traj.coordnames[0]
             yname = traj.coordnames[1]
@@ -2332,16 +2333,17 @@ class diagnosticGUI(object):
         """
         Set a context_object as "selected", displaying it in bold.
         """
-        fig_struct, figure = self.plotter._resolveFig(figure)
-        lay = fig_struct.layers[selected_object.layer]
-        for dname, dstruct in lay.data.items():
-            try:
+        if not isinstance(selected_object, pp.Point2D):
+            fig_struct, figure = self.plotter._resolveFig(figure)
+            lay = fig_struct.layers[selected_object.layer]
+            for dname, dstruct in lay.data.items():
+                #try:
                 if dname == selected_object.name:
                     dstruct['selected'] = True
                 else:
                     dstruct['selected'] = False
-            except AttributeError: #selected_object is a 2D point. May want to make it a context_object as well.
-                dstruct['selected'] = False
+                #except AttributeError: #selected_object is a 2D point. May want to make it a context_object as well.
+                    #dstruct['selected'] = False
 
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)
@@ -2492,7 +2494,7 @@ class shape_GUI(context_object):
             show = True
 
         if show:
-            self.gui.plotter.show()
+            self.gui.plotter.show(ignore_wait = True)
 
     def make_event_def(self, uniquename, dircode=0):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
