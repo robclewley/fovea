@@ -54,7 +54,28 @@ class GUIrocket(gx.diagnosticGUI):
 
         global plotter
         plotter = gx.plotter2D()
-        graphics.diagnosticGUI.__init__(self, plotter)
+        gx.diagnosticGUI.__init__(self, plotter)
+
+        # Sim setup
+
+        # context objects (lines of interest, domains, etc)
+        self.context_objects = []
+        # external tracked objects (measures, etc)
+        self.tracked_objects = []
+        #
+        self.selected_object = None
+        self.selected_object_temphandle = None
+        #
+        self.current_domain_handler = dom.GUI_domain_handler(self)
+
+        # name of task controlling mouse click event handler
+        self.mouse_wait_state_owner = None
+
+        # last output from a UI action
+        self.last_output = None
+
+        # if defined, will be refreshed on each Go!
+        self.calc_context = None
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -265,11 +286,11 @@ class GUIrocket(gx.diagnosticGUI):
         extra_fnspecs = {}
         extra_pars = {}
         extra_auxvars = {}
-        for gui_obj in self.context_objects:
-            extra_events.append(gui_obj.extra_events)
-            extra_fnspecs.update(gui_obj.extra_fnspecs)
-            extra_pars.update(gui_obj.extra_pars)
-            extra_auxvars.update(gui_obj.extra_auxvars)
+        for con_obj in self.context_objects.values():
+            extra_events.append(con_obj.extra_events)
+            extra_fnspecs.update(con_obj.extra_fnspecs)
+            extra_pars.update(con_obj.extra_pars)
+            extra_auxvars.update(con_obj.extra_auxvars)
 
         Fx_str = ""
         Fy_str = ""
