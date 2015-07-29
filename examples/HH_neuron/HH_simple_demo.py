@@ -125,12 +125,12 @@ class PPcallback_m(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
+        gui.addDataPoints([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
-                layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
+                        layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['Na.m'], gui.points['V']],
+            gui.addDataPoints([gui.points['Na.m'], gui.points['V']],
                             layer='vfp_mV', name='traj', style='y')
 
         # Virtual fixed point and linearized nullclines
@@ -145,13 +145,13 @@ class PPcallback_m(PPcallback):
 
         # update (or create) points
         try:
-            plotter.setPoint('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
-            plotter.setPoint('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
+            gui.setPoint('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
+            gui.setPoint('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['Na.m'], pt['V']),
-                         layer='points_mV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['Na.m'], pt['vinf']),
-                         layer='points_mV', style='bx', name='vinf_pt')
+            gui.addDataPoints(Point2D(pt['Na.m'], pt['V']), coorddict = {'x':
+                         {'y':'y', 'style':'ko', 'layer':'points_mV', 'name':'state_pt'}})
+            gui.addDataPoints(Point2D(pt['Na.m'], pt['vinf']),coorddict = {'x':
+                         {'y':'y', 'style':'bx', 'layer':'points_mV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_mV'].data
 
@@ -184,7 +184,7 @@ class PPcallback_m(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_mV', style=self.nullcY_style,
+            gui.addDataPoints(self.nully, layer='nullclines_mV', style=self.nullcY_style,
                             name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
@@ -195,7 +195,7 @@ class PPcallback_m(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_mV',
+                gui.addDataPoints(self.nullx, layer='nullclines_mV',
                                 style=self.nullcX_style,
                                 name='xNull', force=force)
 
@@ -203,7 +203,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
 
@@ -216,7 +216,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
@@ -274,14 +274,14 @@ class PPcallback_n(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
+        gui.addDataPoints([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
-                layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
+                        layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['K.n'], gui.points['V']],
+            gui.addDataPoints([gui.points['K.n'], gui.points['V']],
                             layer='vfp_nV', name='traj', style='y')
-            plotter.addData([gui.points['K.n'], gui.points['vinf']],
+            gui.addDataPoints([gui.points['K.n'], gui.points['vinf']],
                             layer='vfp_nV', name='quasiVnull', style='m--')
 ##            vs = np.linspace(sc[1][0], sc[1][1], 50)
 ##            x = dict(pt).copy()
@@ -308,13 +308,13 @@ class PPcallback_n(PPcallback):
 
         # update (or create) points
         try:
-            plotter.setPoint('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
-            plotter.setPoint('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
+            gui.setPoint('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
+            gui.setPoint('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['K.n'], pt['V']),
-                         layer='points_nV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['K.n'], pt['vinf']),
-                         layer='points_nV', style='bx', name='vinf_pt')
+            gui.addDataPoints(Point2D(pt['K.n'], pt['V']),coorddict = {'x':
+                {'y':'y', 'style':'ko', 'layer':'points_nV', 'name':'state_pt'}})
+            gui.addDataPoints(Point2D(pt['K.n'], pt['vinf']), coorddict = {'x':
+                {'y':'y', 'style':'bx', 'layer':'points_nV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_nV'].data
 
@@ -347,8 +347,8 @@ class PPcallback_n(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_nV', style=self.nullcY_style,
-                            name='yNull_'+str(time), force=force)
+            gui.addDataPoints(self.nully, layer='nullclines_nV', style=self.nullcY_style,
+                              name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
             ax.texts = []
@@ -358,15 +358,14 @@ class PPcallback_n(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_nV',
-                                style=self.nullcX_style,
-                                name='xNull', force=force)
+                gui.addDataPoints(self.nullx, layer='nullclines_nV',
+                                  style=self.nullcX_style, name='xNull', force=force)
 
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
@@ -378,7 +377,7 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
 
@@ -445,8 +444,8 @@ gui.addTimeFromPoints(trajPts)
 ## CREATE DIAGNOSTIC OBJECT            ##
 ## ----- ----- ----- ----- ----- ----- ##
 
-plotter.clean()
-plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
+gui.clean()
+gui.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
                tdom=[0, t_end], domain=[(-100,50), (0,1)])
 coorddict = {'V':
              {'x':'t', 'layer':'V','name':'V', 'style':'k-'},
@@ -494,9 +493,9 @@ def make_layer(xvar):
     else:
         suffix = 'nV'
     PP_layer_name = 'nullclines_'+suffix
-    plotter.addLayer(PP_layer_name, dynamic=True)
+    gui.addLayer(PP_layer_name, dynamic=True)
     if xvar == 'Na.m':
-        plotter.addLayer('horiz_PP')
+        gui.addLayer('horiz_PP')
         nullcX_style = 'g-'
         PPclass = PPcallback_m
     else:
@@ -506,9 +505,9 @@ def make_layer(xvar):
     PPplot = PPclass(xvar, nullcY_style = {'color': 'b', 'linestyle': '-', 'linewidth': 1},
                                                       nullcX_style=nullcX_style)
     gui.dynamicPlotFns[PP_layer_name] = PPplot
-    plotter.addLayer('points_'+suffix)
-    plotter.addLayer('state_vel_'+suffix)
-    plotter.addLayer('vfp_'+suffix)
+    gui.addLayer('points_'+suffix)
+    gui.addLayer('state_vel_'+suffix)
+    gui.addLayer('vfp_'+suffix)
 
 make_layer('Na.m')
 make_layer('K.n')
@@ -547,9 +546,9 @@ dPlot_dict = {'11': dPlot11, '12': dPlot12, '21': dPlot21, '22': dPlot22}
 
 gui.setup(dPlot_dict, size=(14, 8))
 
-plotter.show_legends(subplot='Times')
+gui.show_legends(subplot='Times')
 
-plt.show()
+gui.show()
 
 gui.plus_dt(0)
 
