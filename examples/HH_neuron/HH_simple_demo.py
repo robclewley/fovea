@@ -203,7 +203,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
 
@@ -216,7 +216,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
@@ -365,7 +365,7 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
@@ -377,7 +377,7 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            plotter.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
 
@@ -546,9 +546,9 @@ dPlot_dict = {'11': dPlot11, '12': dPlot12, '21': dPlot21, '22': dPlot22}
 
 gui.setup(dPlot_dict, size=(14, 8))
 
-plotter.show_legends(subplot='Times')
+gui.show_legends(subplot='Times')
 
-plt.show()
+gui.show()
 
 gui.plus_dt(0)
 

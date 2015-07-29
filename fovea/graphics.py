@@ -1608,7 +1608,7 @@ class diagnosticGUI(object):
 
                     try:
                         tra = self.reducePointset(data, coorddict, list(addingDict.keys())[0])
-                    except KeyError:
+                    except (KeyError, ValueError) as e:
                         tra = None
 
                     try:
@@ -1927,11 +1927,32 @@ class diagnosticGUI(object):
         self.plotter.addFig(label, title=title, xlabel=xlabel, ylabel=ylabel, tdom=tdom,
                            domain=domain, display=display)
 
+    def show(self, update='current', rebuild=False, force_wait=None):
+        """
+        Wrapper method for plotter.show
+        """
+        self.plotter.show(update= update, rebuild= rebuild, force_wait= force_wait)
+
+    def show_legends(self, figure=None, subplot=None):
+        """
+        Wrapper method for plotter.show_legends
+        """
+        self.plotter.show_legends(figure=figure, subplot=subplot)
+
+
     def clean(self):
         """
         Wrapper method for plotter.clean
         """
         self.plotter.clean()
+
+    def buildLayers(self, layer_list, ax, rescale=None, figure=None,
+                    rebuild=False):
+        """
+        Wrapper method for plotter.buildLayers
+        """
+        self.plotter.buildLayers(layer_list, ax, rescale=rescale, figure=figure,
+                                rebuild=rebuild)
 
     def getDynamicPoint(self, ev):
         """

@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 class spikesorter(graphics.diagnosticGUI):
     def __init__(self, title):
 
-        global plotter
+        #global plotter
         plotter = graphics.plotter2D()
         graphics.diagnosticGUI.__init__(self, plotter)
 
@@ -43,16 +43,16 @@ class spikesorter(graphics.diagnosticGUI):
     def fovea_setup(self):
         #Setup code
         DOI = [(0,15000),(-30,30)]
-        plotter.clean() # in case rerun in same session
-        plotter.addFig('master',
+        self.plotter.clean() # in case rerun in same session
+        self.plotter.addFig('master',
                        title='spikesort',
                        xlabel='time', ylabel='mV',
                        domain=DOI)
 
         #Setup all layers
-        plotter.addLayer('spikes')
-        plotter.addLayer('thresh_crosses')
-        plotter.addLayer('detected')
+        self.plotter.addLayer('spikes')
+        self.plotter.addLayer('thresh_crosses')
+        self.plotter.addLayer('detected')
 
         self.setup({'11':
                    {'name': 'waveform',
@@ -72,7 +72,7 @@ class spikesorter(graphics.diagnosticGUI):
                   size=(9, 7), with_times=False, basic_widgets=False)
 
         #Bad code carried over from fovea_game:
-        fig_struct, figure = plotter._resolveFig(None)
+        fig_struct, figure = self.plotter._resolveFig(None)
         self.ax = fig_struct.arrange['11']['axes_obj']
 
         coorddict = {'x':
@@ -80,7 +80,7 @@ class spikesorter(graphics.diagnosticGUI):
                      }
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
 
-        plotter.show()
+        self.plotter.show()
 
     def model_namer(self):
         name = 'spikesorter_traj'
@@ -120,14 +120,14 @@ class spikesorter(graphics.diagnosticGUI):
 
     def compute_bbox(self, crosses):
         try:
-            search_width = ssort.context_objects['ref_box'].dx
-            ssort.context_objects['ref_box'].remove()
+            search_width = self.context_objects['ref_box'].dx
+            self.context_objects['ref_box'].remove()
         except KeyError:
             print("No 'ref_box' defined. Defaulting spike search width to 75.")
             search_width = 75
 
 
-        fig_struct, figs = ssort.plotter._resolveFig(None)
+        fig_struct, figs = self.plotter._resolveFig(None)
 
         #Clear existing bounding boxes
         rem_names = []
@@ -136,7 +136,6 @@ class spikesorter(graphics.diagnosticGUI):
                 rem_names.append(con_name)
         for name in rem_names:
             self.context_objects[name].remove(draw= False)
-            print('in layers:',fig_struct['layers']['detected']['data'].keys())
             del fig_struct['layers']['detected']['data']['det_'+name]
 
         self.plotter.show(rebuild= True)
