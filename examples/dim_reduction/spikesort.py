@@ -63,7 +63,7 @@ class spikesorter(graphics.diagnosticGUI):
                     },
                    '12':
                    {'name': 'detected spikes',
-                    'scale': [(0, 130), (-30, 30)],
+                    'scale': [(0, 75), (-30, 30)],
                     'layers':['detected'],
                     #'callbacks':'*',
                     'axes_vars': ['x', 'y']
@@ -123,8 +123,11 @@ class spikesorter(graphics.diagnosticGUI):
             search_width = ssort.context_objects['ref_box'].dx
             ssort.context_objects['ref_box'].remove()
         except KeyError:
-            print("No 'ref_box' defined. Defaulting spike search width to 130.")
-            search_width = 130
+            print("No 'ref_box' defined. Defaulting spike search width to 75.")
+            search_width = 75
+
+
+        fig_struct, figs = ssort.plotter._resolveFig(None)
 
         #Clear existing bounding boxes
         rem_names = []
@@ -133,6 +136,9 @@ class spikesorter(graphics.diagnosticGUI):
                 rem_names.append(con_name)
         for name in rem_names:
             self.context_objects[name].remove(draw= False)
+            print('in layers:',fig_struct['layers']['detected']['data'].keys())
+            del fig_struct['layers']['detected']['data']['det_'+name]
+
         self.plotter.show(rebuild= True)
 
         #Create new bounding boxes
@@ -150,13 +156,10 @@ class spikesorter(graphics.diagnosticGUI):
                         name= 'spike'+str(c),select= False)
 
             #Pin data
-            pts = self.traj.sample(tlo= tlo, thi= thi)
-            pts['t'] = pts['t'] - tlo
-
             coorddict = {'x':
                          {'x':'t', 'layer':'detected', 'style':'b-', 'name':'det_spike'+str(c)}
                          }
-            self.addDataPoints(pts, coorddict= coorddict)
+            ssort.context_objects['spike'+str(c)].pin_contents(self.traj, coorddict)
             c += 1
 
         self.set_selected_object(self.context_objects['threshline'])
@@ -179,12 +182,13 @@ class spikesorter(graphics.diagnosticGUI):
 ssort = spikesorter("SSort")
 
 cutoff = 20
-
 ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
                                   pp.Point2D(15000, cutoff), subplot = '11')
 ltarget.update(name ='threshline')
 
 rets = find_internal_extrema(ssort.traj.sample())
+
+fig_struct, figs = ssort.plotter._resolveFig(None)
 
 halt = True
 

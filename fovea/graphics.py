@@ -2533,6 +2533,17 @@ class box_GUI(shape_GUI):
         return "box_GUI(%.3f, %.3f, %.3f, %.3f) - '%s' %s" %(self.x1, self.y1, \
                                           self.x2, self.y2, self.name, ev_str)
 
+    def pin_contents(self, traj, coorddict):
+        for var, params in coorddict.items():
+            pts = traj.sample(tlo= self.x1, thi= self.x2)
+            pts[params['x']] = pts[params['x']] - self.x1
+
+            xs = pts[params['x']]
+            ys = pts[var]
+
+            self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
+
+
 class line_GUI(shape_GUI):
     """
     Line of interest context_object for GUI
