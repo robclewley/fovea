@@ -1659,7 +1659,7 @@ class diagnosticGUI(object):
                          'coordnames': ['x', 'y'],
                          'indepvarname':'t',
                          'indepvararray': ptset.indepvararray})
-        except AttributeError:
+        except (AttributeError, TypeError) as e:
             new_pts = Pointset({'coordarray': [ptset[x], ptset[y]],
                                 'coordnames': ['x', 'y']})
         return new_pts
