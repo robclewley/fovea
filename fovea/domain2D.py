@@ -317,7 +317,7 @@ class GUI_domain_handler(object):
 
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
         self.gui.plotter.addObj([xs, ys], mpl.lines.Line2D, layer='gx_objects', style= 'y-')
-        self.gui.plotter.show()
+        self.gui.plotter.show(ignore_wait = True)
 
     def unshow_domain(self):
         if self.gui.selected_object_temphandle is not None:

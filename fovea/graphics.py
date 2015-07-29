@@ -1045,7 +1045,7 @@ class plotter2D(object):
                 self.buildLayers(layer_info, ax, rebuild=rebuild)
 
 
-    def show(self, update='current', rebuild=False, force_wait=None):
+    def show(self, update='current', rebuild=False, force_wait=None, ignore_wait= False):
         """
         Apply all figures' domain limits and update/refresh with any
         latest data added or changed.
@@ -1089,7 +1089,11 @@ class plotter2D(object):
             self.shown = True
 
         do_save = False # default
-        wait = self.wait_status
+
+        if ignore_wait:
+            wait = False
+        else:
+            wait = self.wait_status
         # force wait overrides, if set
         if force_wait is not None:
             wait = force_wait
@@ -2119,9 +2123,8 @@ class diagnosticGUI(object):
         so = self.selected_object
 
         if isinstance(so, line_GUI):
-
-            xl = self.ax.get_xlim()
-            yl = self.ax.get_ylim()
+            xl = ev.inaxes.get_xlim()
+            yl = ev.inaxes.get_ylim()
 
             step_sizeH = 0.02*abs(xl[0]-xl[1])
             step_sizeV = 0.02*abs(yl[0]-yl[1])
@@ -2341,7 +2344,7 @@ class diagnosticGUI(object):
                 dstruct['selected'] = False
 
         self.selected_object = selected_object
-        self.plotter.show()
+        self.plotter.show(ignore_wait = True)
 
     def user_nav_func(self):
         """
@@ -2432,7 +2435,7 @@ class shape_GUI(context_object):
                                                                'style':dstruct['style'], 'subplot':dstruct['subplot'],
                                                                'selected':dstruct['selected'],'display': True}})
         if draw:
-            self.gui.plotter.show()
+            self.gui.plotter.show(ignore_wait = True)
 
     def unshow(self, draw= True):
         fig_struct, figure = self.gui.plotter._resolveFig(None)

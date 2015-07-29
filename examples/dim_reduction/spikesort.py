@@ -73,7 +73,7 @@ class spikesorter(graphics.diagnosticGUI):
 
         #Bad code carried over from fovea_game:
         fig_struct, figure = self.plotter._resolveFig(None)
-        self.ax = fig_struct.arrange['11']['axes_obj']
+        #self.ax = fig_struct.arrange['11']['axes_obj']
 
         coorddict = {'x':
                      {'x':'t', 'layer':'spikes', 'style':'b.-'}
