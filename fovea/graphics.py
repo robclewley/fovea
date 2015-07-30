@@ -1784,10 +1784,15 @@ class diagnosticGUI(object):
                 saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
                 self.widgets['save'] = saveButton
 
+                # Display graphics objects hierarchy
+                showTreeButton = Button(plt.axes([0.86, 0.02, 0.12, 0.03]), 'Show Tree')
+                self.widgets['showTree'] = showTreeButton
+
                 self.widgets['capturePoint'].on_clicked(self.capturePoint)
                 self.widgets['refresh'].on_clicked(self.refresh)
                 self.widgets['goBack'].on_clicked(self.goBack)
                 self.widgets['save'].on_clicked(self.save)
+                self.widgets['showTree'].on_clicked(self.show_tree)
 
             self.plotter.show(update='all', rebuild=True, force_wait=False)
 
@@ -2143,6 +2148,21 @@ class diagnosticGUI(object):
                artist_data[1][0] == con_obj.y1 and \
                artist_data[1][1] == con_obj.y2:
                 self.set_selected_object(con_obj)
+
+    def show_tree(self, event= None):
+        """
+        Prints to terminal the structure of the current Fovea figures and all the graphical objects
+        (layers, context objects and data) contained therein.
+        """
+        for fig_name, fig_struct in self.plotter.figs.items():
+            print('Figure:',fig_name)
+            for lay_name, lay_struct in fig_struct['layers'].items():
+                print('--Layer:', lay_name)
+                for data_name, data_struct in lay_struct['data'].items():
+                    try:
+                        print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
+                    except KeyError:
+                        print('----Data:', data_name)
 
     def navigate_selected_object(self, k):
         """
@@ -2657,8 +2677,15 @@ class box_GUI(shape_GUI):
                                           self.x2, self.y2, self.name, ev_str)
 
     def pin_contents(self, traj, coorddict):
+        """
+        Determine if a trajectory passes through the box object and add that segment of the trajectory
+        to a layer. Uses coorddict format of addDataPoints.
+
+        Note: This method may be redundant when better event creation/handling has been implemented
+        for box_GUIs.
+        """
         for var, params in coorddict.items():
-            pts = traj.sample(tlo= self.x1, thi= self.x2)
+            pts = traj.sample(tlo= self.x1, thi= self.x1 + self.dx)
             pts[params['x']] = pts[params['x']] - self.x1
 
             xs = pts[params['x']]
