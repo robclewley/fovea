@@ -486,6 +486,7 @@ class plotter2D(object):
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
 
+        #Adds the layer to the arrange, stranslating an axes 'subplot' into a subplot string.
         if subplot is None:
             pass
         elif isinstance(subplot, str):
@@ -497,12 +498,6 @@ class plotter2D(object):
                     break
         else:
             raise TypeError("subplot must be either string or axes object.")
-        #try:
-            #fig_struct['arrange'][subplot]['layers'] += [layer_name]
-        #except TypeError:
-            #pass
-        #except KeyError:
-            #pass
 
 
     def setLayer(self, label, figure=None, **kwargs):
@@ -624,7 +619,6 @@ class plotter2D(object):
                     if subplot is fig_struct['arrange'][key]['axes_obj']:
                         subplot = key
                         break
-
 
         kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
         d.update({name: kwargs})
@@ -1041,10 +1035,10 @@ class plotter2D(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
                         self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
-                        self.gui.RS_line.set_active(False)
+                        self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
                         self.gui.RS_box.set_active(False)
+                        self.gui.RS_line.set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1273,11 +1267,7 @@ class plotter2D(object):
             if dstruct['subplot'] == None:
                 dstruct['subplot'] = self._retrieveSubplots(layer_name)[0]
 
-            #try:
-                #print('self.figs[self.currFig].arrange[dstruct["subplot"]]', self.figs[self.currFig].arrange[dstruct['subplot']])
-                #ax = self.figs[self.currFig].arrange[dstruct['subplot'][0]]['axes_obj']
-            #except KeyError:
-            print("dstruct['subplot']", dstruct['subplot'])
+            #Use subplot string for current data to retrieve the axes object.
             ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
 
             try:
@@ -1335,6 +1325,7 @@ class plotter2D(object):
                 except TypeError: #Rectangle
                     l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=line_width, color='y', visible= dstruct['display'], fill= False)
                 lay.handles[dname] = ax.add_artist(l)
+                lay.handles[dname].set_picker(True)
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1485,7 +1476,9 @@ class diagnosticGUI(object):
         ##Handled in plotter2d._subplots
         #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
         #self.RS_line.set_active(False)
+
         self.fig.canvas.mpl_disconnect(fig.canvas.manager.key_press_handler_id)
+        self.fig.canvas.mpl_connect('pick_event', self.pick_on)
 
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
@@ -2133,6 +2126,24 @@ class diagnosticGUI(object):
     def modifier_key_off(self, ev):
         self._key_mod = None
 
+    def pick_on(self, event):
+        """
+        Pick artists in axes and set them as the selected object.
+        """
+        if isinstance(event.artist, mpl.lines.Line2D):
+            artist_data = event.artist.get_data()
+        elif isinstance(event.artist, mpl.patches.Rectangle):
+            #Need to use width of rectangle to CALCUlATE other vertices.
+            artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
+                           [event.artist.get_y(), event.artist.get_y()+ event.artist.get_height()]]
+
+        for con_obj in self.context_objects.values():
+            if artist_data[0][0] == con_obj.x1 and \
+               artist_data[0][1] == con_obj.x2 and \
+               artist_data[1][0] == con_obj.y1 and \
+               artist_data[1][1] == con_obj.y2:
+                self.set_selected_object(con_obj)
+
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
         # TEMP
@@ -2146,19 +2157,11 @@ class diagnosticGUI(object):
             fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
             lay = self.plotter._resolveLayer(self.plotter.currFig,
                                        so.layer)
-            print('lay', lay)
             ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
 
             if isinstance(so, line_GUI):
                 xl = ax.get_xlim()
                 yl = ax.get_ylim()
-
-                #xl = so.layer
-
-                #for key in fig_struct['arrange'].keys():
-                        ##if subplot is fig_struct['arrange'][key]['axes_obj']:
-                            ##fig_struct['arrange'][key]['layers'] += [layer_name]
-                            ##break
 
                 step_sizeH = 0.02*abs(xl[0]-xl[1])
                 step_sizeV = 0.02*abs(yl[0]-yl[1])
@@ -2242,7 +2245,7 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.set_selected_object(box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2)), figure= self.plotter.currFig)
+            self.set_selected_object(box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2), subplot= eclick.inaxes), figure= self.plotter.currFig)
             print("Created box as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
             self.RS_box.set_active(False)
@@ -2386,7 +2389,6 @@ class diagnosticGUI(object):
         """
         Function overridden in user's app, called whenever navigation keys are used to move a graphics object.
         """
-        print("Hit user_nav_func")
 
     def make_gen(self, pardict, name):
         """
