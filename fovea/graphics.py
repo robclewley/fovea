@@ -2144,52 +2144,86 @@ class diagnosticGUI(object):
                artist_data[1][1] == con_obj.y2:
                 self.set_selected_object(con_obj)
 
+    def navigate_selected_object(self, k):
+        """
+        Key presses used to manipulate the currently selected object.
+        """
+        so = self.selected_object
+
+        fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
+        lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
+
+        ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
+
+        if isinstance(so, line_GUI) or isinstance(so, box_GUI):
+            xl = ax.get_xlim()
+            yl = ax.get_ylim()
+
+            step_sizeH = 0.02*abs(xl[0]-xl[1])
+            step_sizeV = 0.02*abs(yl[0]-yl[1])
+            nav = False
+
+            if isinstance(so, line_GUI):
+                if k == 'left':
+                    so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
+                    #so.update(x = [so.x1 - step_sizeH, so.x2 - step_sizeH])
+                    nav = True
+                elif k == 'right':
+                    so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
+                    #so.update(x = [so.x1 + step_sizeH, so.x2 + step_sizeH])
+                    nav = True
+                elif k == 'up':
+                    so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
+                    #so.update(y = [so.y1 - step_sizeV, so.y2 - step_sizeV])
+                    nav = True
+                elif k == 'down':
+                    so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
+                    #so.update(y = [so.y1 + step_sizeV, so.y2 + step_sizeV])
+                    nav = True
+
+            if isinstance(so, box_GUI):
+            ##ISSUE: After a box_GUI has been moved, it seems to become un-pickable.
+                if k == 'left':
+                    so.update(x1 = (so.x1 - step_sizeH))
+                    nav = True
+                elif k == 'right':
+                    so.update(x1 = (so.x1 + step_sizeH))
+                    nav = True
+                elif k == 'up':
+                    so.update(y1 = (so.y1 + step_sizeV))
+                    nav = True
+                elif k == 'down':
+                    so.update(y1 = (so.y1 - step_sizeV))
+                    nav = True
+
+            if nav:
+                self.user_nav_func()
+                nav = False
+
+            if k == 'm':
+                if abs(so.ang_deg) > 45:
+                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                else:
+                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+
+        if k == 'n':
+            ##ISSUE: Currently causes "RuntimeError: can't re-enter readline"
+            name = input('Enter new name for the selected object: ')
+            so.update(name = name)
+
+        if k == 'backspace':
+            so.remove(draw= True)
+            self.selected_object = None
+
+
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
         # TEMP
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-        ##Navigation keys
-        #Only need this if selected_object exists.
         if self.selected_object is not None:
-            so = self.selected_object
-            fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
-            lay = self.plotter._resolveLayer(self.plotter.currFig,
-                                       so.layer)
-            ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
-
-            if isinstance(so, line_GUI):
-                xl = ax.get_xlim()
-                yl = ax.get_ylim()
-
-                step_sizeH = 0.02*abs(xl[0]-xl[1])
-                step_sizeV = 0.02*abs(yl[0]-yl[1])
-                nav = False
-
-                if k == 'left':
-                    so.update(x1 = (so.x1 - step_sizeH), x2 = (so.x2 - step_sizeH))
-                    nav = True
-                elif k == 'right':
-                    so.update(x1 = (so.x1 + step_sizeH), x2 = (so.x2 + step_sizeH))
-                    nav = True
-                elif k == 'up':
-                    so.update(y1 = (so.y1 + step_sizeV), y2 = (so.y2 + step_sizeV))
-                    nav = True
-                elif k == 'down':
-                    so.update(y1 = (so.y1 - step_sizeV), y2 = (so.y2 - step_sizeV))
-                    nav = True
-
-                if nav:
-                    self.user_nav_func()
-                    nav = False
-
-                if k == 'm':
-                    if abs(so.ang_deg) > 45:
-                        so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
-                    else:
-                        so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
-
+            self.navigate_selected_object(k)
 
         #Toggle tools keys
         if self.mouse_wait_state_owner == 'domain' and \
@@ -2460,7 +2494,6 @@ class shape_GUI(context_object):
             if name in list(self.gui.context_objects.keys()):
                 raise NameError('Name already in use by another context object.')
 
-
         self.name = name
 
         # declare self to GUI
@@ -2493,7 +2526,7 @@ class shape_GUI(context_object):
         self.gui.plotter.setLayer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
         self.gui.context_objects.pop(self.name)
 
-    def update(self, name=None, x1=None, y1=None, x2=None, y2=None):
+    def update(self, name= None, x1= None, y1= None, x2= None, y2= None):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         show = False
 
@@ -2509,30 +2542,58 @@ class shape_GUI(context_object):
             self.gui.context_objects[name] = self.gui.context_objects.pop(self.name)
             self.name = name
 
-        if y1 is not None:
-            self.y1 = y1
-            fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
-            show = True
+        ##ISSUE: ['data'][1][0] and ['data'][1][1] represent width/height in box_GUI, NOT coords.
+        ## ['data'][0][0] and ['data'][0][1] represent an x and y coord in box_GUI, NOT the x coords.
+        ##Function may need clean-up due to difference in internal representation of these two objects.
+        if isinstance(self, line_GUI):
+            if y1 is not None:
+                self.y1 = y1
+                fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
+                show = True
 
-        if x1 is not None:
-            self.x1 = x1
-            fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
-            show = True
+            if x1 is not None:
+                self.x1 = x1
+                fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+                show = True
 
-        if x2 is not None:
-            self.x2 = x2
-            fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
-            show = True
+            if x2 is not None:
+                self.x2 = x2
+                fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
+                show = True
 
-        if y2 is not None:
-            self.y2 = y2
-            fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
-            show = True
+            if y2 is not None:
+                self.y2 = y2
+                fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+                show = True
+
+        if isinstance(self, box_GUI):
+            if y1 is not None:
+                self.y1 = y1
+                fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = y1
+                show = True
+
+            if x1 is not None:
+                self.x1 = x1
+                fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+                show = True
+
+            if x2 is not None:
+                self.dx = x2
+                fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = x2
+                show = True
+
+            if y2 is not None:
+                self.dy = y2
+                fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+                show = True
 
         if show:
             self.gui.plotter.show(ignore_wait = True)
 
     def make_event_def(self, uniquename, dircode=0):
+        """
+        Not sure how this will behave for a box_GUI.
+        """
         fig_struct, figure = self.gui.plotter._resolveFig(None)
 
         for field in ['handles', 'data', 'trajs']:
