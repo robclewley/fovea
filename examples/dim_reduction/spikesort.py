@@ -16,11 +16,16 @@ from fovea.graphics import *
 import PyDSTool as dst
 import PyDSTool.Toolbox.phaseplane as pp
 
-from neuro_data import *
+#from neuro_data import * #CHANGE THIS IMPORT STATEMENT
+from PyDSTool.Toolbox.neuro_data import *
+from PyDSTool.Toolbox import data_analysis as da
 
 from scipy.signal import butter, lfilter, argrelextrema
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+
+global default_sw
+default_sw = 75
 
 class spikesorter(graphics.diagnosticGUI):
     def __init__(self, title):
@@ -53,6 +58,7 @@ class spikesorter(graphics.diagnosticGUI):
         self.plotter.addLayer('spikes')
         self.plotter.addLayer('thresh_crosses')
         self.plotter.addLayer('detected')
+        self.plotter.addLayer('pcs')
 
         self.setup({'11':
                    {'name': 'waveform',
@@ -63,13 +69,20 @@ class spikesorter(graphics.diagnosticGUI):
                     },
                    '12':
                    {'name': 'detected spikes',
-                    'scale': [(0, 75), (-30, 30)],
+                    'scale': [(0, default_sw), (-30, 30)],
                     'layers':['detected'],
                     #'callbacks':'*',
                     'axes_vars': ['x', 'y']
-                    }
+                    },
+                   '13':
+                    {'name': 'Principal Components',
+                     'scale': [(0, default_sw), (-30, 30)],
+                     'layers':['pcs'],
+                     #'callbacks':'*',
+                     'axes_vars': ['x', 'y']
+                     }
                    },
-                  size=(9, 7), with_times=False, basic_widgets=False)
+                  size=(12, 7), with_times=False, basic_widgets=True)
 
         #Bad code carried over from fovea_game:
         fig_struct, figure = self.plotter._resolveFig(None)
@@ -79,6 +92,8 @@ class spikesorter(graphics.diagnosticGUI):
                      {'x':'t', 'layer':'spikes', 'style':'b.-'}
                      }
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
+
+        evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.ssort_key_on)
 
         self.plotter.show()
 
@@ -116,7 +131,7 @@ class spikesorter(graphics.diagnosticGUI):
             crosses = [num[0] for num in result]
 
             self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
-            self.compute_bbox(crosses)
+            self.X = self.compute_bbox(crosses)
 
         #plotter.show()
 
@@ -125,8 +140,8 @@ class spikesorter(graphics.diagnosticGUI):
             search_width = self.context_objects['ref_box'].dx
             self.context_objects['ref_box'].remove()
         except KeyError:
-            print("No 'ref_box' defined. Defaulting spike search width to 75.")
-            search_width = 75
+            print("No 'ref_box' defined. Defaulting spike search width to",default_sw)
+            search_width = default_sw
 
 
         fig_struct, figs = self.plotter._resolveFig(None)
@@ -152,7 +167,8 @@ class spikesorter(graphics.diagnosticGUI):
 
             #Center box around spike peak
             tlo = tlo + result['global_max'][0] - round(search_width/2)
-            thi = tlo + result['global_max'][0] + round(search_width/2)
+            #thi = tlo + result['global_max'][0] + round(search_width/2)
+            thi = tlo + search_width
             box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
                         name= 'spike'+str(c),select= False)
 
@@ -160,35 +176,59 @@ class spikesorter(graphics.diagnosticGUI):
             coorddict = {'x':
                          {'x':'t', 'layer':'detected', 'style':'b-', 'name':'det_spike'+str(c)}
                          }
-            ssort.context_objects['spike'+str(c)].pin_contents(self.traj, coorddict)
+            spike_seg = ssort.context_objects['spike'+str(c)].pin_contents(self.traj, coorddict)
+
+            try:
+                X = np.row_stack((X, spike_seg))
+            except NameError:
+                X = spike_seg
+
             c += 1
 
         self.set_selected_object(self.context_objects['threshline'])
 
-    def find_adjacent_mins(self, x, y):
-        for i in range(0, len(self.locminx)):
-            leftminx = self.locminx[i]
-            rightminx = self.locminx[i + 1]
+        return X
 
-            leftminy = self.locminy[i]
-            rightminy = self.locminy[i + 1]
+    def ssort_key_on(self, ev):
+        self._key = k = ev.key  # keep record of last keypress
 
-            if x > leftminx and x < rightminx:
-                break
+        if k == 'p':
+            print('doing PCA...')
+            X = self.X.transpose()
 
-        self.addDataPoints([leftminx, leftminy], style='y*', layer= 'onsets')
-        self.addDataPoints([rightminx, rightminy], style='y*', layer= 'onsets')
+            p = da.doPCA(X, len(X[0]), len(X[0]))
+            Y2 = p._execute(X, 2)
+            Y3 = p._execute(X, 4)
 
-        self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*',
-                           name='crossovers', force=True)
-        plotter.show()
+            ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,0]], style= 'r-', layer= 'pcs', name= 'first_pc', force= True)
+            ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,1]], style= 'g-', layer= 'pcs', name= 'second_pc', force= True)
+            try:
+                ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,2]], style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
+            except IndexError:
+                pass
+            ssort.show()
+
+    #def find_adjacent_mins(self, x, y):
+        #for i in range(0, len(self.locminx)):
+            #leftminx = self.locminx[i]
+            #rightminx = self.locminx[i + 1]
+
+            #leftminy = self.locminy[i]
+            #rightminy = self.locminy[i + 1]
+
+            #if x > leftminx and x < rightminx:
+                #break
+
+        #self.addDataPoints([leftminx, leftminy], style='y*', layer= 'onsets')
+        #self.addDataPoints([rightminx, rightminy], style='y*', layer= 'onsets')
+
+        #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*',
+                           #name='crossovers', force=True)
+        #plotter.show()
 
 ssort = spikesorter("SSort")
 
 cutoff = 20
-#ltarget = fovea.graphics.line_GUI(ssort, pp.Point2D(0, cutoff),
-                                  #pp.Point2D(15000, cutoff), subplot = '11')
-#ltarget.update(name ='threshline')
 
 rets = find_internal_extrema(ssort.traj.sample())
 
@@ -196,20 +236,13 @@ fig_struct, figs = ssort.plotter._resolveFig(None)
 
 halt = True
 
-#class snap_point():
-    #def __init__(self, x, y):
-        #self.xdata = x
-        #self.ydata = y
-
-#sp = snap_point(-0.51, 0.51)
-#ssort.mouse_event_snap(sp)
-# For testing:
-
 ##class keyev(object):
 ##    pass
 ##
 ##ev = keyev
 ##ev.key = 'down'
 ##ssort.key_on(ev)
+
+ssort.show_tree()
 
 halt = True

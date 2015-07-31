@@ -2681,6 +2681,8 @@ class box_GUI(shape_GUI):
         Determine if a trajectory passes through the box object and add that segment of the trajectory
         to a layer. Uses coorddict format of addDataPoints.
 
+        Also return the data from that segment.
+
         Note: This method may be redundant when better event creation/handling has been implemented
         for box_GUIs.
         """
@@ -2692,6 +2694,9 @@ class box_GUI(shape_GUI):
             ys = pts[var]
 
             self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
+
+        ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
+        return ys
 
 
 class line_GUI(shape_GUI):
