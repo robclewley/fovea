@@ -59,6 +59,7 @@ class spikesorter(graphics.diagnosticGUI):
         self.plotter.addLayer('thresh_crosses')
         self.plotter.addLayer('detected')
         self.plotter.addLayer('pcs')
+        self.plotter.addLayer('classified')
 
         self.setup({'11':
                    {'name': 'waveform',
@@ -74,10 +75,17 @@ class spikesorter(graphics.diagnosticGUI):
                     #'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     },
-                   '13':
+                   '21':
                     {'name': 'Principal Components',
                      'scale': [(0, default_sw), (-30, 30)],
                      'layers':['pcs'],
+                     #'callbacks':'*',
+                     'axes_vars': ['x', 'y']
+                     },
+                    '22':
+                    {'name': 'Classified Spikes',
+                     'scale': DOI,
+                     'layers':['classified'],
                      #'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      }
@@ -89,7 +97,7 @@ class spikesorter(graphics.diagnosticGUI):
         #self.ax = fig_struct.arrange['11']['axes_obj']
 
         coorddict = {'x':
-                     {'x':'t', 'layer':'spikes', 'style':'b.-'}
+                     {'x':'t', 'layer':'spikes', 'style':'b-'}
                      }
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
 
@@ -133,7 +141,18 @@ class spikesorter(graphics.diagnosticGUI):
             self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
             self.X = self.compute_bbox(crosses)
 
-        #plotter.show()
+            #Plot detected spike
+            print('self.X.shape', self.X.shape)
+            if len(self.X.shape) == 1:
+                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= 'b-', name= 'spike0', force= True)
+
+            else:
+                c= 0
+                for spike in self.X:
+                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= 'b-', name= 'spike'+str(c), force= True)
+                    c += 1
+
+            self.plotter.show()
 
     def compute_bbox(self, crosses):
         try:
@@ -153,7 +172,17 @@ class spikesorter(graphics.diagnosticGUI):
                 rem_names.append(con_name)
         for name in rem_names:
             self.context_objects[name].remove(draw= False)
-            del fig_struct['layers']['detected']['data']['det_'+name]
+            #try:
+                #del fig_struct['layers']['detected']['data']['det_'+name]
+            #except KeyError:
+                #pass
+
+        fig_struct['layers']['detected']['data'] = {}
+        #print(fig_struct['layers']['detected']['data'].keys())
+        #for data in fig_struct['layers']['detected']['data']:
+            #print('data', data)
+
+            #del data
 
         self.plotter.show(rebuild= True)
 

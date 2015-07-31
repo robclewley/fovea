@@ -2693,7 +2693,7 @@ class box_GUI(shape_GUI):
             xs = pts[params['x']]
             ys = pts[var]
 
-            self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
+            #self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
 
         ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
         return ys
