@@ -25,7 +25,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 global default_sw
-default_sw = 75
+default_sw = 30
 
 class spikesorter(graphics.diagnosticGUI):
     def __init__(self, title):
@@ -35,7 +35,8 @@ class spikesorter(graphics.diagnosticGUI):
         graphics.diagnosticGUI.__init__(self, plotter)
 
         #Recover data:
-        data = importPointset('shortsimdata1.dat',t=0,sep=',')
+        #data = importPointset('shortsimdata1.dat',t=0,sep=',')
+        data = importPointset('simdata1_50000.dat',t=0,sep=',')
 
         vs = data['vararray'][0]
         vs = self.bandpass_filter(vs, 300, 3000, 32000)
@@ -47,7 +48,7 @@ class spikesorter(graphics.diagnosticGUI):
 
     def fovea_setup(self):
         #Setup code
-        DOI = [(0,15000),(-30,30)]
+        DOI = [(0,50000),(-30,30)]
         self.plotter.clean() # in case rerun in same session
         self.plotter.addFig('master',
                        title='spikesort',
@@ -59,7 +60,7 @@ class spikesorter(graphics.diagnosticGUI):
         self.plotter.addLayer('thresh_crosses')
         self.plotter.addLayer('detected')
         self.plotter.addLayer('pcs')
-        self.plotter.addLayer('classified')
+        self.plotter.addLayer('scores')
 
         self.setup({'11':
                    {'name': 'waveform',
@@ -70,22 +71,22 @@ class spikesorter(graphics.diagnosticGUI):
                     },
                    '12':
                    {'name': 'detected spikes',
-                    'scale': [(0, default_sw), (-30, 30)],
+                    'scale': [(0, default_sw), (-80, 80)],
                     'layers':['detected'],
                     #'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     },
                    '21':
                     {'name': 'Principal Components',
-                     'scale': [(0, default_sw), (-30, 30)],
+                     'scale': [(0, default_sw), (-0.5, 0.5)],
                      'layers':['pcs'],
                      #'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      },
                     '22':
                     {'name': 'Classified Spikes',
-                     'scale': DOI,
-                     'layers':['classified'],
+                     'scale': [(-100, 100), (-100, 100)],
+                     'layers':['scores'],
                      #'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      }
@@ -134,7 +135,8 @@ class spikesorter(graphics.diagnosticGUI):
             #If I search the entire interval at once, it returns a partial list. Why?
             ts = ssort.traj.sample()['t']
             dt = ts[1]-ts[0]  # assumes uniformly timed samples
-            result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
+            #result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
+            result = SS_thresh_ev.searchForEvents((0, 50000), dt=dt, eventdelay=False)
 
             crosses = [num[0] for num in result]
 
@@ -223,19 +225,25 @@ class spikesorter(graphics.diagnosticGUI):
 
         if k == 'p':
             print('doing PCA...')
-            X = self.X.transpose()
+            X = self.X
 
-            p = da.doPCA(X, len(X[0]), len(X[0]))
-            Y2 = p._execute(X, 2)
-            Y3 = p._execute(X, 4)
+            self.p = da.doPCA(X, len(X[0]), len(X[0]))
+            print('proj mat shape pre-transpose: ', self.p.get_projmatrix().shape)
+            Y3 = self.p.get_projmatrix()
+            #Y2 = p._execute(X, 2)
+            #Y3 = p._execute(X, 4)
 
-            ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,0]], style= 'r-', layer= 'pcs', name= 'first_pc', force= True)
-            ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,1]], style= 'g-', layer= 'pcs', name= 'second_pc', force= True)
+            self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,0]], style= 'r-', layer= 'pcs', name= 'first_pc', force= True)
+            self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,1]], style= 'g-', layer= 'pcs', name= 'second_pc', force= True)
             try:
-                ssort.addDataPoints([list(range(0, len(Y3))) ,Y3[:,2]], style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
+                self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,2]], style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
             except IndexError:
                 pass
-            ssort.show()
+
+            Y = self.p._execute(X, 2)
+            self.addDataPoints([Y[:,0], Y[:,1]],layer='scores', style='k*', name='lo_D', force= True)
+
+            self.show()
 
     #def find_adjacent_mins(self, x, y):
         #for i in range(0, len(self.locminx)):
