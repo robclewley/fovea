@@ -2242,7 +2242,8 @@ class diagnosticGUI(object):
         dom_key = '.'
         change_mouse_state_keys = ['l', 's', ' '] + [dom_key]
 
-        if self.selected_object is not None:
+        if self.selected_object is not None \
+           and not isinstance(self.selected_object, pp.Point2D):
             self.navigate_selected_object(k)
 
         #Toggle tools keys
