@@ -1035,10 +1035,15 @@ class plotter2D(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
-                        self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
-                        self.gui.RS_box.set_active(False)
-                        self.gui.RS_line.set_active(False)
+                        #self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
+                        #self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
+                        #self.gui.RS_box.set_active(False)
+                        #self.gui.RS_line.set_active(False)
+
+                        self.gui.RS_boxes[ax] = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
+                        self.gui.RS_lines[ax] = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
+                        self.gui.RS_boxes[ax].set_active(False)
+                        self.gui.RS_lines[ax].set_active(False)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1476,6 +1481,8 @@ class diagnosticGUI(object):
         ##Handled in plotter2d._subplots
         #self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line')
         #self.RS_line.set_active(False)
+        self.RS_boxes = {}
+        self.RS_lines = {}
 
         self.fig.canvas.mpl_disconnect(fig.canvas.manager.key_press_handler_id)
         self.fig.canvas.mpl_connect('pick_event', self.pick_on)
@@ -2252,12 +2259,18 @@ class diagnosticGUI(object):
             # reset state of domain handler first
             self.current_domain_handler.event('clear')
         elif k == 'l':
+            try:
+                self.RS_lines[ev.inaxes].set_active(True)
+            except KeyError:
+                return
             print("Make a line of interest")
-            self.RS_line.set_active(True)
             self.mouse_wait_state_owner = 'line'
         elif k == 'b':
+            try:
+                self.RS_boxes[ev.inaxes].set_active(True)
+            except KeyError:
+                return
             print("Make a box of interest")
-            self.RS_box.set_active(True)
             self.mouse_wait_state_owner = 'box'
         elif k == ' ':
             print("Output of user function at clicked mouse point")
@@ -2284,6 +2297,9 @@ class diagnosticGUI(object):
         self._key = None
 
     def onselect_line(self, eclick, erelease):
+        #if eclick.inaxes not in self.cb_axes:
+            #return
+
         if eclick.button == 1:
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
@@ -2291,11 +2307,14 @@ class diagnosticGUI(object):
             self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2), subplot= eclick.inaxes), figure= self.plotter.currFig)
             print("Created line as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
-            self.RS_line.set_active(False)
+            self.RS_lines[eclick.inaxes].set_active(False)
 
             self.mouse_wait_state_owner = None
 
     def onselect_box(self, eclick, erelease):
+        #if eclick.inaxes not in self.cb_axes:
+            #return
+
         if eclick.button == 1:
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
@@ -2303,11 +2322,13 @@ class diagnosticGUI(object):
             self.set_selected_object(box_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2), subplot= eclick.inaxes), figure= self.plotter.currFig)
             print("Created box as new selected object, now give it a name")
             print("  by calling this object's .update() method with the name param")
-            self.RS_box.set_active(False)
+            self.RS_boxes[eclick.inaxes].set_active(False)
 
             self.mouse_wait_state_owner = None
 
     def mouse_event_snap(self, ev):
+        if ev.inaxes not in self.cb_axes:
+            return
 
         fig_struct, figs = self.plotter._resolveFig(None)
         trajs = []
@@ -2357,7 +2378,7 @@ class diagnosticGUI(object):
         self.set_selected_object(pp.Point2D(x_snap, y_snap), figure=self.plotter.currFig)
         if self.selected_object_temphandle is not None:
             self.selected_object_temphandle.remove()
-        self.selected_object_temphandle = self.RS_line.ax.plot(x_snap, y_snap, 'go')[0]
+        self.selected_object_temphandle = self.RS_lines[ev.inaxes].ax.plot(x_snap, y_snap, 'go')[0]
         self.fig.canvas.draw()
         print("Last output = (index, distance, point)")
         print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],

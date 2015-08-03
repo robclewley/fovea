@@ -89,7 +89,7 @@ class spikesorter(graphics.diagnosticGUI):
                     {'name': 'Classified Spikes',
                      'scale': [(-100, 100), (-100, 100)],
                      'layers':['scores'],
-                     #'callbacks':'*',
+                     'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      }
                    },
@@ -222,7 +222,7 @@ class spikesorter(graphics.diagnosticGUI):
             #except ValueError: #Returns wrong concatenation size.
                 #pass
 
-            self.plotter.setText('load_perc', 'Complete: %0.2f'%c/len(crosses), 'loading_text')
+            self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(crosses)), 'loading_text')
 
             c += 1
 
@@ -236,7 +236,11 @@ class spikesorter(graphics.diagnosticGUI):
 
         if k == 'p':
             print('doing PCA...')
-            X = self.X
+            try:
+                X = self.X
+            except AttributeError:
+                print('Must detect spikes before performing PCA.')
+                return
 
             self.p = da.doPCA(X, len(X[0]), len(X[0]))
             print('proj mat shape pre-transpose: ', self.p.get_projmatrix().shape)
