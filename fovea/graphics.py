@@ -2185,10 +2185,12 @@ class diagnosticGUI(object):
             for lay_name, lay_struct in fig_struct['layers'].items():
                 print('--Layer:', lay_name)
                 for data_name, data_struct in lay_struct['data'].items():
-                    try:
-                        print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
-                    except KeyError:
-                        print('----Data:', data_name)
+                    print('----Data:', data_name)
+                    ##ISSUE: Won't work if names are re-used!
+                    #try:
+                        #print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
+                    #except KeyError:
+                        #print('----Data:', data_name)
 
     def navigate_selected_object(self, k):
         """

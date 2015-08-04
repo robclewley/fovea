@@ -130,45 +130,61 @@ class spikesorter(graphics.diagnosticGUI):
     def user_pick_func(self, ev):
         if not ev.is_con_obj:
             fig_struct, figure = self.plotter._resolveFig(None)
-            layer_struct = self.plotter._resolveLayer(figure, 'pcs')
 
-            for name, artist in fig_struct['layers']['pcs']['handles'].items():
-                if artist is ev.artist:
-                    self.proj_PCs.insert(0, name)
-                    self.proj_PCs = self.proj_PCs[0:2]
+            #Clicked a PC.
+            if ev.mouseevent.inaxes is fig_struct['arrange']['21']['axes_obj']:
+                layer_struct = self.plotter._resolveLayer(figure, 'pcs')
 
-            for name in fig_struct['layers']['pcs']['handles'].keys():
-                if name not in self.proj_PCs:
-                    #fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
-                    #self.plotter.setData('pcs', name=name, linewidth= 1)
-                    layer_struct.data[name].update({'linewidth': 1})
+                for name, artist in fig_struct['layers']['pcs']['handles'].items():
+                    if artist is ev.artist:
+                        self.proj_PCs.insert(0, name)
+                        self.proj_PCs = self.proj_PCs[0:2]
 
-            for pc in self.proj_PCs:
-                #self.plotter.setData('pcs', name= pc, linewidth= 2.5)
-                #fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
-                layer_struct.data[pc].update({'linewidth': 2.5})
+                for name in fig_struct['layers']['pcs']['handles'].keys():
+                    if name not in self.proj_PCs:
+                        #fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
+                        #self.plotter.setData('pcs', name=name, linewidth= 1)
+                        ##ISSUE: This a very unintuitive way to update width, but it wont stick otherwise.
+                        layer_struct.data[name].update({'linewidth': 1})
 
-            self.plotter.show()
+                for pc in self.proj_PCs:
+                    #self.plotter.setData('pcs', name= pc, linewidth= 2.5)
+                    #fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
+                    layer_struct.data[pc].update({'linewidth': 2.5})
 
-            self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
-            self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
+                self.plotter.show()
 
-            self.project_to_PC()
+                self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
+                self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
 
-            #ev.artist.set_linewidth(2.5)
+                self.project_to_PC()
 
-            #for pc, pc_artist in fig_struct['layers']['pcs']['handles'].items():
-                #if pc_artist is ev.artist:
-                    #if not pc_artist.get_linewidth() == 2.5:
-                        #odd_vec = self.proj_vec2
-                        #self.proj_vec2 = self.proj_vec1
-                        #self.proj_vec1 = fig_struct['layers']['pcs']['data'][pc]['data'][1]
+            #Clicked a detected spike
+            if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
+                detected_struct = self.plotter._resolveLayer(figure, 'detected')
+                scores_struct = self.plotter._resolveLayer(figure, 'scores')
 
-                        #pc_artist.set_linewidth(2.5)
-                #else:
-                    #pc_artist.set_linewidth(1)
+                for name, artist in fig_struct['layers']['detected']['handles'].items():
+                    if artist is ev.artist:
+                        print('detected is:', name)
+                        self.pick_det = {name : detected_struct.data[name]}
+                        self.pick_score = scores_struct.data[name]
 
-            #self.project_to_PC()
+                        detected_struct.data[name].update({'linewidth': 2.5, 'style': 'y-'})
+                        #detected_struct.data[name].update({'style': 'y-'})
+
+                        scores_struct.data[name].update({'linewidth': 2.5, 'style': 'y*'})
+                        #scores_struct.data[name].update({'style': 'y*'})
+                    else:
+                        detected_struct.data[name].update({'linewidth': 1, 'style': 'b-'})
+                        #detected_struct.data[name].update({'style': 'b-'})
+
+                        scores_struct.data[name].update({'linewidth': 1, 'style': 'k*'})
+                        #scores_struct.data[name].update({'style': 'k*'})
+
+                ##ISSUE: Have to rebuild in order to update data attributes.
+                self.plotter.show(rebuild= True)
+
 
 
     def user_nav_func(self):
@@ -192,6 +208,7 @@ class spikesorter(graphics.diagnosticGUI):
             #If I search the entire interval at once, it returns a partial list. Why?
             ts = ssort.traj.sample()['t']
             dt = ts[1]-ts[0]  # assumes uniformly timed samples
+            #dt = default_sw
             #result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
             result = SS_thresh_ev.searchForEvents((0, self.N), dt=dt, eventdelay=False)
 
@@ -244,14 +261,14 @@ class spikesorter(graphics.diagnosticGUI):
             #thi = tlo + result['global_max'][0] + round(search_width/2)
             thi = tlo + search_width
             box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
-                        name= 'spike'+str(c), select= False)
+                        name= 'spike_box'+str(c), select= False)
 
             #Pin data
             coorddict = {'x':
                          {'x':'t', 'layer':'detected', 'style':'b-', 'name':'det_spike'+str(c)}
                          }
             ##ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
-            spike_seg = ssort.context_objects['spike'+str(c)].pin_contents(self.traj, coorddict)
+            spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
 
             #print('length of spike_seg:',len(spike_seg))
             #print('c:',c)
@@ -277,7 +294,14 @@ class spikesorter(graphics.diagnosticGUI):
         Y = np.dot(self.X, np.column_stack((self.proj_vec1, self.proj_vec2)))
 
         #Y = self.p._execute(X, 2)
-        self.addDataPoints([Y[:,0], Y[:,1]], layer='scores', style='k*', name='lo_D', force= True)
+        #self.addDataPoints([Y[:,0], Y[:,1]], layer='scores', style='k*', name='lo_D', force= True)
+
+        #Add spikes as individual lines, so they can be referenced individually.
+        c = 0
+        for spike in Y:
+            self.addDataPoints([spike[0], spike[1]], layer='scores', style='k*', name='spike'+str(c), force= True)
+            c += 1
+
         self.show(rebuild = True)
 
     def ssort_key_on(self, ev):
