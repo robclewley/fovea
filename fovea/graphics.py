@@ -1248,10 +1248,12 @@ class plotter2D(object):
                 obj.set_visible(False)
             return
 
+        ##ISSUE: This is very finnicky. Should find more reliable way to clear artists in matplotlib axes.
         if force:
             for h in lay.handles.values():
                 ##ISSUE: Error in MPL: list.remove(x): x not in list, when using HH_simple_demo
                 try:
+                    #ax.lines.remove(h)
                     h.remove()
                 except ValueError:
                     pass
@@ -1345,7 +1347,7 @@ class plotter2D(object):
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
                                             s, linewidth= dstruct['linewidth'], visible= dstruct['display'])[0]
-                                ax.add_artist(lay.handles[dname])
+                                #ax.add_artist(lay.handles[dname])
                                 lay.handles[dname].set_picker(True)
 
                             elif len(dstruct['data']) == 3:
@@ -1358,7 +1360,7 @@ class plotter2D(object):
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
                                             **s)[0]
-                                ax.add_artist(lay.handles[dname])
+                                #ax.add_artist(lay.handles[dname])
                                 lay.handles[dname].set_picker(True)
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \

@@ -173,6 +173,10 @@ class spikesorter(graphics.diagnosticGUI):
 
     def user_nav_func(self):
         if self.selected_object.name is 'threshline':
+            self.plotter.setText('load_perc', 'Loading...', 'loading_text')
+            self.plotter.setLayer('loading_text', display= True)
+            self.show()
+
             cutoff =  self.selected_object.y1
 
             SS_event_args = {'name': 'SS_zerothresh',
@@ -191,27 +195,16 @@ class spikesorter(graphics.diagnosticGUI):
             #result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
             result = SS_thresh_ev.searchForEvents((0, self.N), dt=dt, eventdelay=False)
 
-            crosses = [num[0] for num in result]
+            self.crosses = [num[0] for num in result]
 
-            self.plotter.setLayer('loading_text', display= True)
+            #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
+            self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
 
-            self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
-            self.X = self.compute_bbox(crosses)
+            self.plotter.setLayer('loading_text', display= False)
+            self.show()
 
-            #Plot detected spike
-            print('self.X.shape', self.X.shape)
-            if len(self.X.shape) == 1:
-                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= 'b-', name= 'spike0', force= True)
 
-            else:
-                c= 0
-                for spike in self.X:
-                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= 'b-', name= 'spike'+str(c), force= True)
-                    c += 1
-
-            self.plotter.show()
-
-    def compute_bbox(self, crosses):
+    def compute_bbox(self):
         try:
             search_width = self.context_objects['ref_box'].dx
             self.context_objects['ref_box'].remove()
@@ -233,13 +226,14 @@ class spikesorter(graphics.diagnosticGUI):
             #except KeyError:
                 #pass
 
+        self.plotter.setLayer('loading_text', display=True)
         fig_struct['layers']['detected']['data'] = {}
 
         self.plotter.show(rebuild= True)
 
         #Create new bounding boxes
         c = 0
-        for x in crosses:
+        for x in self.crosses:
             thresh_ix = round(x)
             tlo = thresh_ix - round(search_width/2)
             thi = thresh_ix + round(search_width/2)
@@ -268,7 +262,7 @@ class spikesorter(graphics.diagnosticGUI):
             #except ValueError: #Returns wrong concatenation size.
                 #pass
 
-            self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(crosses)), 'loading_text')
+            self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(self.crosses)), 'loading_text')
 
             c += 1
 
@@ -290,6 +284,23 @@ class spikesorter(graphics.diagnosticGUI):
         self._key = k = ev.key  # keep record of last keypress
         fig_struct, fig = self.plotter._resolveFig(None)
 
+        if k== 'd':
+            print('Detecting spikes...')
+            self.X = self.compute_bbox()
+
+            #Plot detected spike
+            print('self.X.shape', self.X.shape)
+            if len(self.X.shape) == 1:
+                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= 'b-', name= 'spike0', force= True)
+
+            else:
+                c= 0
+                for spike in self.X:
+                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= 'b-', name= 'spike'+str(c), force= True)
+                    c += 1
+
+            self.show()
+
         if k == 'p':
             print('doing PCA...')
             try:
@@ -302,17 +313,12 @@ class spikesorter(graphics.diagnosticGUI):
             self.proj_vec1 = self.p.get_projmatrix()[:, 0]
             self.proj_vec2 = self.p.get_projmatrix()[:, 1]
 
-            print('proj mat shape pre-transpose: ', self.p.get_projmatrix().shape)
-            #Y3 = self.p.get_projmatrix()
-            #Y2 = p._execute(X, 2)
-            #Y3 = p._execute(X, 4)
+            print('proj mat shape: ', self.p.get_projmatrix().shape)
 
             self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', linewidth = 2.5, name= 'first_pc', force= True)
             self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', linewidth = 2.5, name= 'second_pc', force= True)
 
             self.plotter.show()
-
-            ##ISSUE: This is a very inconvenient way to set a linewidth
             self.proj_PCs = ['first_pc', 'second_pc']
 
             try:
@@ -335,6 +341,11 @@ fig_struct, figs = ssort.plotter._resolveFig(None)
 
 halt = True
 
+#threshline = line_GUI(ssort, pt1, pt2)
+threshline = line_GUI(ssort, pp.Point2D(0,15), pp.Point2D(100000, 15), layer='gx_objects', subplot='11',
+                     name='threshline', select=True)
+ssort.navigate_selected_object('down')
+
 ##class keyev(object):
 ##    pass
 ##
@@ -342,6 +353,5 @@ halt = True
 ##ev.key = 'down'
 ##ssort.key_on(ev)
 
-ssort.show_tree()
 
 halt = True
