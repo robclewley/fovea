@@ -473,6 +473,7 @@ class plotter2D(object):
         layAttrs.trajs = {}
         layAttrs.axes_vars = []
         layAttrs.handles = {}
+        layAttrs.linewidth = None
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
@@ -624,8 +625,8 @@ class plotter2D(object):
         d.update({name: kwargs})
         layer_struct.force = force
 
-    def addData(self, data, figure=None, layer=None, subplot=None, style=None, name=None,
-                display=True, force=False, traj = None, log=None):
+    def addData(self, data, figure=None, layer=None, subplot=None, style=None, linewidth = 1,
+                name=None, display=True, force=False, traj = None, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
@@ -679,7 +680,8 @@ class plotter2D(object):
 
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
-        d.update({name: {'data': data, 'style': style, 'display': display, 'subplot': subplot}})
+        d.update({name: {'data': data, 'style': style, 'linewidth':linewidth,
+                         'display': display, 'subplot': subplot}})
         layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
@@ -1320,15 +1322,15 @@ class plotter2D(object):
 
             elif lay.kind == 'obj':
                 if dstruct['selected']:
-                    line_width = 2.5
+                    linewidth = 2.5
                 else:
-                    line_width = 1
+                    linewidth = 1
 
                 coords = dstruct['data']
                 try: #Line
-                    l = dstruct['obj'](coords[0], coords[1], linewidth=line_width, color='y', visible= dstruct['display'])
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=linewidth, color='y', visible= dstruct['display'])
                 except TypeError: #Rectangle
-                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=line_width, color='y', visible= dstruct['display'], fill= False)
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=linewidth, color='y', visible= dstruct['display'], fill= False)
                 lay.handles[dname] = ax.add_artist(l)
                 lay.handles[dname].set_picker(True)
 
@@ -1342,7 +1344,10 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s, visible= dstruct['display'])[0]
+                                            s, linewidth= dstruct['linewidth'], visible= dstruct['display'])[0]
+                                ax.add_artist(lay.handles[dname])
+                                lay.handles[dname].set_picker(True)
+
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
@@ -1353,11 +1358,14 @@ class plotter2D(object):
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
                                             **s)[0]
+                                ax.add_artist(lay.handles[dname])
+                                lay.handles[dname].set_picker(True)
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
                                             **s)[0]
 
+                    #ax.add_artist(lay.handles[dname])
                     lay.force = False
 
         if rescale is not None:
@@ -1511,8 +1519,8 @@ class diagnosticGUI(object):
             self.times = None
 
     def addDataPoints(self, data, figure=None, layer=None, subplot=None,
-                           style=None, name=None, display=True, force=False,
-                           log=None, coorddict=None):
+                           style=None, linewidth = 1, name=None, display=True,
+                           force=False, log=None, coorddict=None):
         maxspeed = 2.2 #This should be replaced with something general purpose. Borrowed from Bombardier.
 
         try:
@@ -1526,6 +1534,7 @@ class diagnosticGUI(object):
             self.plotter.addData(data, figure=figure, layer=layer, subplot=subplot,
                            style=style, name=name,
                            display=display,
+                           linewidth=linewidth,
                            force=force, log=log)
 
         elif isinstance(data, Points.Pointset) or isinstance(data, pp.Point2D):
@@ -1660,6 +1669,7 @@ class diagnosticGUI(object):
                                         layer = lay,
                                         name = nam,
                                         traj = tra,
+                                        linewidth = linewidth, ##ISSUE: Should do this through coorddict as well.
                                         force = True)
         else:
             print("Unsupported datatype")
@@ -2142,8 +2152,11 @@ class diagnosticGUI(object):
         """
         Pick artists in axes and set them as the selected object.
         """
+        event.is_con_obj = False
+
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
+
         elif isinstance(event.artist, mpl.patches.Rectangle):
             #Need to use width of rectangle to CALCUlATE other vertices.
             artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
@@ -2155,6 +2168,10 @@ class diagnosticGUI(object):
                artist_data[1][0] == con_obj.y1 and \
                artist_data[1][1] == con_obj.y2:
                 self.set_selected_object(con_obj)
+                event.is_con_obj = True
+
+        self.user_pick_func(event)
+
 
     def show_tree(self, event= None):
         """
@@ -2464,6 +2481,11 @@ class diagnosticGUI(object):
     def user_nav_func(self):
         """
         Function overridden in user's app, called whenever navigation keys are used to move a graphics object.
+        """
+
+    def user_pick_func(self, ev):
+        """
+        Function overridden in user's app, called whenever an artist is picked.
         """
 
     def make_gen(self, pardict, name):

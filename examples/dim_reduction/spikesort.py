@@ -21,6 +21,7 @@ from PyDSTool.Toolbox.neuro_data import *
 from PyDSTool.Toolbox import data_analysis as da
 
 from scipy.signal import butter, lfilter, argrelextrema
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -45,6 +46,7 @@ class spikesorter(graphics.diagnosticGUI):
         self.N = len(vs)
         self.traj = numeric_to_traj([vs], 'test_traj', ['x'], ts, discrete=False)
 
+        self.selected_pcs = []
         self.fovea_setup()
 
     def fovea_setup(self):
@@ -82,7 +84,7 @@ class spikesorter(graphics.diagnosticGUI):
                     {'name': 'Principal Components',
                      'scale': [(0, default_sw), (-0.5, 0.5)],
                      'layers':['pcs'],
-                     #'callbacks':'*',
+                     'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      },
                     '22':
@@ -124,6 +126,50 @@ class spikesorter(graphics.diagnosticGUI):
         b, a = butter(order, [low, high], btype= 'band')
         y = lfilter(b, a, data)
         return y
+
+    def user_pick_func(self, ev):
+        if not ev.is_con_obj:
+            fig_struct, figure = self.plotter._resolveFig(None)
+            layer_struct = self.plotter._resolveLayer(figure, 'pcs')
+
+            for name, artist in fig_struct['layers']['pcs']['handles'].items():
+                if artist is ev.artist:
+                    self.proj_PCs.insert(0, name)
+                    self.proj_PCs = self.proj_PCs[0:2]
+
+            for name in fig_struct['layers']['pcs']['handles'].keys():
+                if name not in self.proj_PCs:
+                    #fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
+                    #self.plotter.setData('pcs', name=name, linewidth= 1)
+                    layer_struct.data[name].update({'linewidth': 1})
+
+            for pc in self.proj_PCs:
+                #self.plotter.setData('pcs', name= pc, linewidth= 2.5)
+                #fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
+                layer_struct.data[pc].update({'linewidth': 2.5})
+
+            self.plotter.show()
+
+            self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
+            self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
+
+            self.project_to_PC()
+
+            #ev.artist.set_linewidth(2.5)
+
+            #for pc, pc_artist in fig_struct['layers']['pcs']['handles'].items():
+                #if pc_artist is ev.artist:
+                    #if not pc_artist.get_linewidth() == 2.5:
+                        #odd_vec = self.proj_vec2
+                        #self.proj_vec2 = self.proj_vec1
+                        #self.proj_vec1 = fig_struct['layers']['pcs']['data'][pc]['data'][1]
+
+                        #pc_artist.set_linewidth(2.5)
+                #else:
+                    #pc_artist.set_linewidth(1)
+
+            #self.project_to_PC()
+
 
     def user_nav_func(self):
         if self.selected_object.name is 'threshline':
@@ -231,8 +277,18 @@ class spikesorter(graphics.diagnosticGUI):
 
         return X
 
+    def project_to_PC(self):
+        print('shape proj vecs:', np.column_stack((self.proj_vec1, self.proj_vec2)).shape)
+        print('shape X', self.X.shape)
+        Y = np.dot(self.X, np.column_stack((self.proj_vec1, self.proj_vec2)))
+
+        #Y = self.p._execute(X, 2)
+        self.addDataPoints([Y[:,0], Y[:,1]], layer='scores', style='k*', name='lo_D', force= True)
+        self.show(rebuild = True)
+
     def ssort_key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
+        fig_struct, fig = self.plotter._resolveFig(None)
 
         if k == 'p':
             print('doing PCA...')
@@ -243,22 +299,31 @@ class spikesorter(graphics.diagnosticGUI):
                 return
 
             self.p = da.doPCA(X, len(X[0]), len(X[0]))
+            self.proj_vec1 = self.p.get_projmatrix()[:, 0]
+            self.proj_vec2 = self.p.get_projmatrix()[:, 1]
+
             print('proj mat shape pre-transpose: ', self.p.get_projmatrix().shape)
-            Y3 = self.p.get_projmatrix()
+            #Y3 = self.p.get_projmatrix()
             #Y2 = p._execute(X, 2)
             #Y3 = p._execute(X, 4)
 
-            self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,0]], style= 'r-', layer= 'pcs', name= 'first_pc', force= True)
-            self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,1]], style= 'g-', layer= 'pcs', name= 'second_pc', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', linewidth = 2.5, name= 'first_pc', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', linewidth = 2.5, name= 'second_pc', force= True)
+
+            self.plotter.show()
+
+            ##ISSUE: This is a very inconvenient way to set a linewidth
+            self.proj_PCs = ['first_pc', 'second_pc']
+
             try:
-                self.addDataPoints([list(range(0, len(Y3))) ,Y3[:,2]], style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
+                self.addDataPoints([list(range(0, len(self.p.get_projmatrix()))) ,self.p.get_projmatrix()[:,2]],
+                                   style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
             except IndexError:
                 pass
 
-            Y = self.p._execute(X, 2)
-            self.addDataPoints([Y[:,0], Y[:,1]],layer='scores', style='k*', name='lo_D', force= True)
-
             self.show()
+
+            self.project_to_PC()
 
 ssort = spikesorter("SSort")
 
