@@ -95,7 +95,7 @@ class spikesorter(graphics.diagnosticGUI):
                      'axes_vars': ['x', 'y']
                      }
                    },
-                  size=(12, 7), with_times=False, basic_widgets=True)
+                  size=(8, 8), with_times=False, basic_widgets=True)
 
         #self.plotter.setText('load_perc', Loading: %d\%'%n, 'loading')
         self.plotter.addText(0.1, 0.8, 'Loading...', use_axis_coords=True,
@@ -160,31 +160,33 @@ class spikesorter(graphics.diagnosticGUI):
                 self.project_to_PC()
 
             #Clicked a detected spike
+            picked_spikes = None
             if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
+                picked_spikes = 'detected'
+            if ev.mouseevent.inaxes is fig_struct['arrange']['22']['axes_obj']:
+                picked_spikes = 'scores'
+
+            if picked_spikes is not None:
                 detected_struct = self.plotter._resolveLayer(figure, 'detected')
                 scores_struct = self.plotter._resolveLayer(figure, 'scores')
 
-                for name, artist in fig_struct['layers']['detected']['handles'].items():
+                for name, artist in fig_struct['layers'][picked_spikes]['handles'].items():
                     if artist is ev.artist:
-                        print('detected is:', name)
+                        #Saving these variables for convenience.
                         self.pick_det = {name : detected_struct.data[name]}
                         self.pick_score = scores_struct.data[name]
 
-                        detected_struct.data[name].update({'linewidth': 2.5, 'style': 'y-'})
-                        #detected_struct.data[name].update({'style': 'y-'})
+                        detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style': 'y-'})
+                        scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
+                                                         'markersize': 12,'style': 'y*'})
 
-                        scores_struct.data[name].update({'linewidth': 2.5, 'style': 'y*'})
-                        #scores_struct.data[name].update({'style': 'y*'})
                     else:
-                        detected_struct.data[name].update({'linewidth': 1, 'style': 'b-'})
-                        #detected_struct.data[name].update({'style': 'b-'})
-
-                        scores_struct.data[name].update({'linewidth': 1, 'style': 'k*'})
-                        #scores_struct.data[name].update({'style': 'k*'})
+                        detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style': 'b-'})
+                        scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
+                                                         'markersize': 5, 'style': 'k*'})
 
                 ##ISSUE: Have to rebuild in order to update data attributes.
                 self.plotter.show(rebuild= True)
-
 
 
     def user_nav_func(self):
@@ -243,7 +245,6 @@ class spikesorter(graphics.diagnosticGUI):
             #except KeyError:
                 #pass
 
-        self.plotter.setLayer('loading_text', display=True)
         fig_struct['layers']['detected']['data'] = {}
 
         self.plotter.show(rebuild= True)
@@ -293,13 +294,14 @@ class spikesorter(graphics.diagnosticGUI):
         print('shape X', self.X.shape)
         Y = np.dot(self.X, np.column_stack((self.proj_vec1, self.proj_vec2)))
 
-        #Y = self.p._execute(X, 2)
-        #self.addDataPoints([Y[:,0], Y[:,1]], layer='scores', style='k*', name='lo_D', force= True)
+        #If moving to a smaller number of spikes, just forcing out data by reassigning names won't work. Must clear.
+        self.clearData('scores')
+        self.show()
 
         #Add spikes as individual lines, so they can be referenced individually.
         c = 0
         for spike in Y:
-            self.addDataPoints([spike[0], spike[1]], layer='scores', style='k*', name='spike'+str(c), force= True)
+            self.addDataPoints([spike[0], spike[1]], layer='scores', style='k*', name='spike'+str(c))
             c += 1
 
         self.show(rebuild = True)
@@ -310,6 +312,13 @@ class spikesorter(graphics.diagnosticGUI):
 
         if k== 'd':
             print('Detecting spikes...')
+            try:
+                self.crosses
+            except AttributeError:
+                print("Can't detect spikes until threshold crossings have been found.")
+                return
+
+            self.plotter.setLayer('loading_text', display=True)
             self.X = self.compute_bbox()
 
             #Plot detected spike
