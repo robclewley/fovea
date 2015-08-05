@@ -16,9 +16,9 @@ from fovea.graphics import *
 import PyDSTool as dst
 import PyDSTool.Toolbox.phaseplane as pp
 
-#from neuro_data import * #CHANGE THIS IMPORT STATEMENT
 from PyDSTool.Toolbox.neuro_data import *
-from PyDSTool.Toolbox import data_analysis as da
+#from PyDSTool.Toolbox import data_analysis as da
+from mdp.nodes import PCANode
 
 from scipy.signal import butter, lfilter, argrelextrema
 import numpy as np
@@ -123,6 +123,8 @@ class spikesorter(graphics.diagnosticGUI):
         self.addDataPoints(self.traj.sample(), coorddict = coorddict)
 
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.ssort_key_on)
+
+        self.plotter.auto_scale_domain(subplot= '11', xcushion= 0)
 
         self.plotter.show()
 
@@ -323,6 +325,8 @@ class spikesorter(graphics.diagnosticGUI):
             self.addDataPoints([spike[0], spike[1]], layer='scores', style='k*', name='spike'+str(c))
             c += 1
 
+        self.plotter.auto_scale_domain(subplot = '22')
+
         self.show(rebuild = True)
 
     def ssort_key_on(self, ev):
@@ -351,6 +355,7 @@ class spikesorter(graphics.diagnosticGUI):
                     self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= 'b-', name= 'spike'+str(c), force= True)
                     c += 1
 
+            self.plotter.auto_scale_domain(xcushion = 0, subplot = '12')
             self.show()
 
             if self.tutorial == 'step3':
@@ -368,7 +373,9 @@ class spikesorter(graphics.diagnosticGUI):
                 print('Must detect spikes before performing PCA.')
                 return
 
-            self.p = da.doPCA(X, len(X[0]), len(X[0]))
+            #self.p = da.doPCA(X, len(X[0]), len(X[0]))
+            self.p = PCANode(output_dim=0.99, reduce= True, svd= True)
+            self.p.train(X)
             self.proj_vec1 = self.p.get_projmatrix()[:, 0]
             self.proj_vec2 = self.p.get_projmatrix()[:, 1]
 
@@ -386,6 +393,7 @@ class spikesorter(graphics.diagnosticGUI):
             except IndexError:
                 pass
 
+            self.plotter.auto_scale_domain(xcushion = 0, subplot = '21')
             self.show()
 
             self.project_to_PC()
