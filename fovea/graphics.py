@@ -473,7 +473,7 @@ class plotter2D(object):
         layAttrs.trajs = {}
         layAttrs.axes_vars = []
         layAttrs.handles = {}
-        layAttrs.linewidth = None
+        #layAttrs.linewidth = None
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
@@ -626,7 +626,7 @@ class plotter2D(object):
         layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, linewidth = 1,
-                name=None, display=True, force=False, traj = None, log=None):
+                markersize= 5, zorder= 1, name=None, display=True, force=False, traj = None, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
@@ -680,8 +680,8 @@ class plotter2D(object):
 
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
-        d.update({name: {'data': data, 'style': style, 'linewidth':linewidth,
-                         'display': display, 'subplot': subplot}})
+        d.update({name: {'data': data, 'style': style, 'linewidth':linewidth, 'markersize':markersize,
+                         'zorder':zorder,'display': display, 'subplot': subplot}})
         layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
@@ -1334,7 +1334,7 @@ class plotter2D(object):
                 except TypeError: #Rectangle
                     l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=linewidth, color='y', visible= dstruct['display'], fill= False)
                 lay.handles[dname] = ax.add_artist(l)
-                lay.handles[dname].set_picker(True)
+                lay.handles[dname].set_picker(2.5)
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1346,9 +1346,11 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s, linewidth= dstruct['linewidth'], visible= dstruct['display'])[0]
+                                            s, linewidth= dstruct['linewidth'],
+                                            zorder = dstruct['zorder'], markersize = dstruct['markersize'],
+                                            visible= dstruct['display'])[0]
                                 #ax.add_artist(lay.handles[dname])
-                                lay.handles[dname].set_picker(True)
+                                lay.handles[dname].set_picker(2.5)
 
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
@@ -1868,6 +1870,19 @@ class diagnosticGUI(object):
         evKeyOn = fig_handle.canvas.mpl_connect('key_press_event', self.modifier_key_on)
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
 
+    def clearData(self, layer, data_name=None):
+        """
+        Delete data in a given layer. If no name for data is given, all data in that layer are deleted.
+
+        ISSUE: Consider merging with clearAxes.
+        """
+        fig_struct, figure = self.plotter._resolveFig(None)
+        layer_struct = self.plotter._resolveLayer(figure, layer)
+
+        if data_name is not None:
+            del layer_struct.data[data_name]
+        else:
+            layer_struct.data = {}
 
     def clearAxes(self, subplot, figure=None):
         """
