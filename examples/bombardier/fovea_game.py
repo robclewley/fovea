@@ -52,30 +52,10 @@ class GUIrocket(gx.diagnosticGUI):
         """
         global next_fighandle
 
-        global plotter
         plotter = gx.plotter2D()
         gx.diagnosticGUI.__init__(self, plotter)
 
-        # Sim setup
-
-        # context objects (lines of interest, domains, etc)
-        self.context_objects = []
-        # external tracked objects (measures, etc)
-        self.tracked_objects = []
-        #
-        self.selected_object = None
-        self.selected_object_temphandle = None
-        #
         self.current_domain_handler = dom.GUI_domain_handler(self)
-
-        # name of task controlling mouse click event handler
-        self.mouse_wait_state_owner = None
-
-        # last output from a UI action
-        self.last_output = None
-
-        # if defined, will be refreshed on each Go!
-        self.calc_context = None
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -577,7 +557,7 @@ ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
 ltarget.make_event_def('target1', 1)
 game1.setup_gen(game1.model_namer)
 
-# make event terminal
+## make event terminal
 game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
 
 target = target4D_line('test_line', pars=args(pt1=pp.Point2D((ltarget.x1, ltarget.y1)),

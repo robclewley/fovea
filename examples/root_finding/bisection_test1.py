@@ -28,7 +28,8 @@ plotter.addLayer('meta_data', kind='text')
 plotter.arrangeFig([1,1], {'11':
                            {'name': 'Bisection method',
                             'scale': DOI,
-                            'layers': '*',  # all layers will be selected
+                            #'layers': '*',  # all layers will be selected
+                            'layers': ['fn_data', 'meta_data'],
                             'callbacks':'*',
                             'axes_vars': ['x', 'y']}
                            })
