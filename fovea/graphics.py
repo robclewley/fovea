@@ -121,38 +121,72 @@ class plotter2D(object):
         # record whether this class ever called show()
         self.shown = False
 
-    def auto_scale_domain(self, figure=None):
+    def auto_scale_domain(self, xcushion = 0.05, ycushion = 0.05, subplot= None, figure=None):
         """
         Set domain limits to that of the data in all layers
         with the greatest extent.
+
+        cushion is the fraction of the total x/y domain to extend the domain (leaving some white space).
         """
-        # ISSUE: figure not used! It should select which
-        # data is used below, and the figure object should
-        # be selected to impose the extent on
+        # ISSUE: Setting domains at the figure level (as opposed to subplot level) doesn't work.
+        # Changes will likely need to be made in other functions, not here (such as buildLayers or buildPlotter2D)
 
         # initial values
         x_extent = [0,0]
         y_extent = [0,0]
 
+        def auto_minmax(x, f):
+            """
+            Scalar inputs are automatically the min/max.
+            """
+            try:
+                out = f(x)
+            except TypeError:
+                out = x
+            return out
+
+        if figure is None:
+            figure = self.currFig
+
         found_fig = False
         for figName, fig in self.figs.items():
+
+            #Extract only those layers in the chosen subplot.
+            if subplot is not None:
+                layer_info = {}
+                subplot_struct = fig.arrange[subplot]
+                for layName in subplot_struct['layers']:
+                    layer_info[layName] = fig.layers[layName]
+            else:
+                layer_info = fig.layers
+
             if figure != figName:
                 continue
             else:
                 found_fig = True
-            for layerName, layer in list(fig.layers.items()):
-                for dName, d in list(layer['data'].items()):
-                    x_extent[0] = min(min(d['data'][:][0]), x_extent[0])
-                    x_extent[1] = max(max(d['data'][:][0]), x_extent[1])
-                    y_extent[0] = min(min(d['data'][:][1]), y_extent[0])
-                    y_extent[1] = max(max(d['data'][:][1]), y_extent[1])
+            for layerName, layer in layer_info.items():
+                if layer.kind is not 'text':
+                    for dName, d in list(layer['data'].items()):
+                        x_extent[0] = min(auto_minmax(d['data'][0], min), x_extent[0])
+                        x_extent[1] = max(auto_minmax(d['data'][0], max), x_extent[1])
+                        y_extent[0] = min(auto_minmax(d['data'][1], min), y_extent[0])
+                        y_extent[1] = max(auto_minmax(d['data'][1], max), y_extent[1])
 
         if not found_fig:
             raise ValueError("No such figure")
-        fig.domain = (x_extent, y_extent)
-        plt.figure(fig.fignum)
-        plt.xlim(x_extent)
-        plt.ylim(y_extent)
+
+        if subplot is not None:
+            x_length = x_extent[1] - x_extent[0]
+            y_length = y_extent[1] - y_extent[0]
+            subplot_struct['scale'] = [tuple([x_extent[0] - xcushion*x_length, x_extent[1] + xcushion*x_length]),
+                                       tuple([y_extent[0] - ycushion*y_length, y_extent[1] + ycushion*y_length])]
+        else:
+            fig.domain = (x_extent, y_extent)
+            plt.figure(fig.fignum)
+            plt.xlim(x_extent)
+            plt.ylim(y_extent)
+
+        #self.show()
 
     def set_active_layer(self, layer, figure=None):
         """
