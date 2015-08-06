@@ -190,16 +190,22 @@ class spikesorter(graphics.diagnosticGUI):
                     if artist is ev.artist:
                         #Saving these variables for convenience.
                         self.pick_det = {name : detected_struct.data[name]}
-                        self.pick_score = scores_struct.data[name]
 
-                        detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style': 'y-'})
-                        scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
-                                                         'markersize': 12,'style': 'y*'})
+                        detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style':'y-'})
+                        try:
+                            self.pick_score = scores_struct.data[name]
+                            scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
+                                                             'markersize': 12, 'style':'y*'})
+                        except KeyError:
+                            pass
 
                     else:
-                        detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style': 'b-'})
-                        scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
-                                                         'markersize': 5, 'style': 'k*'})
+                        detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style':self.default_colors[name]+str('-')})
+                        try:
+                            scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
+                                                             'markersize': 6, 'style':self.default_colors[name]+str('*')})
+                        except KeyError:
+                            pass
 
                 ##ISSUE: Have to rebuild in order to update data attributes.
                 self.plotter.show(rebuild= True)
@@ -291,7 +297,7 @@ class spikesorter(graphics.diagnosticGUI):
 
             #Pin data
             coorddict = {'x':
-                         {'x':'t', 'layer':'detected', 'style':'b-', 'name':'det_spike'+str(c)}
+                         {'x':'t', 'layer':'detected', 'style':'k-', 'name':'det_spike'+str(c)}
                          }
             ##ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
             spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
@@ -325,10 +331,13 @@ class spikesorter(graphics.diagnosticGUI):
         self.clearData('scores')
         self.show()
 
+        self.default_colors = {}
         #Add spikes as individual lines, so they can be referenced individually.
         c = 0
         for spike in Y:
-            self.addDataPoints([spike[0], spike[1]], layer='scores', style='k*', name='spike'+str(c))
+            name = 'spike'+str(c)
+            self.default_colors[name] = 'k'
+            self.addDataPoints([spike[0], spike[1]], layer='scores', style=self.default_colors[name]+'*', name= name)
             c += 1
 
         self.plotter.auto_scale_domain(subplot = '22')
@@ -339,8 +348,21 @@ class spikesorter(graphics.diagnosticGUI):
         self._key = k = ev.key  # keep record of last keypress
         fig_struct, fig = self.plotter._resolveFig(None)
 
+        class_keys = ['1','2','3','4']
+
+        if k in class_keys:
+            if isinstance(self.selected_object, box_GUI):
+                for dname, dstruct in fig_struct['layers']['scores']['data'].items():
+                    if self.selected_object.x1 < dstruct['data'][0] < self.selected_object.x2 and \
+                    self.selected_object.y1 < dstruct['data'][1] < self.selected_object.y2:
+                        if k == '1':
+                            self.default_colors[dname] = 'r'
+                        if k == '2':
+                            self.default_colors[dname] = 'g'
+                        if k == '3':
+                            self.default_colors[dname] = 'b'
+
         if k== 'd':
-            #print('Detecting spikes...')
             try:
                 self.crosses
             except AttributeError:
@@ -350,15 +372,18 @@ class spikesorter(graphics.diagnosticGUI):
             self.plotter.setLayer('loading_text', display=True)
             self.X = self.compute_bbox()
 
-            #Plot detected spike
-            #print('self.X.shape', self.X.shape)
+            self.default_colors = {}
+
             if len(self.X.shape) == 1:
-                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= 'b-', name= 'spike0', force= True)
+                self.default_colors['spike0'] = 'k'
+                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= self.default_colors['spike0']+'-', name= 'spike0', force= True)
 
             else:
                 c= 0
                 for spike in self.X:
-                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= 'b-', name= 'spike'+str(c), force= True)
+                    name = 'spike'+str(c)
+                    self.default_colors[name] = 'k'
+                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= self.default_colors[name]+'-', name= name, force= True)
                     c += 1
 
             self.plotter.auto_scale_domain(xcushion = 0, subplot = '12')
