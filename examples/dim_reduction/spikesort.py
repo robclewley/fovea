@@ -25,6 +25,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+import time
+
 global default_sw
 default_sw = 64
 
@@ -54,6 +56,23 @@ class spikesorter(graphics.diagnosticGUI):
 
         self.selected_pcs = []
         self.fovea_setup()
+
+        #x = self.traj.sample()['x']
+        #r = x > 10
+        #above_thresh = np.where(r == True)[0]
+
+        #spike = []
+        #peaks = []
+        #crosses = []
+        #last_i = above_thresh[0] - 1
+        #for i in above_thresh:
+            #if i - 1 != last_i:
+                #crosses.append(i)
+                ##Return x value of the highest y value.
+                #peaks.append(np.where(x == max(list(x[spike])))[0][0])
+                #spike = []
+            #spike.append(i)
+            #last_i = i
 
         print("STEP 1:")
         print("Create a horizontal line of interest by pressing 'l'.")
@@ -231,25 +250,46 @@ class spikesorter(graphics.diagnosticGUI):
 
             cutoff =  self.selected_object.y1
 
-            SS_event_args = {'name': 'SS_zerothresh',
-                             'eventtol': 1e-3,
-                             'eventdelay': 1e-4,
-                             'eventinterval': self.search_width,
-                             'starttime': 0,
-                             'precise': True,
-                             'active': True}
-            #dircode = 1 is crossing from below
-            SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
-                                                                var= ssort.traj.variables['x'])
+            #SS_event_args = {'name': 'SS_zerothresh',
+                             #'eventtol': 1e-3,
+                             #'eventdelay': 1e-4,
+                             #'eventinterval': self.search_width,
+                             #'starttime': 0,
+                             #'precise': True,
+                             #'active': True}
+            ##dircode = 1 is crossing from below
+            #SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
+                                                                #var= ssort.traj.variables['x'])
 
-            #If I search the entire interval at once, it returns a partial list. Why?
-            ts = ssort.traj.sample()['t']
-            dt = ts[1]-ts[0]  # assumes uniformly timed samples
-            #dt = default_sw
-            #result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
-            result = SS_thresh_ev.searchForEvents((0, self.N), dt=dt, eventdelay=False)
+            ##If I search the entire interval at once, it returns a partial list. Why?
+            #ts = ssort.traj.sample()['t']
+            #dt = ts[1]-ts[0]  # assumes uniformly timed samples
+            ##dt = default_sw
+            ##result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
+            #result = SS_thresh_ev.searchForEvents((0, self.N), dt=dt, eventdelay=False)
+            #r = ssort.traj.sample()['x'] > cutoff
 
-            self.crosses = [num[0] for num in result]
+            x = self.traj.sample()['x']
+            r = x > cutoff
+            above_thresh = np.where(r == True)[0]
+
+            spike = []
+            peaks = []
+            crosses = []
+
+            last_i = above_thresh[0] - 1
+            for i in above_thresh:
+                if i - 1 != last_i:
+                    crosses.append(i)
+                    #Return x value of the highest y value.
+                    peaks.append(np.where(x == max(list(x[spike])))[0][0])
+                    spike = []
+                spike.append(i)
+                last_i = i
+
+            self.crosses = crosses
+            self.peaks = peaks
+            #self.spikes = spikes
 
             #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
             self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
@@ -280,20 +320,24 @@ class spikesorter(graphics.diagnosticGUI):
 
         #Create new bounding boxes
         c = 0
-        for x in self.crosses:
-            thresh_ix = round(x)
-            tlo = thresh_ix - round(self.search_width/2)
-            thi = thresh_ix + round(self.search_width/2)
-            result = find_internal_extrema(self.traj.sample(tlo= tlo, thi= thi))
+        for i in range(len(self.peaks)):
+            #thresh_ix = round(x)
+            #tlo = thresh_ix - round(self.search_width/2)
+            #thi = thresh_ix + round(self.search_width/2)
+            #result = find_internal_extrema(self.traj.sample(tlo= tlo, thi= thi))
 
-            #Center box around spike peak
-            #tlo = tlo + result['global_max'][0] - math.floor(search_width/2)
+            ##Center box around spike peak
+            ##tlo = tlo + result['global_max'][0] - math.floor(search_width/2)
 
-            #Place peak at step 20 (as in Martinez et al.)
-            tlo = tlo + result['global_max'][0] - 20
+            ##Place peak at step 20 (as in Martinez et al.)
+            #tlo = tlo + result['global_max'][0] - 20
+            #thi = tlo + self.search_width
+            tlo = self.peaks[i] - 20
             thi = tlo + self.search_width
-            box_GUI(self, pp.Point2D(tlo, result['global_max'][1]), pp.Point2D(thi, result['global_min'][1]),
-                        name= 'spike_box'+str(c), select= False)
+            valley = min(self.traj.sample()['x'][tlo:thi])
+            box_GUI(self, pp.Point2D(tlo, self.traj.sample()['x'][self.peaks[i]]),
+                    pp.Point2D(thi, valley),name= 'spike_box'+str(c), select= False)
+
 
             #Pin data
             coorddict = {'x':
@@ -302,8 +346,8 @@ class spikesorter(graphics.diagnosticGUI):
             ##ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
             spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
 
-            #print('length of spike_seg:',len(spike_seg))
-            #print('c:',c)
+            print('length of spike_seg:',len(spike_seg))
+            print('c:',c)
             try:
                 X = np.row_stack((X, spike_seg))
             except NameError:
