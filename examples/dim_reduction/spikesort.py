@@ -41,8 +41,8 @@ class spikesorter(graphics.diagnosticGUI):
         graphics.diagnosticGUI.__init__(self, plotter)
 
         #Recover data:
-        data = importPointset('shortsimdata1.dat',t=0,sep=',')
-        #data = importPointset('simdata1_100000.dat',t=0,sep=',')
+        #data = importPointset('shortsimdata1.dat',t=0,sep=',')
+        data = importPointset('simdata1_100000.dat',t=0,sep=',')
 
         vs = data['vararray'][0]
         vs = self.bandpass_filter(vs, 300, 3000, 32000)
@@ -57,7 +57,7 @@ class spikesorter(graphics.diagnosticGUI):
         self.selected_pcs = []
         self.fovea_setup()
 
-        #x = self.traj.sample()['x']
+        #x = self.traj.sample(tlo= 0, thi = self.N)['x']
         #r = x > 10
         #above_thresh = np.where(r == True)[0]
 
@@ -96,7 +96,6 @@ class spikesorter(graphics.diagnosticGUI):
         self.plotter.addLayer('detected')
         self.plotter.addLayer('pcs')
         self.plotter.addLayer('scores')
-        self.plotter.addLayer('loading_text', kind= 'text')
 
         self.setup({'11':
                    {'name': 'waveform',
@@ -108,7 +107,7 @@ class spikesorter(graphics.diagnosticGUI):
                    '12':
                    {'name': 'detected spikes',
                     'scale': [(0, default_sw), (-80, 80)],
-                    'layers':['detected', 'loading_text'],
+                    'layers':['detected'],
                     #'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     },
@@ -131,9 +130,6 @@ class spikesorter(graphics.diagnosticGUI):
                   size=(8, 8), with_times=False, basic_widgets=True)
 
         #self.plotter.setText('load_perc', Loading: %d\%'%n, 'loading')
-        self.plotter.addText(0.1, 0.8, 'Loading...', use_axis_coords=True,
-                        name='load_perc', layer='loading_text', style='k')
-        self.plotter.setLayer('loading_text', display=False)
 
         #Bad code carried over from fovea_game:
         fig_struct, figure = self.plotter._resolveFig(None)
@@ -250,37 +246,14 @@ class spikesorter(graphics.diagnosticGUI):
                 print("Each detected spike will be placed in the top right subplot.")
                 self.tutorial = 'step3'
 
-            self.plotter.setText('load_perc', 'Loading...', 'loading_text')
-            self.plotter.setLayer('loading_text', display= True)
-            self.show()
-
             cutoff =  self.selected_object.y1
 
-            #SS_event_args = {'name': 'SS_zerothresh',
-                             #'eventtol': 1e-3,
-                             #'eventdelay': 1e-4,
-                             #'eventinterval': self.search_width,
-                             #'starttime': 0,
-                             #'precise': True,
-                             #'active': True}
-            ##dircode = 1 is crossing from below
-            #SS_thresh_ev = Events.makePythonStateZeroCrossEvent('v', cutoff, 1, SS_event_args,
-                                                                #var= ssort.traj.variables['x'])
-
-            ##If I search the entire interval at once, it returns a partial list. Why?
-            #ts = ssort.traj.sample()['t']
-            #dt = ts[1]-ts[0]  # assumes uniformly timed samples
-            ##dt = default_sw
-            ##result = SS_thresh_ev.searchForEvents((0, 15000), dt=dt, eventdelay=False)
-            #result = SS_thresh_ev.searchForEvents((0, self.N), dt=dt, eventdelay=False)
-            #r = ssort.traj.sample()['x'] > cutoff
-
-            x = self.traj.sample()['x']
-            r = x > cutoff
+            traj_samp = self.traj.sample()['x']
+            r = traj_samp > cutoff
             above_thresh = np.where(r == True)[0]
 
             spike = []
-            peaks = []
+            spikes = []
             crosses = []
 
             last_i = above_thresh[0] - 1
@@ -288,19 +261,19 @@ class spikesorter(graphics.diagnosticGUI):
                 if i - 1 != last_i:
                     crosses.append(i)
                     #Return x value of the highest y value.
-                    peaks.append(np.where(x == max(list(x[spike])))[0][0])
+                    #peaks.append(np.where(traj_samp == max(list(traj_samp[spike])))[0][0])
+                    spikes.append(spike)
                     spike = []
                 spike.append(i)
                 last_i = i
 
+            self.traj_samp = traj_samp
             self.crosses = crosses
-            self.peaks = peaks
-            #self.spikes = spikes
+            self.spikes = spikes
 
             #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
             self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
 
-            self.plotter.setLayer('loading_text', display= False)
             self.show()
 
 
@@ -326,7 +299,7 @@ class spikesorter(graphics.diagnosticGUI):
 
         #Create new bounding boxes
         c = 0
-        for i in range(len(self.peaks)):
+        for spike in self.spikes:
             #thresh_ix = round(x)
             #tlo = thresh_ix - round(self.search_width/2)
             #thi = thresh_ix + round(self.search_width/2)
@@ -338,22 +311,26 @@ class spikesorter(graphics.diagnosticGUI):
             ##Place peak at step 20 (as in Martinez et al.)
             #tlo = tlo + result['global_max'][0] - 20
             #thi = tlo + self.search_width
-            tlo = self.peaks[i] - 20
+            peak = np.where(self.traj_samp == max(list(self.traj_samp[spike])))[0][0]
+            tlo = peak - 20
             thi = tlo + self.search_width
             valley = min(self.traj.sample()['x'][tlo:thi])
-            box_GUI(self, pp.Point2D(tlo, self.traj.sample()['x'][self.peaks[i]]),
+
+            box_GUI(self, pp.Point2D(tlo, self.traj.sample()['x'][peak]),
                     pp.Point2D(thi, valley),name= 'spike_box'+str(c), select= False)
 
 
             #Pin data
-            coorddict = {'x':
-                         {'x':'t', 'layer':'detected', 'style':'k-', 'name':'det_spike'+str(c)}
-                         }
-            ##ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
-            spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
+            #coorddict = {'x':
+                         #{'x':'t', 'layer':'detected', 'style':'k-', 'name':'det_spike'+str(c)}
+                         #}
+            ###ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
+            #spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
 
-            print('length of spike_seg:',len(spike_seg))
-            print('c:',c)
+            spike_seg = self.traj_samp[tlo:thi]
+
+            #print('length of spike_seg:',len(spike_seg))
+            #print('c:',c)
             try:
                 X = np.row_stack((X, spike_seg))
             except NameError:
@@ -361,14 +338,14 @@ class spikesorter(graphics.diagnosticGUI):
             #except ValueError: #Returns wrong concatenation size.
                 #pass
 
-            self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(self.crosses)), 'loading_text')
-            if show_after_load:
-                self.show()
+            #self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(self.crosses)), 'loading_text')
+            #if show_after_load:
+                #self.show()
 
             c += 1
 
-        self.plotter.setLayer('loading_text', display=False)
-        self.set_selected_object(self.context_objects['thresh'])
+        #self.plotter.setLayer('loading_text', display=False)
+        #self.set_selected_object(self.context_objects['thresh'])
 
         return X
 
@@ -407,8 +384,8 @@ class spikesorter(graphics.diagnosticGUI):
                     self.selected_object.y1 < dstruct['data'][1] < self.selected_object.y2:
                         if k == '1':
                             self.default_colors[dname] = 'r'
-                            self.plotter.setData2(dname, layer='detected', style= 'r-')
-                            self.plotter.setData2(dname, layer='scores', style= 'r*')
+                            #self.plotter.setData2(dname, layer='detected', style= 'r-')
+                            #self.plotter.setData2(dname, layer='scores', style= 'r*')
                         if k == '2':
                             self.default_colors[dname] = 'g'
                             self.plotter.setData2(dname, layer='detected', style= 'g-')
@@ -421,6 +398,8 @@ class spikesorter(graphics.diagnosticGUI):
 
             #ISSUE: This only works when rebuild true.
             self.plotter.show(rebuild = True)
+            #ISSUE: Rebuilding causes the box_GUIs in bottom right subplot to disappear. Calling show again makes them reappear.
+            self.plotter.show()
 
         if k== 'd':
             try:
@@ -429,7 +408,6 @@ class spikesorter(graphics.diagnosticGUI):
                 print("Can't detect spikes until threshold crossings have been found.")
                 return
 
-            self.plotter.setLayer('loading_text', display=True)
             self.X = self.compute_bbox()
 
             self.default_colors = {}
@@ -503,8 +481,6 @@ class spikesorter(graphics.diagnosticGUI):
 
 
 ssort = spikesorter("SSort")
-
-rets = find_internal_extrema(ssort.traj.sample())
 
 fig_struct, figs = ssort.plotter._resolveFig(None)
 
