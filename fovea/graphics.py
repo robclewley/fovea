@@ -738,6 +738,35 @@ class plotter2D(object):
             # object not actually plotted yet
             pass
 
+    def setData2(self, data, layer, figure=None, **kwargs):
+        """
+        Set properties for a specific dataset in given layer, specified
+        by the keys of the keyword arguments
+
+        ISSUE: Original setData doesn't seem to provide any additional functionality beyond what setLayer already does.
+        This function is meant to behave as setLayer but at the 'data' level in Fovea's object hierarchy.
+        """
+        # figure will be the same before and after unless figure was
+        # None, in which case defaults to name of master figure
+        fig_struct, figure = self._resolveFig(figure)
+
+        # Check to see that layer exists
+        if layer not in fig_struct.layers:
+            raise KeyError("Layer does not exist in figure!")
+
+        # Check to see that data exists
+        if data not in fig_struct.layers[layer].data:
+            raise KeyError("Data does not exist in layer!")
+
+        for kw in kwargs:
+            # Check to see that parameter exists in layers
+            # ISSUE: Possibly change to account for different properties of
+            # specific artist objects?
+            if kw not in fig_struct.layers[layer].data[data]:
+                raise KeyError("Parameter is not a property of the data.")
+
+            fig_struct.layers[layer].data[data][kw] = kwargs[kw]
+
 
     def setData(self, layer, figure=None, **kwargs):
         """
@@ -1631,7 +1660,7 @@ class diagnosticGUI(object):
                     try:
                         if val['layer'] not in fig_struct.layers.keys():
                             self.plotter.addLayer(val['layer'])
-                            print("Added new layer",val['layer'],"to plotter.")
+                            print("Added new layer %s to plotter."%val['layer'])
                         addingDict[key]['layer'] = val['layer']
                     except KeyError:
                         pass
@@ -2230,11 +2259,11 @@ class diagnosticGUI(object):
         (layers, context objects and data) contained therein.
         """
         for fig_name, fig_struct in self.plotter.figs.items():
-            print('Figure:',fig_name)
+            print('Figure: %s'%fig_name)
             for lay_name, lay_struct in fig_struct['layers'].items():
-                print('--Layer:', lay_name)
+                print('--Layer: %s'%lay_name)
                 for data_name, data_struct in lay_struct['data'].items():
-                    print('----Data:', data_name)
+                    print('----Data: %s'%data_name)
                     ##ISSUE: Won't work if names are re-used!
                     #try:
                         #print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
@@ -2578,16 +2607,19 @@ class shape_GUI(context_object):
             self.gui.plotter._resolveLayer(figure, layer)
         except KeyError:
             self.gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
-            print("Created layer", layer, "to support Line_GUI object")
+            print("Created layer %s to support Line_GUI object"%layer)
 
         if x1 > x2:
             # ensure correct ordering for angles
             xt = x1
-            yt = y1
             x1 = x2
-            y1 = y2
             x2 = xt
+
+        if y1 > y2:
+            yt = y1
+            y1 = y2
             y2 = yt
+
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1

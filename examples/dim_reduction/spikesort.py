@@ -180,12 +180,14 @@ class spikesorter(graphics.diagnosticGUI):
                         #fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
                         #self.plotter.setData('pcs', name=name, linewidth= 1)
                         ##ISSUE: This a very unintuitive way to update width, but it wont stick otherwise.
-                        layer_struct.data[name].update({'linewidth': 1})
+                        #layer_struct.data[name].update({'linewidth': 1})
+                        self.plotter.setData2(name, layer='pcs', linewidth= 1)
 
                 for pc in self.proj_PCs:
                     #self.plotter.setData('pcs', name= pc, linewidth= 2.5)
                     #fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
-                    layer_struct.data[pc].update({'linewidth': 2.5})
+                    #layer_struct.data[pc].update({'linewidth': 2.5})
+                    self.plotter.setData2(pc, layer='pcs', linewidth= 2.5)
 
                 self.plotter.show()
 
@@ -210,19 +212,23 @@ class spikesorter(graphics.diagnosticGUI):
                         #Saving these variables for convenience.
                         self.pick_det = {name : detected_struct.data[name]}
 
-                        detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style':'y-'})
+                        #detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style':'y-'})
+                        self.plotter.setData2(name, layer='detected', linewidth= 3, zorder= 10, style='y-')
                         try:
                             self.pick_score = scores_struct.data[name]
-                            scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
-                                                             'markersize': 12, 'style':'y*'})
+                            self.plotter.setData2(name, layer='scores', markersize= 12, zorder= 10, style='y*')
+                            #scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
+                                                             #'markersize': 12, 'style':'y*'})
                         except KeyError:
                             pass
 
                     else:
-                        detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style':self.default_colors[name]+str('-')})
+                        #detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style':self.default_colors[name]+str('-')})
+                        self.plotter.setData2(name, layer='detected', linewidth= 1, zorder= 1, style= self.default_colors[name]+str('-'))
                         try:
-                            scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
-                                                             'markersize': 6, 'style':self.default_colors[name]+str('*')})
+                            self.plotter.setData2(name, layer='scores', markersize= 6, zorder= 1, style= self.default_colors[name]+str('*'))
+                            #scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
+                                                             #'markersize': 6, 'style':self.default_colors[name]+str('*')})
                         except KeyError:
                             pass
 
@@ -401,10 +407,20 @@ class spikesorter(graphics.diagnosticGUI):
                     self.selected_object.y1 < dstruct['data'][1] < self.selected_object.y2:
                         if k == '1':
                             self.default_colors[dname] = 'r'
+                            self.plotter.setData2(dname, layer='detected', style= 'r-')
+                            self.plotter.setData2(dname, layer='scores', style= 'r*')
                         if k == '2':
                             self.default_colors[dname] = 'g'
+                            self.plotter.setData2(dname, layer='detected', style= 'g-')
+                            self.plotter.setData2(dname, layer='scores', style= 'g*')
+
                         if k == '3':
                             self.default_colors[dname] = 'b'
+                            self.plotter.setData2(dname, layer='detected', style= 'b-')
+                            self.plotter.setData2(dname, layer='scores', style= 'b*')
+
+            #ISSUE: This only works when rebuild true.
+            self.plotter.show(rebuild = True)
 
         if k== 'd':
             try:
