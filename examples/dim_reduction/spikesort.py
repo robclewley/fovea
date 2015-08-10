@@ -119,12 +119,12 @@ class spikesorter(graphics.diagnosticGUI):
                      'axes_vars': ['x', 'y']
                      },
                     '22':
-                    {'name': 'Classified Spikes',
+                    {'name': 'Projected Spikes',
                      #'scale': [(-100, 100), (-100, 100)],
                      'scale': [(-300, 300), (-300, 300)],
                      'layers':['scores'],
                      'callbacks':'*',
-                     'axes_vars': ['x', 'y']
+                     'axes_vars': ['first_pc', 'second_pc']
                      }
                    },
                   size=(8, 8), with_times=False, basic_widgets=True)
@@ -189,6 +189,8 @@ class spikesorter(graphics.diagnosticGUI):
 
                 self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
                 self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
+
+                fig_struct.arrange['22']['axes_vars'] = list(reversed(self.proj_PCs))
 
                 self.project_to_PC()
 
