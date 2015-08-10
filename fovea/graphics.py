@@ -1100,15 +1100,14 @@ class plotter2D(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        #self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
-                        #self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
-                        #self.gui.RS_box.set_active(False)
-                        #self.gui.RS_line.set_active(False)
-
                         self.gui.RS_boxes[ax] = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
                         self.gui.RS_lines[ax] = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
                         self.gui.RS_boxes[ax].set_active(False)
                         self.gui.RS_lines[ax].set_active(False)
+
+                if 'legend' in subplot_struct:
+                    handles = subplot_struct['legend']
+                    subplot_struct['axes_obj'].legend(handles= handles)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -2020,6 +2019,24 @@ class diagnosticGUI(object):
         else:
             self._mouseDrag = True
 
+    def addLegend(self, colors, labels, subplot):
+        """
+        Creates a matplotlib legend associated with a given subplot.
+        """
+        fig_struct, fig = self.plotter._resolveFig(None)
+
+        if not isinstance(colors, list) or not isinstance(labels, list):
+            raise TypeError("colors and labels must be lists.")
+
+        if len(colors) != len(labels):
+            raise ValueError("colors and labels lists must be the same length.")
+
+        handles = []
+        for i in range(len(colors)):
+            handles.append(mpl.patches.Patch(color= colors[i], label= labels[i]))
+
+        fig_struct.arrange[subplot]['legend'] = handles
+
 
     def getPoint(self, ev):
         """
@@ -2311,20 +2328,20 @@ class diagnosticGUI(object):
             ##ISSUE: After a box_GUI has been moved, it seems to become un-pickable.
                 if k == 'left':
                     so.update(x1 = (so.x1 - step_sizeH))
-                    nav = True
+                    #nav = True
                 elif k == 'right':
                     so.update(x1 = (so.x1 + step_sizeH))
-                    nav = True
+                    #nav = True
                 elif k == 'up':
                     so.update(y1 = (so.y1 + step_sizeV))
-                    nav = True
+                    #nav = True
                 elif k == 'down':
                     so.update(y1 = (so.y1 - step_sizeV))
-                    nav = True
+                    #nav = True
 
-            if nav:
-                self.user_nav_func()
-                nav = False
+            #if nav:
+                #self.user_nav_func()
+                #nav = False
 
             if k == 'm':
                 if abs(so.ang_deg) > 45:
@@ -2560,7 +2577,7 @@ class diagnosticGUI(object):
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)
 
-    def user_nav_func(self):
+    def user_update_func(self):
         """
         Function overridden in user's app, called whenever navigation keys are used to move a graphics object.
         """
@@ -2606,6 +2623,8 @@ class shape_GUI(context_object):
         try:
             self.gui.plotter._resolveLayer(figure, layer)
         except KeyError:
+            if subplot is None:
+                raise ValueError("Must specify a subplot if layer %s doesn't already exist."%layer)
             self.gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
             print("Created layer %s to support Line_GUI object"%layer)
 
@@ -2698,21 +2717,25 @@ class shape_GUI(context_object):
             if y1 is not None:
                 self.y1 = y1
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if x1 is not None:
                 self.x1 = x1
                 fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if x2 is not None:
                 self.x2 = x2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if y2 is not None:
                 self.y2 = y2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
         if isinstance(self, box_GUI):
@@ -2735,6 +2758,8 @@ class shape_GUI(context_object):
                 self.dy = y2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
                 show = True
+
+        self.gui.user_update_func()
 
         if show:
             self.gui.plotter.show(ignore_wait = True)
@@ -2841,6 +2866,10 @@ class line_GUI(shape_GUI):
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
 
+        # slope and y intercept
+        self.m = (self.y2 - self.y1)/(self.x2 - self.x1)
+        self.b = self.y2 - self.x2*self.m
+
         if select:
             self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
             print("Created line and moved to currently selected object")
@@ -2864,11 +2893,24 @@ class line_GUI(shape_GUI):
         """
         return self.fraction_to_pos(self, dist/self.length)
 
+
     def fraction_to_pos(self, fraction):
         """
         Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
         """
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
+
+    def points(self):
+        """
+        Return 2D list of points along the line.
+        """
+        m = (self.y2 - self.y1)/(self.x2 - self.x1)
+        b = self.y2 - self.x2*m
+        xs = list(range(int(self.x1), int(self.x2))) #Casting as ints may be risky.
+        #ys = map(lambda x: x*m + b, xs)
+        ys = [x*m+b for x in xs]
+
+        return [xs, ys]
 
 
 class tracker_GUI(object):

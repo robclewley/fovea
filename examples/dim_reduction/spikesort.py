@@ -232,7 +232,7 @@ class spikesorter(graphics.diagnosticGUI):
                 self.plotter.show(rebuild= True)
 
 
-    def user_nav_func(self):
+    def user_update_func(self):
         if self.selected_object.name is 'thresh':
             try:
                 self.search_width = self.context_objects['ref_box'].dx
@@ -249,6 +249,8 @@ class spikesorter(graphics.diagnosticGUI):
             cutoff =  self.selected_object.y1
 
             traj_samp = self.traj.sample()['x']
+            #r = np.array([traj_samp[x] for x in self.selected_object.points()[0]]) > np.array(self.selected_object.points()[1])
+            #r = traj_samp > self.selected_object.points()[1]
             r = traj_samp > cutoff
             above_thresh = np.where(r == True)[0]
 
@@ -273,9 +275,10 @@ class spikesorter(graphics.diagnosticGUI):
 
             #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
             self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
+            #self.plotter.addData([self.crosses, [self.selected_object.points()[1][cross] for cross in self.crosses]],
+                                  #layer='thresh_crosses', style='r*', zorder= 10, name='crossovers', force= True)
 
             self.show()
-
 
     def compute_bbox(self):
 
@@ -384,8 +387,8 @@ class spikesorter(graphics.diagnosticGUI):
                     self.selected_object.y1 < dstruct['data'][1] < self.selected_object.y2:
                         if k == '1':
                             self.default_colors[dname] = 'r'
-                            #self.plotter.setData2(dname, layer='detected', style= 'r-')
-                            #self.plotter.setData2(dname, layer='scores', style= 'r*')
+                            self.plotter.setData2(dname, layer='detected', style= 'r-')
+                            self.plotter.setData2(dname, layer='scores', style= 'r*')
                         if k == '2':
                             self.default_colors[dname] = 'g'
                             self.plotter.setData2(dname, layer='detected', style= 'g-')
@@ -461,6 +464,8 @@ class spikesorter(graphics.diagnosticGUI):
                                    style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
             except IndexError:
                 pass
+
+            self.addLegend(['r', 'g', 'y'], ['1st PC', '2nd PC', '3rd PC'], '21')
 
             self.plotter.auto_scale_domain(xcushion = 0, subplot = '21')
             self.show()
