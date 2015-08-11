@@ -651,9 +651,10 @@ class plotter2D(object):
         #Translate axes into subplot string.
         if isinstance(subplot, mpl.axes.Axes):
             for key in fig_struct['arrange'].keys():
-                    if subplot is fig_struct['arrange'][key]['axes_obj']:
-                        subplot = key
-                        break
+                #Direct comparison of objects was unsuccessful. Perhaps caused by rebuilding plotter. Comparing titles works.
+                if subplot.get_title() is fig_struct['arrange'][key]['axes_obj'].get_title():
+                    subplot = key
+                    break
 
         kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
         d.update({name: kwargs})
@@ -715,7 +716,7 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'linewidth':linewidth, 'markersize':markersize,
-                         'zorder':zorder,'display': display, 'subplot': subplot}})
+                         'zorder':zorder,'display': display, 'subplot': subplot, 'selected':False}})
         layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
@@ -1361,6 +1362,13 @@ class plotter2D(object):
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
 
+            if dstruct['selected']:
+                linewidth = 2.5
+                markersize = 12
+            else:
+                linewidth = 1
+                markersize = 6
+
             if lay.kind == 'text' and dstruct['display']:
                 if dname not in lay.handles or force:
                     if dstruct['use_axis_coords']:
@@ -1385,10 +1393,6 @@ class plotter2D(object):
                                   visible = dstruct['display']))
 
             elif lay.kind == 'obj':
-                if dstruct['selected']:
-                    linewidth = 2.5
-                else:
-                    linewidth = 1
 
                 coords = dstruct['data']
                 try: #Line
@@ -1410,8 +1414,8 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s, linewidth= dstruct['linewidth'],
-                                            zorder = dstruct['zorder'], markersize = dstruct['markersize'],
+                                            s, linewidth= linewidth,
+                                            zorder = dstruct['zorder'], markersize = markersize,
                                             visible= dstruct['display'])[0]
                                 #ax.add_artist(lay.handles[dname])
                                 lay.handles[dname].set_picker(2.5)
@@ -2298,9 +2302,10 @@ class diagnosticGUI(object):
         Key presses used to manipulate the currently selected object.
         """
         so = self.selected_object
+        fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
 
+        #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
-            fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
             lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
             ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
@@ -2311,6 +2316,15 @@ class diagnosticGUI(object):
             step_sizeH = 0.02*abs(xl[0]-xl[1])
             step_sizeV = 0.02*abs(yl[0]-yl[1])
             nav = False
+
+            if k == 'n':
+                ##ISSUE: Currently causes "RuntimeError: can't re-enter readline"
+                name = input('Enter new name for the selected object: ')
+                so.update(name = name)
+
+            if k == 'backspace':
+                so.remove(draw= True)
+                self.selected_object = None
 
             if isinstance(so, line_GUI):
                 if k == 'left':
@@ -2355,14 +2369,15 @@ class diagnosticGUI(object):
                 else:
                     so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        if k == 'n':
-            ##ISSUE: Currently causes "RuntimeError: can't re-enter readline"
-            name = input('Enter new name for the selected object: ')
-            so.update(name = name)
+        else:
+            x = 4
+            #for layer, layer_struct in fig_struct.layers.items():
+                #for hname, handle in layer_struct.handles.items():
+                    #if handle == so:
 
-        if k == 'backspace':
-            so.remove(draw= True)
-            self.selected_object = None
+
+
+
 
 
     def key_on(self, ev):
@@ -2571,7 +2586,7 @@ class diagnosticGUI(object):
         try:
             selected_handle = selected_object.handle
         except AttributeError:
-            selected_handled = selected_object
+            selected_handle = selected_object
 
         fig_struct, figure = self.plotter._resolveFig(figure)
         for subplot, subplot_struct in fig_struct.arrange.items():
@@ -2583,8 +2598,6 @@ class diagnosticGUI(object):
 
                     if selected_handle == handle:
                         layer_struct.data[hname]['selected'] = True
-                        print("layer_struct.data[hname]")
-                        print(layer_struct.data[hname])
                     else:
                         layer_struct.data[hname]['selected'] = False
 
@@ -2610,7 +2623,7 @@ class diagnosticGUI(object):
                     #dstruct['selected'] = False
 
         self.selected_object = selected_object
-        self.plotter.show(ignore_wait = True)
+        self.plotter.show(rebuild= True, ignore_wait = True)
 
     def user_update_func(self):
         """
