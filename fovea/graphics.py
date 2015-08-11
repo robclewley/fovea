@@ -1395,6 +1395,8 @@ class plotter2D(object):
                     l = dstruct['obj'](coords[0], coords[1], linewidth=linewidth, color='y', visible= dstruct['display'])
                 except TypeError: #Rectangle
                     l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=linewidth, color='y', visible= dstruct['display'], fill= False)
+
+                self.gui.context_objects[dname].handle = l
                 lay.handles[dname] = ax.add_artist(l)
                 lay.handles[dname].set_picker(2.5)
 
@@ -2250,6 +2252,7 @@ class diagnosticGUI(object):
         Pick artists in axes and set them as the selected object.
         """
         event.is_con_obj = False
+        fig_struct, fig = self.plotter._resolveFig(None)
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
@@ -2269,6 +2272,14 @@ class diagnosticGUI(object):
 
         self.user_pick_func(event)
 
+        for subplot, subplot_struct in fig_struct.arrange.items():
+            if event.mouseevent.inaxes is subplot_struct['axes_obj']:
+                for lay in subplot_struct['layers']:
+                    layer_struct = self.plotter._resolveLayer(fig, lay)
+                    for name, artist in layer_struct.handles.items():
+                        if artist is event.artist:
+                            self.set_selected_object(artist)
+
 
     def show_tree(self, event= None):
         """
@@ -2280,12 +2291,7 @@ class diagnosticGUI(object):
             for lay_name, lay_struct in fig_struct['layers'].items():
                 print('--Layer: %s'%lay_name)
                 for data_name, data_struct in lay_struct['data'].items():
-                    print('----Data: %s'%data_name)
-                    ##ISSUE: Won't work if names are re-used!
-                    #try:
-                        #print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
-                    #except KeyError:
-                        #print('----Data:', data_name)
+                    print('----%s: %s' %(lay_struct.kind, data_name))
 
     def navigate_selected_object(self, k):
         """
@@ -2293,12 +2299,12 @@ class diagnosticGUI(object):
         """
         so = self.selected_object
 
-        fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
-        lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
-
-        ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
-
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
+            fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
+            lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
+
+            ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
+
             xl = ax.get_xlim()
             yl = ax.get_ylim()
 
@@ -2562,16 +2568,45 @@ class diagnosticGUI(object):
         """
         Set a context_object as "selected", displaying it in bold.
         """
-        if not isinstance(selected_object, pp.Point2D):
-            fig_struct, figure = self.plotter._resolveFig(figure)
-            lay = fig_struct.layers[selected_object.layer]
-            for dname, dstruct in lay.data.items():
-                #try:
-                if dname == selected_object.name:
-                    dstruct['selected'] = True
-                else:
-                    dstruct['selected'] = False
-                #except AttributeError: #selected_object is a 2D point. May want to make it a context_object as well.
+        try:
+            selected_handle = selected_object.handle
+        except AttributeError:
+            selected_handled = selected_object
+
+        fig_struct, figure = self.plotter._resolveFig(figure)
+        for subplot, subplot_struct in fig_struct.arrange.items():
+            for layer in subplot_struct['layers']:
+                layer_struct = self.plotter._resolveLayer(figure, layer)
+                #print('HANDLES')
+                #print(layer_struct.handles)
+                for hname, handle in layer_struct.handles.items():
+
+                    if selected_handle == handle:
+                        layer_struct.data[hname]['selected'] = True
+                        print("layer_struct.data[hname]")
+                        print(layer_struct.data[hname])
+                    else:
+                        layer_struct.data[hname]['selected'] = False
+
+        #If artist is context object
+        #if isinstance(selected_object, shape_GUI) and (name == None or layer == None):
+            #lay = fig_struct.layers[selected_object.layer]
+            #for dname, dstruct in lay.data.items():
+                #print('dstruct')
+                #print(dstruct)
+                ##try:
+                #if dname == selected_object.name:
+                    #dstruct['selected'] = True
+                #else:
+                    #dstruct['selected'] = False
+
+        ##Is GUI.
+        #elif not isinstance(selected_object, shape_GUI):
+            #lay = fig_struct.layers[layer]
+            #for dname, dstruct in lay.data.items():
+                #if dname == name:
+                    #dstruct['selected'] = True
+                #else:
                     #dstruct['selected'] = False
 
         self.selected_object = selected_object
@@ -2612,6 +2647,7 @@ class domain_GUI(context_object):
 class shape_GUI(context_object):
     def __init__(self, gui, pt1, pt2, layer='gx_objects', name= None, subplot=None):
         self.gui = gui
+        self.handle = [] #mpl line or rectangle object will be stored here when draw to the axes.
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
