@@ -2369,10 +2369,13 @@ class diagnosticGUI(object):
                 #nav = False
 
             if k == 'm':
-                if abs(so.ang_deg) > 45:
-                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
-                else:
-                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+                so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+
+                ##Extend horizontally or vertically, depending on angle of line.
+                #if not -45 < so.ang_deg < 45:
+                    #so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                #else:
+                    #so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
         else:
             #Retrieve the layer_struct holding this handle.
@@ -2626,27 +2629,6 @@ class diagnosticGUI(object):
                     if isinstance(handle, mpl.lines.Line2D):
                         handle.set_markersize(layer_struct.data[hname]['markersize'])
 
-        #If artist is context object
-        #if isinstance(selected_object, shape_GUI) and (name == None or layer == None):
-            #lay = fig_struct.layers[selected_object.layer]
-            #for dname, dstruct in lay.data.items():
-                #print('dstruct')
-                #print(dstruct)
-                ##try:
-                #if dname == selected_object.name:
-                    #dstruct['selected'] = True
-                #else:
-                    #dstruct['selected'] = False
-
-        ##Is GUI.
-        #elif not isinstance(selected_object, shape_GUI):
-            #lay = fig_struct.layers[layer]
-            #for dname, dstruct in lay.data.items():
-                #if dname == name:
-                    #dstruct['selected'] = True
-                #else:
-                    #dstruct['selected'] = False
-
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)
 
@@ -2702,23 +2684,14 @@ class shape_GUI(context_object):
             self.gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
             print("Created layer %s to support Line_GUI object"%layer)
 
-        if x1 > x2:
-            # ensure correct ordering for angles
-            xt = x1
-            x1 = x2
-            x2 = xt
-
-        if y1 > y2:
-            yt = y1
-            y1 = y2
-            y2 = yt
+        [x1, x2, y1, y2] = self.order_points(x1, x2, y1, y2)
 
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
         self.y2 = y2
-        self.dy = y2-y1
-        self.dx = x2-x1
+        self.dy = self.y2-self.y1
+        self.dx = self.x2-self.x1
 
         self.extra_fnspecs = {}
         self.extra_pars = {}
@@ -2890,6 +2863,16 @@ class box_GUI(shape_GUI):
 
         shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot, name= name)
 
+        #if self.x1 > self.y2:
+            #xt = self.x1
+            #self.x1 = self.x2
+            #self.x2 = xt
+
+        #if self.y1 > self.y2:
+            #yt = self.y1
+            #self.y1 = self.y2
+            #self.y2 = yt
+
         if select:
             self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
             print("Created box and moved to currently selected object")
@@ -2927,6 +2910,19 @@ class box_GUI(shape_GUI):
 
         ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
         return ys
+
+    def order_points(self, x1, x2, y1, y2):
+        if x1 > x2:
+            xt = x1
+            x1 = x2
+            x2 = xt
+
+        if y1 > y2:
+            yt = y1
+            y1 = y2
+            y2 = yt
+
+        return [x1, x2, y1, y2]
 
 
 class line_GUI(shape_GUI):
@@ -2975,6 +2971,18 @@ class line_GUI(shape_GUI):
         Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
         """
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
+
+    def order_points(self, x1, x2, y1, y2):
+        if x1 > x2:
+            # ensure correct ordering for angles
+            xt = x1
+            x1 = x2
+            x2 = xt
+            yt = y1
+            y1 = y2
+            y2 = yt
+
+        return [x1, x2, y1, y2]
 
     def points(self):
         """
