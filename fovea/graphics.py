@@ -21,6 +21,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from copy import copy
 from math import *
+from collections import OrderedDict
 import hashlib, time
 import euclid as euc
 
@@ -506,7 +507,7 @@ class plotter2D(object):
         layAttrs.dynamic = False
         layAttrs.trajs = {}
         layAttrs.axes_vars = []
-        layAttrs.handles = {}
+        layAttrs.handles = OrderedDict({})
         #layAttrs.linewidth = None
 
         for kw in kwargs:
@@ -606,7 +607,7 @@ class plotter2D(object):
         layer_struct.force = force
 
     def addObj(self, data, obj, figure=None, layer=None, subplot=None, name=None,
-                 display=True, force=False, log=None, **kwargs):
+                 display=True, force=False, log=None, linewidth=1, markersize=6, **kwargs):
         ##ISSUE: May want to combine this with patch.
         try:
             size = np.shape(data)
@@ -656,12 +657,13 @@ class plotter2D(object):
                     subplot = key
                     break
 
-        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
+        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot,
+                       'linewidth':linewidth, 'markersize':markersize, 'selected':False})
         d.update({name: kwargs})
         layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, linewidth = 1,
-                markersize= 5, zorder= 1, name=None, display=True, force=False, traj = None, log=None):
+                markersize= 6, zorder= 1, name=None, display=True, force=False, traj = None, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
@@ -1321,7 +1323,7 @@ class plotter2D(object):
                 except ValueError:
                     pass
 
-            lay.handles = {}
+            lay.handles = OrderedDict({})
 
         for dname, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
@@ -1362,12 +1364,12 @@ class plotter2D(object):
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
 
-            if dstruct['selected']:
-                linewidth = 2.5
-                markersize = 12
-            else:
-                linewidth = 1
-                markersize = 6
+            #if dstruct['selected']:
+                #linewidth = 2.5
+                #markersize = 12
+            #else:
+                #linewidth = 1
+                #markersize = 6
 
             if lay.kind == 'text' and dstruct['display']:
                 if dname not in lay.handles or force:
@@ -1396,13 +1398,16 @@ class plotter2D(object):
 
                 coords = dstruct['data']
                 try: #Line
-                    l = dstruct['obj'](coords[0], coords[1], linewidth=linewidth, color='y', visible= dstruct['display'])
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'])
                 except TypeError: #Rectangle
-                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=linewidth, color='y', visible= dstruct['display'], fill= False)
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'], fill= False)
 
-                self.gui.context_objects[dname].handle = l
-                lay.handles[dname] = ax.add_artist(l)
-                lay.handles[dname].set_picker(2.5)
+                try:
+                    self.gui.context_objects[dname].handle = l
+                    lay.handles[dname] = ax.add_artist(l)
+                    lay.handles[dname].set_picker(2.5)
+                except KeyError:
+                    pass
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1414,8 +1419,8 @@ class plotter2D(object):
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s, linewidth= linewidth,
-                                            zorder = dstruct['zorder'], markersize = markersize,
+                                            s, linewidth= dstruct['linewidth'],
+                                            zorder = dstruct['zorder'], markersize = dstruct['markersize'],
                                             visible= dstruct['display'])[0]
                                 #ax.add_artist(lay.handles[dname])
                                 lay.handles[dname].set_picker(2.5)
@@ -2302,13 +2307,13 @@ class diagnosticGUI(object):
         Key presses used to manipulate the currently selected object.
         """
         so = self.selected_object
-        fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
+        fig_struct, figure = self.plotter._resolveFig(None)
 
         #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
-            lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
+            layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
-            ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
+            ax = fig_struct['arrange'][layer_struct['data'][so.name]['subplot']]['axes_obj']
 
             xl = ax.get_xlim()
             yl = ax.get_ylim()
@@ -2370,15 +2375,27 @@ class diagnosticGUI(object):
                     so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
         else:
-            x = 4
-            #for layer, layer_struct in fig_struct.layers.items():
-                #for hname, handle in layer_struct.handles.items():
-                    #if handle == so:
+            #Retrieve the layer_struct holding this handle.
+            for subplot, subplot_struct in fig_struct.arrange.items():
+                for layer in subplot_struct['layers']:
+                    ls = self.plotter._resolveLayer(figure, layer)
+                    for hname, handle in ls.handles.items():
+                        if self.selected_object == handle:
+                            layer_struct = ls
+                            break
 
-
-
-
-
+            if k == 'up' or k == 'down':
+                for hname, handle in layer_struct.handles.items():
+                    #Direct comparison doesn't work. Compare labels.
+                    if handle == so:
+                        handles= list(layer_struct.handles.values())
+                        #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        if k == 'up':
+                            selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        elif k == 'down':
+                            selected_handle = handles[(handles.index(handle)-1)%len(handles)]
+                        self.set_selected_object(selected_handle)
+                        break
 
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
@@ -2592,14 +2609,22 @@ class diagnosticGUI(object):
         for subplot, subplot_struct in fig_struct.arrange.items():
             for layer in subplot_struct['layers']:
                 layer_struct = self.plotter._resolveLayer(figure, layer)
-                #print('HANDLES')
-                #print(layer_struct.handles)
-                for hname, handle in layer_struct.handles.items():
 
+                ##ISSUE: box_GUI should not have markersize field. Never gets used.
+                for hname, handle in layer_struct.handles.items():
                     if selected_handle == handle:
                         layer_struct.data[hname]['selected'] = True
+                        layer_struct.data[hname]['linewidth'] = 2.5
+                        layer_struct.data[hname]['markersize'] = 12
                     else:
                         layer_struct.data[hname]['selected'] = False
+                        layer_struct.data[hname]['linewidth'] = 1
+                        layer_struct.data[hname]['markersize'] = 6
+
+
+                    handle.set_linewidth(layer_struct.data[hname]['linewidth'])
+                    if isinstance(handle, mpl.lines.Line2D):
+                        handle.set_markersize(layer_struct.data[hname]['markersize'])
 
         #If artist is context object
         #if isinstance(selected_object, shape_GUI) and (name == None or layer == None):
@@ -2623,7 +2648,7 @@ class diagnosticGUI(object):
                     #dstruct['selected'] = False
 
         self.selected_object = selected_object
-        self.plotter.show(rebuild= True, ignore_wait = True)
+        self.plotter.show(ignore_wait = True)
 
     def user_update_func(self):
         """
@@ -2721,7 +2746,8 @@ class shape_GUI(context_object):
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                                'style':dstruct['style'], 'subplot':dstruct['subplot'],
-                                                               'selected':dstruct['selected'],'display': True}})
+                                                               'selected':dstruct['selected'],'linewidth':dstruct['linewidth'],
+                                                               'markersize':dstruct['markersize'],'display': True}})
         if draw:
             self.gui.plotter.show(ignore_wait = True)
 
@@ -2731,7 +2757,8 @@ class shape_GUI(context_object):
         self.gui.plotter.setData(self.layer,
                                  data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                    'style':dstruct['style'], 'subplot':dstruct['subplot'],
-                                                   'selected': dstruct['selected'], 'display': False}})
+                                                   'selected': dstruct['selected'], 'linewidth':dstruct['linewidth'],
+                                                   'markersize':dstruct['markersize'], 'display': False}})
 
         if draw:
             self.gui.plotter.show()
