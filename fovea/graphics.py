@@ -2033,6 +2033,8 @@ class diagnosticGUI(object):
     def addLegend(self, colors, labels, subplot):
         """
         Creates a matplotlib legend associated with a given subplot.
+
+        May not be compatible with versions earlier than python 2.7 and matplotlib 1.2.
         """
         fig_struct, fig = self.plotter._resolveFig(None)
 
@@ -2287,7 +2289,7 @@ class diagnosticGUI(object):
                     layer_struct = self.plotter._resolveLayer(fig, lay)
                     for name, artist in layer_struct.handles.items():
                         if artist is event.artist:
-                            self.set_selected_object(artist)
+                            self.set_selected_object(data_GUI(name, artist, lay))
 
 
     def show_tree(self, event= None):
@@ -2308,10 +2310,10 @@ class diagnosticGUI(object):
         """
         so = self.selected_object
         fig_struct, figure = self.plotter._resolveFig(None)
+        layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
         #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
-            layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
             ax = fig_struct['arrange'][layer_struct['data'][so.name]['subplot']]['axes_obj']
 
@@ -2377,28 +2379,35 @@ class diagnosticGUI(object):
                 #else:
                     #so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        else:
+        elif isinstance(so, data_GUI):
             #Retrieve the layer_struct holding this handle.
-            for subplot, subplot_struct in fig_struct.arrange.items():
-                for layer in subplot_struct['layers']:
-                    ls = self.plotter._resolveLayer(figure, layer)
-                    for hname, handle in ls.handles.items():
-                        if self.selected_object == handle:
-                            layer_struct = ls
-                            break
+            #for subplot, subplot_struct in fig_struct.arrange.items():
+                #for layer in subplot_struct['layers']:
+                    #ls = self.plotter._resolveLayer(figure, layer)
+                    #for hname, handle in ls.handles.items():
+                        #if self.selected_object == handle:
+                            #layer_struct = ls
+                            #break
 
             if k == 'up' or k == 'down':
-                for hname, handle in layer_struct.handles.items():
-                    #Direct comparison doesn't work. Compare labels.
-                    if handle == so:
-                        handles= list(layer_struct.handles.values())
-                        #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
-                        if k == 'up':
-                            selected_handle = handles[(handles.index(handle)+1)%len(handles)]
-                        elif k == 'down':
-                            selected_handle = handles[(handles.index(handle)-1)%len(handles)]
-                        self.set_selected_object(selected_handle)
-                        break
+                handles = list(layer_struct.handles.values())
+                if k == 'up':
+                    name = (handles.index(so.handle)+1)%len(handles)
+                elif k == 'down':
+                    name = (handles.index(so.handle)-1)%len(handles)
+                selected_handle = handles[name]
+                self.set_selected_object(data_GUI(name, selected_handle, so.layer))
+
+                #for hname, handle in layer_struct.handles.items():
+                    #if handle == so:
+                        #handles= list(layer_struct.handles.values())
+                        ##selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        #if k == 'up':
+                            #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        #elif k == 'down':
+                            #selected_handle = handles[(handles.index(handle)-1)%len(handles)]
+                        #self.set_selected_object(selected_handle)
+                        #break
 
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
@@ -2624,7 +2633,6 @@ class diagnosticGUI(object):
                         layer_struct.data[hname]['linewidth'] = 1
                         layer_struct.data[hname]['markersize'] = 6
 
-
                     handle.set_linewidth(layer_struct.data[hname]['linewidth'])
                     if isinstance(handle, mpl.lines.Line2D):
                         handle.set_markersize(layer_struct.data[hname]['markersize'])
@@ -2660,6 +2668,22 @@ class diagnosticGUI(object):
 class context_object(object):
     # Abstract base class
     pass
+
+class data_GUI():
+    """
+    Currently, this class just makes it convenient to retrieve important fovea properties (such as the layer and name)
+    of data in dstruct, given a matplotlib object (returned by on_pick).
+
+    Right now data_GUIs are created on the spot when the selected_object changes and never referred to again.
+    In the future, data_GUIs should be persistent, created when data is added to the plotter, and finally drawn in .buildLayer
+    using attributes stored here (not the other way around), much like how shape_GUIs are created.
+
+    May want to make this a subclass of context_object as well.
+    """
+    def __init__(self, name, handle, layer):
+        self.name = name
+        self.handle = handle
+        self.layer = layer
 
 class domain_GUI(context_object):
     pass # Not implemented yet!
@@ -2815,7 +2839,8 @@ class shape_GUI(context_object):
 
     def make_event_def(self, uniquename, dircode=0):
         """
-        Not sure how this will behave for a box_GUI.
+        make_event_def was created for line_GUIs, before box_GUI was a distinct object. This method has not
+        been tested for box_GUIs and will probably behave unexpectedly.
         """
         fig_struct, figure = self.gui.plotter._resolveFig(None)
 
@@ -2894,7 +2919,9 @@ class box_GUI(shape_GUI):
         Determine if a trajectory passes through the box object and add that segment of the trajectory
         to a layer. Uses coorddict format of addDataPoints.
 
-        Also return the data from that segment.
+        Current version only takes horizontal slices of the trajectory, preserving all change in the y-direction.
+        Should be adapted to 2D. It would be preferable if traj was not required as a param, and found with
+        a test for containment.
 
         Note: This method may be redundant when better event creation/handling has been implemented
         for box_GUIs.
@@ -2906,10 +2933,8 @@ class box_GUI(shape_GUI):
             xs = pts[params['x']]
             ys = pts[var]
 
-            #self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
-
-        ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
-        return ys
+            self.gui.plotter.addData([xs, ys], layer= params['layer'],
+                                 name= params['name'], style = params['style'], traj= pts, force= True)
 
     def order_points(self, x1, x2, y1, y2):
         if x1 > x2:
