@@ -21,6 +21,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from copy import copy
 from math import *
+from collections import OrderedDict
 import hashlib, time
 import euclid as euc
 
@@ -506,7 +507,7 @@ class plotter2D(object):
         layAttrs.dynamic = False
         layAttrs.trajs = {}
         layAttrs.axes_vars = []
-        layAttrs.handles = {}
+        layAttrs.handles = OrderedDict({})
         #layAttrs.linewidth = None
 
         for kw in kwargs:
@@ -606,7 +607,7 @@ class plotter2D(object):
         layer_struct.force = force
 
     def addObj(self, data, obj, figure=None, layer=None, subplot=None, name=None,
-                 display=True, force=False, log=None, **kwargs):
+                 display=True, force=False, log=None, linewidth=1, markersize=6, **kwargs):
         ##ISSUE: May want to combine this with patch.
         try:
             size = np.shape(data)
@@ -651,16 +652,18 @@ class plotter2D(object):
         #Translate axes into subplot string.
         if isinstance(subplot, mpl.axes.Axes):
             for key in fig_struct['arrange'].keys():
-                    if subplot is fig_struct['arrange'][key]['axes_obj']:
-                        subplot = key
-                        break
+                #Direct comparison of objects was unsuccessful. Perhaps caused by rebuilding plotter. Comparing titles works.
+                if subplot.get_title() is fig_struct['arrange'][key]['axes_obj'].get_title():
+                    subplot = key
+                    break
 
-        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot, 'selected':False})
+        kwargs.update({'data':data,'obj':obj, 'display':display, 'subplot':subplot,
+                       'linewidth':linewidth, 'markersize':markersize, 'selected':False})
         d.update({name: kwargs})
         layer_struct.force = force
 
     def addData(self, data, figure=None, layer=None, subplot=None, style=None, linewidth = 1,
-                markersize= 5, zorder= 1, name=None, display=True, force=False, traj = None, log=None):
+                markersize= 6, zorder= 1, name=None, display=True, force=False, traj = None, log=None):
         """
         User tool to add data to a named layer (defaults to current active layer).
         *data* consists of a pair of sequences of x, y data values, in the same
@@ -715,7 +718,7 @@ class plotter2D(object):
         if log:
             log.msg("Added plot data", figure=figure, layer=layer, name=name)
         d.update({name: {'data': data, 'style': style, 'linewidth':linewidth, 'markersize':markersize,
-                         'zorder':zorder,'display': display, 'subplot': subplot}})
+                         'zorder':zorder,'display': display, 'subplot': subplot, 'selected':False}})
         layer_struct.force = force
 
         # ISSUE: _updateTraj only meaningful for time-param'd trajectories
@@ -737,6 +740,35 @@ class plotter2D(object):
         except KeyError:
             # object not actually plotted yet
             pass
+
+    def setData2(self, data, layer, figure=None, **kwargs):
+        """
+        Set properties for a specific dataset in given layer, specified
+        by the keys of the keyword arguments
+
+        ISSUE: Original setData doesn't seem to provide any additional functionality beyond what setLayer already does.
+        This function is meant to behave as setLayer but at the 'data' level in Fovea's object hierarchy.
+        """
+        # figure will be the same before and after unless figure was
+        # None, in which case defaults to name of master figure
+        fig_struct, figure = self._resolveFig(figure)
+
+        # Check to see that layer exists
+        if layer not in fig_struct.layers:
+            raise KeyError("Layer does not exist in figure!")
+
+        # Check to see that data exists
+        if data not in fig_struct.layers[layer].data:
+            raise KeyError("Data does not exist in layer!")
+
+        for kw in kwargs:
+            # Check to see that parameter exists in layers
+            # ISSUE: Possibly change to account for different properties of
+            # specific artist objects?
+            if kw not in fig_struct.layers[layer].data[data]:
+                raise KeyError("Parameter is not a property of the data.")
+
+            fig_struct.layers[layer].data[data][kw] = kwargs[kw]
 
 
     def setData(self, layer, figure=None, **kwargs):
@@ -1071,15 +1103,14 @@ class plotter2D(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        #self.gui.RS_box = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
-                        #self.gui.RS_line = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
-                        #self.gui.RS_box.set_active(False)
-                        #self.gui.RS_line.set_active(False)
-
                         self.gui.RS_boxes[ax] = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
                         self.gui.RS_lines[ax] = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
                         self.gui.RS_boxes[ax].set_active(False)
                         self.gui.RS_lines[ax].set_active(False)
+
+                if 'legend' in subplot_struct:
+                    handles = subplot_struct['legend']
+                    subplot_struct['axes_obj'].legend(handles= handles)
 
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
@@ -1292,7 +1323,7 @@ class plotter2D(object):
                 except ValueError:
                     pass
 
-            lay.handles = {}
+            lay.handles = OrderedDict({})
 
         for dname, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
@@ -1333,6 +1364,13 @@ class plotter2D(object):
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
 
+            #if dstruct['selected']:
+                #linewidth = 2.5
+                #markersize = 12
+            #else:
+                #linewidth = 1
+                #markersize = 6
+
             if lay.kind == 'text' and dstruct['display']:
                 if dname not in lay.handles or force:
                     if dstruct['use_axis_coords']:
@@ -1357,18 +1395,19 @@ class plotter2D(object):
                                   visible = dstruct['display']))
 
             elif lay.kind == 'obj':
-                if dstruct['selected']:
-                    linewidth = 2.5
-                else:
-                    linewidth = 1
 
                 coords = dstruct['data']
                 try: #Line
-                    l = dstruct['obj'](coords[0], coords[1], linewidth=linewidth, color='y', visible= dstruct['display'])
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'])
                 except TypeError: #Rectangle
-                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=linewidth, color='y', visible= dstruct['display'], fill= False)
-                lay.handles[dname] = ax.add_artist(l)
-                lay.handles[dname].set_picker(2.5)
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'], fill= False)
+
+                try:
+                    self.gui.context_objects[dname].handle = l
+                    lay.handles[dname] = ax.add_artist(l)
+                    lay.handles[dname].set_picker(2.5)
+                except KeyError:
+                    pass
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
@@ -1631,7 +1670,7 @@ class diagnosticGUI(object):
                     try:
                         if val['layer'] not in fig_struct.layers.keys():
                             self.plotter.addLayer(val['layer'])
-                            print("Added new layer",val['layer'],"to plotter.")
+                            print("Added new layer %s to plotter."%val['layer'])
                         addingDict[key]['layer'] = val['layer']
                     except KeyError:
                         pass
@@ -1991,6 +2030,24 @@ class diagnosticGUI(object):
         else:
             self._mouseDrag = True
 
+    def addLegend(self, colors, labels, subplot):
+        """
+        Creates a matplotlib legend associated with a given subplot.
+        """
+        fig_struct, fig = self.plotter._resolveFig(None)
+
+        if not isinstance(colors, list) or not isinstance(labels, list):
+            raise TypeError("colors and labels must be lists.")
+
+        if len(colors) != len(labels):
+            raise ValueError("colors and labels lists must be the same length.")
+
+        handles = []
+        for i in range(len(colors)):
+            handles.append(mpl.patches.Patch(color= colors[i], label= labels[i]))
+
+        fig_struct.arrange[subplot]['legend'] = handles
+
 
     def getPoint(self, ev):
         """
@@ -2204,6 +2261,7 @@ class diagnosticGUI(object):
         Pick artists in axes and set them as the selected object.
         """
         event.is_con_obj = False
+        fig_struct, fig = self.plotter._resolveFig(None)
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
@@ -2223,6 +2281,14 @@ class diagnosticGUI(object):
 
         self.user_pick_func(event)
 
+        for subplot, subplot_struct in fig_struct.arrange.items():
+            if event.mouseevent.inaxes is subplot_struct['axes_obj']:
+                for lay in subplot_struct['layers']:
+                    layer_struct = self.plotter._resolveLayer(fig, lay)
+                    for name, artist in layer_struct.handles.items():
+                        if artist is event.artist:
+                            self.set_selected_object(artist)
+
 
     def show_tree(self, event= None):
         """
@@ -2230,35 +2296,40 @@ class diagnosticGUI(object):
         (layers, context objects and data) contained therein.
         """
         for fig_name, fig_struct in self.plotter.figs.items():
-            print('Figure:',fig_name)
+            print('Figure: %s'%fig_name)
             for lay_name, lay_struct in fig_struct['layers'].items():
-                print('--Layer:', lay_name)
+                print('--Layer: %s'%lay_name)
                 for data_name, data_struct in lay_struct['data'].items():
-                    print('----Data:', data_name)
-                    ##ISSUE: Won't work if names are re-used!
-                    #try:
-                        #print('----Context Object:', data_name, '(', type(self.context_objects[data_name]),')')
-                    #except KeyError:
-                        #print('----Data:', data_name)
+                    print('----%s: %s' %(lay_struct.kind, data_name))
 
     def navigate_selected_object(self, k):
         """
         Key presses used to manipulate the currently selected object.
         """
         so = self.selected_object
+        fig_struct, figure = self.plotter._resolveFig(None)
 
-        fig_struct, fig = self.plotter._resolveFig(self.plotter.currFig)
-        lay = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
-
-        ax = fig_struct['arrange'][lay['data'][so.name]['subplot']]['axes_obj']
-
+        #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
+            layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
+
+            ax = fig_struct['arrange'][layer_struct['data'][so.name]['subplot']]['axes_obj']
+
             xl = ax.get_xlim()
             yl = ax.get_ylim()
 
             step_sizeH = 0.02*abs(xl[0]-xl[1])
             step_sizeV = 0.02*abs(yl[0]-yl[1])
             nav = False
+
+            if k == 'n':
+                ##ISSUE: Currently causes "RuntimeError: can't re-enter readline"
+                name = input('Enter new name for the selected object: ')
+                so.update(name = name)
+
+            if k == 'backspace':
+                so.remove(draw= True)
+                self.selected_object = None
 
             if isinstance(so, line_GUI):
                 if k == 'left':
@@ -2282,36 +2353,52 @@ class diagnosticGUI(object):
             ##ISSUE: After a box_GUI has been moved, it seems to become un-pickable.
                 if k == 'left':
                     so.update(x1 = (so.x1 - step_sizeH))
-                    nav = True
+                    #nav = True
                 elif k == 'right':
                     so.update(x1 = (so.x1 + step_sizeH))
-                    nav = True
+                    #nav = True
                 elif k == 'up':
                     so.update(y1 = (so.y1 + step_sizeV))
-                    nav = True
+                    #nav = True
                 elif k == 'down':
                     so.update(y1 = (so.y1 - step_sizeV))
-                    nav = True
+                    #nav = True
 
-            if nav:
-                self.user_nav_func()
-                nav = False
+            #if nav:
+                #self.user_nav_func()
+                #nav = False
 
             if k == 'm':
-                if abs(so.ang_deg) > 45:
-                    so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
-                else:
-                    so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
+                so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        if k == 'n':
-            ##ISSUE: Currently causes "RuntimeError: can't re-enter readline"
-            name = input('Enter new name for the selected object: ')
-            so.update(name = name)
+                ##Extend horizontally or vertically, depending on angle of line.
+                #if not -45 < so.ang_deg < 45:
+                    #so.update(y1 = yl[0], y2 = yl[1], x1 = np.mean([so.x1, so.x2]), x2 = np.mean([so.x1, so.x2]))
+                #else:
+                    #so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        if k == 'backspace':
-            so.remove(draw= True)
-            self.selected_object = None
+        else:
+            #Retrieve the layer_struct holding this handle.
+            for subplot, subplot_struct in fig_struct.arrange.items():
+                for layer in subplot_struct['layers']:
+                    ls = self.plotter._resolveLayer(figure, layer)
+                    for hname, handle in ls.handles.items():
+                        if self.selected_object == handle:
+                            layer_struct = ls
+                            break
 
+            if k == 'up' or k == 'down':
+                for hname, handle in layer_struct.handles.items():
+                    #Direct comparison doesn't work. Compare labels.
+                    if handle == so:
+                        handles= list(layer_struct.handles.values())
+                        #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        if k == 'up':
+                            selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        elif k == 'down':
+                            selected_handle = handles[(handles.index(handle)-1)%len(handles)]
+                        self.set_selected_object(selected_handle)
+                        break
 
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
@@ -2516,22 +2603,36 @@ class diagnosticGUI(object):
         """
         Set a context_object as "selected", displaying it in bold.
         """
-        if not isinstance(selected_object, pp.Point2D):
-            fig_struct, figure = self.plotter._resolveFig(figure)
-            lay = fig_struct.layers[selected_object.layer]
-            for dname, dstruct in lay.data.items():
-                #try:
-                if dname == selected_object.name:
-                    dstruct['selected'] = True
-                else:
-                    dstruct['selected'] = False
-                #except AttributeError: #selected_object is a 2D point. May want to make it a context_object as well.
-                    #dstruct['selected'] = False
+        try:
+            selected_handle = selected_object.handle
+        except AttributeError:
+            selected_handle = selected_object
+
+        fig_struct, figure = self.plotter._resolveFig(figure)
+        for subplot, subplot_struct in fig_struct.arrange.items():
+            for layer in subplot_struct['layers']:
+                layer_struct = self.plotter._resolveLayer(figure, layer)
+
+                ##ISSUE: box_GUI should not have markersize field. Never gets used.
+                for hname, handle in layer_struct.handles.items():
+                    if selected_handle == handle:
+                        layer_struct.data[hname]['selected'] = True
+                        layer_struct.data[hname]['linewidth'] = 2.5
+                        layer_struct.data[hname]['markersize'] = 12
+                    else:
+                        layer_struct.data[hname]['selected'] = False
+                        layer_struct.data[hname]['linewidth'] = 1
+                        layer_struct.data[hname]['markersize'] = 6
+
+
+                    handle.set_linewidth(layer_struct.data[hname]['linewidth'])
+                    if isinstance(handle, mpl.lines.Line2D):
+                        handle.set_markersize(layer_struct.data[hname]['markersize'])
 
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)
 
-    def user_nav_func(self):
+    def user_update_func(self):
         """
         Function overridden in user's app, called whenever navigation keys are used to move a graphics object.
         """
@@ -2566,6 +2667,7 @@ class domain_GUI(context_object):
 class shape_GUI(context_object):
     def __init__(self, gui, pt1, pt2, layer='gx_objects', name= None, subplot=None):
         self.gui = gui
+        self.handle = [] #mpl line or rectangle object will be stored here when draw to the axes.
 
         xnames = pt1.coordnames
         if pt2.coordnames != xnames:
@@ -2577,23 +2679,19 @@ class shape_GUI(context_object):
         try:
             self.gui.plotter._resolveLayer(figure, layer)
         except KeyError:
+            if subplot is None:
+                raise ValueError("Must specify a subplot if layer %s doesn't already exist."%layer)
             self.gui.plotter.addLayer(layer, subplot = subplot, kind = 'obj') #Set to active layer? True.
-            print("Created layer", layer, "to support Line_GUI object")
+            print("Created layer %s to support Line_GUI object"%layer)
 
-        if x1 > x2:
-            # ensure correct ordering for angles
-            xt = x1
-            yt = y1
-            x1 = x2
-            y1 = y2
-            x2 = xt
-            y2 = yt
+        [x1, x2, y1, y2] = self.order_points(x1, x2, y1, y2)
+
         self.x1 = x1
         self.x2 = x2
         self.y1 = y1
         self.y2 = y2
-        self.dy = y2-y1
-        self.dx = x2-x1
+        self.dy = self.y2-self.y1
+        self.dx = self.x2-self.x1
 
         self.extra_fnspecs = {}
         self.extra_pars = {}
@@ -2621,7 +2719,8 @@ class shape_GUI(context_object):
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         self.gui.plotter.setData(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                                'style':dstruct['style'], 'subplot':dstruct['subplot'],
-                                                               'selected':dstruct['selected'],'display': True}})
+                                                               'selected':dstruct['selected'],'linewidth':dstruct['linewidth'],
+                                                               'markersize':dstruct['markersize'],'display': True}})
         if draw:
             self.gui.plotter.show(ignore_wait = True)
 
@@ -2631,7 +2730,8 @@ class shape_GUI(context_object):
         self.gui.plotter.setData(self.layer,
                                  data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                    'style':dstruct['style'], 'subplot':dstruct['subplot'],
-                                                   'selected': dstruct['selected'], 'display': False}})
+                                                   'selected': dstruct['selected'], 'linewidth':dstruct['linewidth'],
+                                                   'markersize':dstruct['markersize'], 'display': False}})
 
         if draw:
             self.gui.plotter.show()
@@ -2666,21 +2766,25 @@ class shape_GUI(context_object):
             if y1 is not None:
                 self.y1 = y1
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][0] = y1
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if x1 is not None:
                 self.x1 = x1
                 fig_struct.layers[self.layer]['data'][self.name]['data'][0][0] = x1
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if x2 is not None:
                 self.x2 = x2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][0][1] = x2
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
             if y2 is not None:
                 self.y2 = y2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
+                self.b = self.y2 - self.x2*self.m
                 show = True
 
         if isinstance(self, box_GUI):
@@ -2703,6 +2807,8 @@ class shape_GUI(context_object):
                 self.dy = y2
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
                 show = True
+
+        self.gui.user_update_func()
 
         if show:
             self.gui.plotter.show(ignore_wait = True)
@@ -2757,6 +2863,16 @@ class box_GUI(shape_GUI):
 
         shape_GUI.__init__(self, gui, pt1, pt2, layer='gx_objects', subplot=subplot, name= name)
 
+        #if self.x1 > self.y2:
+            #xt = self.x1
+            #self.x1 = self.x2
+            #self.x2 = xt
+
+        #if self.y1 > self.y2:
+            #yt = self.y1
+            #self.y1 = self.y2
+            #self.y2 = yt
+
         if select:
             self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
             print("Created box and moved to currently selected object")
@@ -2795,6 +2911,19 @@ class box_GUI(shape_GUI):
         ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
         return ys
 
+    def order_points(self, x1, x2, y1, y2):
+        if x1 > x2:
+            xt = x1
+            x1 = x2
+            x2 = xt
+
+        if y1 > y2:
+            yt = y1
+            y1 = y2
+            y2 = yt
+
+        return [x1, x2, y1, y2]
+
 
 class line_GUI(shape_GUI):
     """
@@ -2808,6 +2937,10 @@ class line_GUI(shape_GUI):
         # angle relative to horizontal, in radians
         self.ang = atan2(self.dy,self.dx)
         self.ang_deg = 180*self.ang/pi
+
+        # slope and y intercept
+        self.m = (self.y2 - self.y1)/(self.x2 - self.x1)
+        self.b = self.y2 - self.x2*self.m
 
         if select:
             self.gui.set_selected_object(self, figure= self.gui.plotter.currFig)
@@ -2832,11 +2965,36 @@ class line_GUI(shape_GUI):
         """
         return self.fraction_to_pos(self, dist/self.length)
 
+
     def fraction_to_pos(self, fraction):
         """
         Calculate absolute (x,y) position of fractional distance (0-1) from (x1,y1) along line
         """
         return np.array([self.x1+fraction*self.dx, self.y1+fraction*self.dy])
+
+    def order_points(self, x1, x2, y1, y2):
+        if x1 > x2:
+            # ensure correct ordering for angles
+            xt = x1
+            x1 = x2
+            x2 = xt
+            yt = y1
+            y1 = y2
+            y2 = yt
+
+        return [x1, x2, y1, y2]
+
+    def points(self):
+        """
+        Return 2D list of points along the line.
+        """
+        m = (self.y2 - self.y1)/(self.x2 - self.x1)
+        b = self.y2 - self.x2*m
+        xs = list(range(int(self.x1), int(self.x2))) #Casting as ints may be risky.
+        #ys = map(lambda x: x*m + b, xs)
+        ys = [x*m+b for x in xs]
+
+        return [xs, ys]
 
 
 class tracker_GUI(object):
