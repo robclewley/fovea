@@ -163,13 +163,6 @@ class spikesorter(graphics.diagnosticGUI):
         return y
 
     def user_pick_func(self, ev):
-        #if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
-           #picked_spikes = 'detected'
-        #if ev.mouseevent.inaxes is fig_struct['arrange']['22']['axes_obj']:
-           #picked_spikes = 'scores'
-
-        print("name: ", self.selected_object.name)
-
         if self.selected_object.layer == 'detected' or self.selected_object.layer == 'scores':
             if hasattr(self, 'last_name'):
                 self.plotter.setData2(self.last_name, layer='scores', markersize= 6, zorder= 1, style=self.default_colors[self.last_name])
@@ -177,10 +170,25 @@ class spikesorter(graphics.diagnosticGUI):
             self.plotter.setData2(self.selected_object.name, layer='scores', markersize= 12, zorder= 10, style='y*')
             self.plotter.setData2(self.selected_object.name, layer='detected', linewidth= 2.5, zorder= 10, style='y-')
 
-        self.last_name = self.selected_object.name
+            self.last_name = self.selected_object.name
+
+        elif self.selected_object.layer == 'pcs':
+            self.proj_PCs.insert(0, self.selected_object.name)
+            self.proj_PCs = self.proj_PCs[0:2]
+
+            for name in fig_struct['layers']['pcs']['data'].keys():
+                if name not in self.proj_PCs:
+                    self.plotter.setData2(name, layer='pcs', style= fig_struct['layers']['pcs']['data'][name]['style'][0]+'--')
+
+            for pc in self.proj_PCs:
+                self.plotter.setData2(pc, layer='pcs', style= fig_struct['layers']['pcs']['data'][pc]['style'][0]+'-')
+
+            self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
+            self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
+            fig_struct.arrange['22']['axes_vars'] = list(reversed(self.proj_PCs))
+            self.project_to_PC()
 
         self.plotter.show()
-
 
 
     #def user_pickl_func(self, ev):
@@ -431,9 +439,6 @@ class spikesorter(graphics.diagnosticGUI):
                             self.plotter.setData2(dname, layer='detected', style= 'k-')
                             self.plotter.setData2(dname, layer='scores', style= 'k*')
 
-            #ISSUE: This only works when rebuild true.
-            #self.plotter.show(rebuild = True)
-            #ISSUE: Rebuilding causes the box_GUIs in bottom right subplot to disappear. Calling show again makes them reappear.
             self.plotter.show()
 
         if k== 'd':
@@ -485,15 +490,15 @@ class spikesorter(graphics.diagnosticGUI):
 
             #print('proj mat shape: ', self.p.get_projmatrix().shape)
 
-            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', linewidth = 2.5, name= 'firstPC', force= True)
-            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', linewidth = 2.5, name= 'secondPC', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', name= 'firstPC', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', name= 'secondPC', force= True)
 
             self.plotter.show()
             self.proj_PCs = ['firstPC', 'secondPC']
 
             try:
                 self.addDataPoints([list(range(0, len(self.p.get_projmatrix()))) ,self.p.get_projmatrix()[:,2]],
-                                   style= 'y-', layer= 'pcs', name= 'thirdPC', force= True)
+                                   style= 'y--', layer= 'pcs', name= 'thirdPC', force= True)
             except IndexError:
                 pass
 
