@@ -1143,6 +1143,9 @@ class plotter2D(object):
 
         Optional force_wait argument to override current wait_status attribute
         to either pause execution until <RETURN> key pressed or stop pausing.
+
+        Set ignore_wait to True if updates from one call to show() must take effect
+        while the wait status of a different call is set to True.
         """
         if update == 'current':
             fig_struct, fig_name = self._resolveFig(None)
@@ -1208,8 +1211,7 @@ class plotter2D(object):
                       #format='png')
 
 
-    def buildLayers(self, layer_list, ax, rescale=None, figure=None,
-                    rebuild=False):
+    def buildLayers(self, layer_list, ax, rescale=None, figure=None, rebuild=False):
         """
         Convenience function to group layer refresh/build calls. Current figure for
         given list of layer names is assumed unless optionally specified.
@@ -1293,8 +1295,7 @@ class plotter2D(object):
         return subplots
 
 
-    def buildLayer(self, figure_name, layer_name, ax, rescale=None,
-                   force=False):
+    def buildLayer(self, figure_name, layer_name, ax, rescale=None, force=False):
         """
         Consolidates layer information into matplotlib.artist objects
         rescale (pair of pairs) may be set if the axes' current scalings
@@ -1324,6 +1325,19 @@ class plotter2D(object):
                     pass
 
             lay.handles = OrderedDict({})
+
+        ##ISSUE: Would be preferable to only do this if we know these fields have been changed.
+        for hname, handle in lay.handles.items():
+            ##ISSUE: Sometimes an hname isn't in the lay.data. Should not have to use a try except here.
+            try:
+                handle.set_linewidth(lay.data[hname]['linewidth'])
+                    #if isinstance(handle, mpl.lines.Line2D):
+                handle.set_markersize(lay.data[hname]['markersize'])
+                handle.set_zorder(lay.data[hname]['zorder'])
+                handle.set_color(lay.data[hname]['style'][0])
+            except KeyError:
+                pass
+
 
         for dname, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
@@ -2262,7 +2276,6 @@ class diagnosticGUI(object):
         """
         Pick artists in axes and set them as the selected object.
         """
-        event.is_con_obj = False
         fig_struct, fig = self.plotter._resolveFig(None)
 
         if isinstance(event.artist, mpl.lines.Line2D):
@@ -2279,9 +2292,6 @@ class diagnosticGUI(object):
                artist_data[1][0] == con_obj.y1 and \
                artist_data[1][1] == con_obj.y2:
                 self.set_selected_object(con_obj)
-                event.is_con_obj = True
-
-        self.user_pick_func(event)
 
         for subplot, subplot_struct in fig_struct.arrange.items():
             if event.mouseevent.inaxes is subplot_struct['axes_obj']:
@@ -2290,6 +2300,9 @@ class diagnosticGUI(object):
                     for name, artist in layer_struct.handles.items():
                         if artist is event.artist:
                             self.set_selected_object(data_GUI(name, artist, lay))
+
+
+        self.user_pick_func(event)
 
 
     def show_tree(self, event= None):
@@ -2391,12 +2404,14 @@ class diagnosticGUI(object):
 
             if k == 'up' or k == 'down':
                 handles = list(layer_struct.handles.values())
+                hnames = list(layer_struct.handles.keys())
                 if k == 'up':
-                    name = (handles.index(so.handle)+1)%len(handles)
+                    idx = (handles.index(so.handle)+1)%len(handles)
                 elif k == 'down':
-                    name = (handles.index(so.handle)-1)%len(handles)
-                selected_handle = handles[name]
-                self.set_selected_object(data_GUI(name, selected_handle, so.layer))
+                    idx = (handles.index(so.handle)-1)%len(handles)
+                #selected_handle = handles[idx]
+                self.set_selected_object(data_GUI(hnames[idx], handles[idx], so.layer))
+                self.user_pick_func(None)
 
                 #for hname, handle in layer_struct.handles.items():
                     #if handle == so:
@@ -2633,9 +2648,9 @@ class diagnosticGUI(object):
                         layer_struct.data[hname]['linewidth'] = 1
                         layer_struct.data[hname]['markersize'] = 6
 
-                    handle.set_linewidth(layer_struct.data[hname]['linewidth'])
-                    if isinstance(handle, mpl.lines.Line2D):
-                        handle.set_markersize(layer_struct.data[hname]['markersize'])
+                    #handle.set_linewidth(layer_struct.data[hname]['linewidth'])
+                    #if isinstance(handle, mpl.lines.Line2D):
+                        #handle.set_markersize(layer_struct.data[hname]['markersize'])
 
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)

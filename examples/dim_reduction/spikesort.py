@@ -4,6 +4,10 @@ shortsimdata1.data recovered from <http://www2.le.ac.uk/departments/engineering/
 Based on work described in:
 Martinez, J., Pedreira, C., Ison, M. J., Quian Quiroga, R. (2009). Realistic simulation of extracellular recordings.
 In J Neurosci Methods, 184(2):285-93, doi: 10.1016/j.jneumeth.2009.08.017.
+
+Bandpass filter code from:
+Weckesser, W. (2012). How to implement band-pass Butterworth filter with Scipy.signal.butter. Available at
+http://stackoverflow.com/questions/12093594/how-to-implement-band-pass-butterworth-filter-with-scipy-signal-butter.
 """
 
 #from __future__ import division
@@ -124,7 +128,7 @@ class spikesorter(graphics.diagnosticGUI):
                      'scale': [(-300, 300), (-300, 300)],
                      'layers':['scores'],
                      'callbacks':'*',
-                     'axes_vars': ['first_pc', 'second_pc']
+                     'axes_vars': ['firstPC', 'secondPC']
                      }
                    },
                   size=(8, 8), with_times=False, basic_widgets=True)
@@ -159,79 +163,100 @@ class spikesorter(graphics.diagnosticGUI):
         return y
 
     def user_pick_func(self, ev):
-        if not ev.is_con_obj:
-            fig_struct, figure = self.plotter._resolveFig(None)
+        #if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
+           #picked_spikes = 'detected'
+        #if ev.mouseevent.inaxes is fig_struct['arrange']['22']['axes_obj']:
+           #picked_spikes = 'scores'
 
-            #Clicked a PC.
-            if ev.mouseevent.inaxes is fig_struct['arrange']['21']['axes_obj']:
-                layer_struct = self.plotter._resolveLayer(figure, 'pcs')
+        print("name: ", self.selected_object.name)
 
-                for name, artist in fig_struct['layers']['pcs']['handles'].items():
-                    if artist is ev.artist:
-                        self.proj_PCs.insert(0, name)
-                        self.proj_PCs = self.proj_PCs[0:2]
+        if self.selected_object.layer == 'detected' or self.selected_object.layer == 'scores':
+            if hasattr(self, 'last_name'):
+                self.plotter.setData2(self.last_name, layer='scores', markersize= 6, zorder= 1, style=self.default_colors[self.last_name])
+                self.plotter.setData2(self.last_name, layer='detected', linewidth= 1, zorder= 1, style=self.default_colors[self.last_name])
+            self.plotter.setData2(self.selected_object.name, layer='scores', markersize= 12, zorder= 10, style='y*')
+            self.plotter.setData2(self.selected_object.name, layer='detected', linewidth= 2.5, zorder= 10, style='y-')
 
-                for name in fig_struct['layers']['pcs']['handles'].keys():
-                    if name not in self.proj_PCs:
-                        #fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
-                        #self.plotter.setData('pcs', name=name, linewidth= 1)
-                        ##ISSUE: This a very unintuitive way to update width, but it wont stick otherwise.
-                        #layer_struct.data[name].update({'linewidth': 1})
-                        self.plotter.setData2(name, layer='pcs', linewidth= 1)
+        self.last_name = self.selected_object.name
 
-                for pc in self.proj_PCs:
-                    #self.plotter.setData('pcs', name= pc, linewidth= 2.5)
-                    #fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
-                    #layer_struct.data[pc].update({'linewidth': 2.5})
-                    self.plotter.setData2(pc, layer='pcs', linewidth= 2.5)
+        self.plotter.show()
 
-                self.plotter.show()
 
-                self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
-                self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
 
-                fig_struct.arrange['22']['axes_vars'] = list(reversed(self.proj_PCs))
+    #def user_pickl_func(self, ev):
+        #if not ev.is_con_obj:
+            #fig_struct, figure = self.plotter._resolveFig(None)
 
-                self.project_to_PC()
+            ##Clicked a PC.
+            #if ev.mouseevent.inaxes is fig_struct['arrange']['21']['axes_obj']:
+                #layer_struct = self.plotter._resolveLayer(figure, 'pcs')
 
-            #Clicked a detected spike
-            picked_spikes = None
-            if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
-                picked_spikes = 'detected'
-            if ev.mouseevent.inaxes is fig_struct['arrange']['22']['axes_obj']:
-                picked_spikes = 'scores'
+                #for name, artist in fig_struct['layers']['pcs']['handles'].items():
+                    #if artist is ev.artist:
+                        #self.proj_PCs.insert(0, name)
+                        #self.proj_PCs = self.proj_PCs[0:2]
 
-            if picked_spikes is not None:
-                detected_struct = self.plotter._resolveLayer(figure, 'detected')
-                scores_struct = self.plotter._resolveLayer(figure, 'scores')
+                #for name in fig_struct['layers']['pcs']['handles'].keys():
+                    #if name not in self.proj_PCs:
+                        ##fig_struct['layers']['pcs']['handles'][name].set_linewidth(1)
+                        ##self.plotter.setData('pcs', name=name, linewidth= 1)
+                        ###ISSUE: This a very unintuitive way to update width, but it wont stick otherwise.
+                        ##layer_struct.data[name].update({'linewidth': 1})
+                        #self.plotter.setData2(name, layer='pcs', linewidth= 1)
 
-                for name, artist in fig_struct['layers'][picked_spikes]['handles'].items():
-                    if artist is ev.artist:
-                        #Saving these variables for convenience.
-                        self.pick_det = {name : detected_struct.data[name]}
+                #for pc in self.proj_PCs:
+                    ##self.plotter.setData('pcs', name= pc, linewidth= 2.5)
+                    ##fig_struct['layers']['pcs']['handles'][pc].set_linewidth(2.5)
+                    ##layer_struct.data[pc].update({'linewidth': 2.5})
+                    #self.plotter.setData2(pc, layer='pcs', linewidth= 2.5)
 
-                        #detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style':'y-'})
-                        self.plotter.setData2(name, layer='detected', linewidth= 3, zorder= 10, style='y-')
-                        try:
-                            self.pick_score = scores_struct.data[name]
-                            self.plotter.setData2(name, layer='scores', markersize= 12, zorder= 10, style='y*')
-                            #scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
-                                                             #'markersize': 12, 'style':'y*'})
-                        except KeyError:
-                            pass
+                #self.plotter.show()
 
-                    else:
-                        #detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style':self.default_colors[name]+str('-')})
-                        self.plotter.setData2(name, layer='detected', linewidth= 1, zorder= 1, style= self.default_colors[name]+str('-'))
-                        try:
-                            self.plotter.setData2(name, layer='scores', markersize= 6, zorder= 1, style= self.default_colors[name]+str('*'))
-                            #scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
-                                                             #'markersize': 6, 'style':self.default_colors[name]+str('*')})
-                        except KeyError:
-                            pass
+                #self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
+                #self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
 
-                ##ISSUE: Have to rebuild in order to update data attributes.
-                self.plotter.show(rebuild= True)
+                #fig_struct.arrange['22']['axes_vars'] = list(reversed(self.proj_PCs))
+
+                #self.project_to_PC()
+
+            ##Clicked a detected spike
+            #picked_spikes = None
+            #if ev.mouseevent.inaxes is fig_struct['arrange']['12']['axes_obj']:
+                #picked_spikes = 'detected'
+            #if ev.mouseevent.inaxes is fig_struct['arrange']['22']['axes_obj']:
+                #picked_spikes = 'scores'
+
+            #if picked_spikes is not None:
+                #detected_struct = self.plotter._resolveLayer(figure, 'detected')
+                #scores_struct = self.plotter._resolveLayer(figure, 'scores')
+
+                #for name, artist in fig_struct['layers'][picked_spikes]['handles'].items():
+                    #if artist is ev.artist:
+                        ##Saving these variables for convenience.
+                        #self.pick_det = {name : detected_struct.data[name]}
+
+                        ##detected_struct.data[name].update({'linewidth': 3, 'zorder':10, 'style':'y-'})
+                        #self.plotter.setData2(name, layer='detected', linewidth= 3, zorder= 10, style='y-')
+                        #try:
+                            #self.pick_score = scores_struct.data[name]
+                            #self.plotter.setData2(name, layer='scores', markersize= 12, zorder= 10, style='y*')
+                            ##scores_struct.data[name].update({'linewidth': 3, 'zorder':10,
+                                                             ##'markersize': 12, 'style':'y*'})
+                        #except KeyError:
+                            #pass
+
+                    #else:
+                        ##detected_struct.data[name].update({'linewidth': 1, 'zorder':1, 'style':self.default_colors[name]+str('-')})
+                        #self.plotter.setData2(name, layer='detected', linewidth= 1, zorder= 1, style= self.default_colors[name]+str('-'))
+                        #try:
+                            #self.plotter.setData2(name, layer='scores', markersize= 6, zorder= 1, style= self.default_colors[name]+str('*'))
+                            ##scores_struct.data[name].update({'linewidth': 1, 'zorder':1,
+                                                             ##'markersize': 6, 'style':self.default_colors[name]+str('*')})
+                        #except KeyError:
+                            #pass
+
+                ###ISSUE: Have to rebuild in order to update data attributes.
+                #self.plotter.show(rebuild= True)
 
 
     def user_update_func(self):
@@ -401,8 +426,13 @@ class spikesorter(graphics.diagnosticGUI):
                             self.plotter.setData2(dname, layer='detected', style= 'b-')
                             self.plotter.setData2(dname, layer='scores', style= 'b*')
 
+                        if k == '0':
+                            self.default_colors[dname] = 'k'
+                            self.plotter.setData2(dname, layer='detected', style= 'k-')
+                            self.plotter.setData2(dname, layer='scores', style= 'k*')
+
             #ISSUE: This only works when rebuild true.
-            self.plotter.show(rebuild = True)
+            #self.plotter.show(rebuild = True)
             #ISSUE: Rebuilding causes the box_GUIs in bottom right subplot to disappear. Calling show again makes them reappear.
             self.plotter.show()
 
@@ -455,15 +485,15 @@ class spikesorter(graphics.diagnosticGUI):
 
             #print('proj mat shape: ', self.p.get_projmatrix().shape)
 
-            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', linewidth = 2.5, name= 'first_pc', force= True)
-            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', linewidth = 2.5, name= 'second_pc', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', linewidth = 2.5, name= 'firstPC', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', linewidth = 2.5, name= 'secondPC', force= True)
 
             self.plotter.show()
-            self.proj_PCs = ['first_pc', 'second_pc']
+            self.proj_PCs = ['firstPC', 'secondPC']
 
             try:
                 self.addDataPoints([list(range(0, len(self.p.get_projmatrix()))) ,self.p.get_projmatrix()[:,2]],
-                                   style= 'y-', layer= 'pcs', name= 'third_pc', force= True)
+                                   style= 'y-', layer= 'pcs', name= 'thirdPC', force= True)
             except IndexError:
                 pass
 
