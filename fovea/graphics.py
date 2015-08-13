@@ -1331,11 +1331,10 @@ class plotter2D(object):
             ##ISSUE: Sometimes an hname isn't in the lay.data. Should not have to use a try except here.
             try:
                 handle.set_linewidth(lay.data[hname]['linewidth'])
-                    #if isinstance(handle, mpl.lines.Line2D):
                 handle.set_markersize(lay.data[hname]['markersize'])
                 handle.set_zorder(lay.data[hname]['zorder'])
                 handle.set_color(lay.data[hname]['style'][0])
-            except KeyError:
+            except (KeyError, AttributeError) as e:
                 pass
 
 
@@ -2639,7 +2638,7 @@ class diagnosticGUI(object):
 
                 ##ISSUE: box_GUI should not have markersize field. Never gets used.
                 for hname, handle in layer_struct.handles.items():
-                    if selected_handle == handle:
+                    if selected_handle is handle:
                         layer_struct.data[hname]['selected'] = True
                         layer_struct.data[hname]['linewidth'] = 2.5
                         layer_struct.data[hname]['markersize'] = 12
@@ -2856,17 +2855,20 @@ class shape_GUI(context_object):
         """
         make_event_def was created for line_GUIs, before box_GUI was a distinct object. This method has not
         been tested for box_GUIs and will probably behave unexpectedly.
+
+        make_event_def should probably also be called in .update, if an event already exists. Right now,
+        if a line is created, then moved, the event will behave as though there were a line in the original spot.
         """
         fig_struct, figure = self.gui.plotter._resolveFig(None)
 
-        for field in ['handles', 'data', 'trajs']:
-            fig_struct.layers[self.layer][field][uniquename] = \
-                fig_struct.layers[self.layer][field].pop(self.name)
+        #for field in ['handles', 'data', 'trajs']:
+            #fig_struct.layers[self.layer][field][uniquename] = \
+                #fig_struct.layers[self.layer][field].pop(self.name)
 
-        #Update changes the diagnosticGUI object.
-        self.gui.plotter.figs[figure] = fig_struct
+        ##Update changes the diagnosticGUI object.
+        #self.gui.plotter.figs[figure] = fig_struct
 
-        self.name = uniquename
+        #self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
                                           ['x', 'y'], True)
 
