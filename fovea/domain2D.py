@@ -301,18 +301,18 @@ class GUI_domain_handler(object):
             self.polygon_domain_obj.grow()
             self.domain = self.polygon_domain_obj.polygon
             self.gui_grow_state = 3
-            self.show_domain()
+            self.show_domain(ev)
             if self.verbose:
                 print("Domain complete")
         except AttributeError:
             return
 
-    def show_domain(self):
+    def show_domain(self, ev):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
         try:
             self.gui.plotter._resolveLayer(figure, 'gx_objects')
         except KeyError:
-            self.gui.plotter.addLayer('gx_objects', subplot='11', kind = 'obj') #subplot='11' needs to be changed.
+            self.gui.plotter.addLayer('gx_objects', subplot=ev.inaxes, kind = 'obj') #subplot='11' needs to be changed.
             print("Created layer gx_objects to support domain polygon")
 
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy

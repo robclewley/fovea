@@ -136,7 +136,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                {'name': 'AFTER',
                                 'scale': [(-20,20),(-20,20)],
                                 'layers': clus_layers,
-                                'callbacks':'*',
+                                #'callbacks': '*',
                                 'axes_vars': ['a', 'b']},
                                '13':
                                {'name': 'Variance by Components',
@@ -185,8 +185,10 @@ class ControlSys:
                 plotter.addVLine(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
 
     def get_projection_distance(self, pt_array, fsign=None):
-        """Domain criterion function for determining how far lower dimensional points
-        were projected"""
+        """
+        Domain criterion function for determining how far lower dimensional points
+        were projected
+        """
         #Judge by nearest point rather than points inside. Otherwise, I would need to access the whole polygon,
         #which would be difficult.
 
@@ -239,19 +241,20 @@ class ControlSys:
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')
 
-        if event.key == 'up' or (event.key == 'down' and self.d is not 2):
-            if event.key == 'up':
-                self.d += 1
-            elif event.key == 'down':
-                self.d -= 1
+        if self.proj_vecsHI is not None:
+            if (event.key == 'up' and self.d is not len(self.proj_vecsHI)) or (event.key == 'down' and self.d is not 2):
+                if event.key == 'up':
+                    self.d += 1
+                elif event.key == 'down':
+                    self.d -= 1
 
-            print("Attempting to display", self.d,"-dimensional data...")
+                print("Attempting to display", self.d,"-dimensional data...")
 
-            for i in range(len(self.clus_layers)):
-                self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
+                for i in range(len(self.clus_layers)):
+                    self.data_dict = compute(self.data[i], self.d, self.clus_layers[i], self.clus_styles[i], self.proj_vecsLO, self.proj_vecsHI)
 
-            self.highlight_eigens()
-            gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
+                self.highlight_eigens()
+                gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
 
         plotter.show(rebuild=False)
 

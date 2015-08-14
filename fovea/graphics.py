@@ -522,7 +522,7 @@ class plotter2D(object):
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
 
-        #Adds the layer to the arrange, stranslating an axes 'subplot' into a subplot string.
+        #Adds the layer to the arrange, translating an axes 'subplot' into a subplot string.
         if subplot is None:
             pass
         elif isinstance(subplot, str):
@@ -1336,7 +1336,6 @@ class plotter2D(object):
                 handle.set_color(lay.data[hname]['style'][0])
             except (KeyError, AttributeError) as e:
                 pass
-
 
         for dname, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
@@ -2461,6 +2460,9 @@ class diagnosticGUI(object):
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
             self.mouse_wait_state_owner = 'snap'
         elif k == dom_key:
+            ##ISSUE: Growable domains won't work until domain_GUI has been implemented. In buildLayer,
+            ## objects aren't drawn unless they exist in self.context_objects. Domain objects are just line2Ds,
+            ## created in domain2D, and are not stored as actual context objects.
             if self.selected_object_temphandle is not None:
                 self.current_domain_handler.event('reset')
             print("Click on domain seed point then initial radius point")
