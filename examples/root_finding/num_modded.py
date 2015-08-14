@@ -36,9 +36,10 @@ def plot_pt(x, f, n, name, col, layer_root, marker='o'):
     """
     Internal diagnostic helper function.
     """
+    new_layer = layer_root+'_data_%d'%n
     pt = pp.Point2D(x, f(x))
     plotter.addPoint(pt, style=col+marker, name=name+'_%d'%n,
-                     layer=layer_root+'_data_%d'%n, log=dm.log)
+                     layer=new_layer, log=dm.log)
     fs = plotter.figs['Master']
     ax = fs.arrange['11']['axes_obj']
     xlim = ax.get_xlim()
@@ -50,6 +51,8 @@ def plot_pt(x, f, n, name, col, layer_root, marker='o'):
     plotter.addText(pt[0]-0.05*x_ext, pt[1]+0.02*y_ext, name,
                     use_axis_coords=False, name=name+'_%d'%n,
                     layer=layer_root+'_text_%d'%n, style=col)
+
+    #plotter.show(ignore_wait = True)
     return pt
 
 
@@ -72,8 +75,9 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
             plotter.toggleDisplay(layer='bisect_text_%d'%(n-1))
             plotter.toggleDisplay(layer='bisect_data_%d'%(n-1))
             rebuild = False
-        plotter.addLayer('bisect_data_%d'%n)
-        plotter.addLayer('bisect_text_%d'%n, kind='text')
+        ##ISSUE: Must include subplot arg to ensure layer ends up in fig_struct.arrange. This is unexpected and inconvenient.
+        plotter.addLayer('bisect_data_%d'%n, subplot= '11')
+        plotter.addLayer('bisect_text_%d'%n, kind='text', subplot= '11')
         c = (a+b)/2.0
         dm.log.msg('Bisect loop', a=a, b=b, c=c)
         a_pt = plot_pt(a, f, n, 'a', 'r', 'bisect', 'o')
@@ -120,8 +124,8 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
             plotter.toggleDisplay(layer='secant_text_%d'%(n-1))
             plotter.toggleDisplay(layer='secant_data_%d'%(n-1))
             rebuild = False
-        plotter.addLayer('secant_data_%d'%n)
-        plotter.addLayer('secant_text_%d'%n, kind='text')
+        plotter.addLayer('secant_data_%d'%n, subplot= '11')
+        plotter.addLayer('secant_text_%d'%n, kind='text', subplot= '11')
         x2 = x1 - f(x1)*((x1-x0)/(f(x1)-f(x0)))
         x0_pt = plot_pt(x0, f, n, 'x0', 'r', 'secant', 'o')
         x1_pt = plot_pt(x1, f, n, 'x1', 'g', 'secant', 'o')
