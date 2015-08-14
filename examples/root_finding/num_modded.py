@@ -52,7 +52,6 @@ def plot_pt(x, f, n, name, col, layer_root, marker='o'):
                     use_axis_coords=False, name=name+'_%d'%n,
                     layer=layer_root+'_text_%d'%n, style=col)
 
-    #plotter.show(ignore_wait = True)
     return pt
 
 
