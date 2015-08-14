@@ -338,7 +338,7 @@ class spikesorter(graphics.diagnosticGUI):
         self._key = k = ev.key  # keep record of last keypress
         fig_struct, fig = self.plotter._resolveFig(None)
 
-        class_keys = ['1','2','3','4']
+        class_keys = ['1','2','3','0']
 
         if k in class_keys:
             if isinstance(self.selected_object, box_GUI):
