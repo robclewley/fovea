@@ -1414,6 +1414,7 @@ class plotter2D(object):
                 except TypeError: #Rectangle
                     l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'], fill= False)
 
+                ##ISSUE: try/except not needed here.
                 try:
                     self.gui.context_objects[dname].handle = l
                     lay.handles[dname] = ax.add_artist(l)
@@ -2274,31 +2275,42 @@ class diagnosticGUI(object):
         """
         Pick artists in axes and set them as the selected object.
         """
+        ##ISSUE: If click is within range of multiple artist, pick_on is called many times in succession,
+        ##and picks all those artists as selected objects in sequence.
         fig_struct, fig = self.plotter._resolveFig(None)
+        found_con_obj = False
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
+            found_con_obj = True
 
         elif isinstance(event.artist, mpl.patches.Rectangle):
             #Need to use width of rectangle to CALCUlATE other vertices.
             artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
                            [event.artist.get_y(), event.artist.get_y()+ event.artist.get_height()]]
+            found_con_obj = True
 
-        for con_obj in self.context_objects.values():
-            if artist_data[0][0] == con_obj.x1 and \
-               artist_data[0][1] == con_obj.x2 and \
-               artist_data[1][0] == con_obj.y1 and \
-               artist_data[1][1] == con_obj.y2:
-                self.set_selected_object(con_obj)
+        else:
+            for subplot, subplot_struct in fig_struct.arrange.items():
+                if event.mouseevent.inaxes is subplot_struct['axes_obj']:
+                    for lay in subplot_struct['layers']:
+                        layer_struct = self.plotter._resolveLayer(fig, lay)
+                        for name, artist in layer_struct.handles.items():
+                            if artist is event.artist:
+                                self.set_selected_object(data_GUI(name, artist, lay))
 
-        for subplot, subplot_struct in fig_struct.arrange.items():
-            if event.mouseevent.inaxes is subplot_struct['axes_obj']:
-                for lay in subplot_struct['layers']:
-                    layer_struct = self.plotter._resolveLayer(fig, lay)
-                    for name, artist in layer_struct.handles.items():
-                        if artist is event.artist:
-                            self.set_selected_object(data_GUI(name, artist, lay))
+        if found_con_obj:
+            for con_obj in self.context_objects.values():
+                if isinstance(con_obj, shape_GUI) and \
+                   artist_data[0][0] == con_obj.x1 and \
+                   artist_data[0][1] == con_obj.x2 and \
+                   artist_data[1][0] == con_obj.y1 and \
+                   artist_data[1][1] == con_obj.y2:
+                    self.set_selected_object(con_obj)
 
+                if isinstance(con_obj, domain_GUI):
+                    ##ISSUE: domain_GUI picking not yet implemented.
+                    pass
 
         self.user_pick_func(event)
 
@@ -2460,9 +2472,6 @@ class diagnosticGUI(object):
             self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
             self.mouse_wait_state_owner = 'snap'
         elif k == dom_key:
-            ##ISSUE: Growable domains won't work until domain_GUI has been implemented. In buildLayer,
-            ## objects aren't drawn unless they exist in self.context_objects. Domain objects are just line2Ds,
-            ## created in domain2D, and are not stored as actual context objects.
             if self.selected_object_temphandle is not None:
                 self.current_domain_handler.event('reset')
             print("Click on domain seed point then initial radius point")
@@ -2702,7 +2711,25 @@ class data_GUI():
         self.layer = layer
 
 class domain_GUI(context_object):
-    pass # Not implemented yet!
+    """
+    Irregular polygon context objects created by domain2D. Not fully implemented.
+    (e.g., missing other methods used in shape_GUI)
+
+    ISSUE: Creating domainGUI's causes other context objects to behave strangely. For instance,
+    if a line_GUI already exists, then a domain_GUI is created, the line_GUI will become bold
+    and will no longer update.
+    """
+    def __init__(self, gui, coords, layer='gx_objects', name= None, subplot= None):
+        self.name = name
+        self.layer = layer
+        self.handle = []
+        self.gui = gui
+
+        self.gui.declare_in_context(self)
+
+        self.gui.plotter.addObj(coords, mpl.lines.Line2D, name= self.name, layer= layer, style= 'y-')
+
+        self.gui.plotter.show(ignore_wait = True)
 
 class shape_GUI(context_object):
     def __init__(self, gui, pt1, pt2, layer='gx_objects', name= None, subplot=None):
