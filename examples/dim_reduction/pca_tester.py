@@ -22,8 +22,6 @@ def disc():
         X[i] = rotate_z(rotate_y(rotate_x(translate(pts, trans_ax, trans_am),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi)),random.uniform(0, 2*np.pi))
         X[i] = noise(X[i], 2, 0.3, 0, 10)
 
-    print(X[0])
-
     rot_layers = ['rot1', 'rot2', 'rot3']
     rot_styles = ['r', 'g', 'b']
 
@@ -40,7 +38,6 @@ def hypersphere(dim):
     pts = sd.generate_ball(100, dim, 10)
 
     #Create and stretch different hypersphere "clusters":
-    #X1 = translate(stretch(sd.generate_ball(133, dim, 10), 0, 1.2), 0, 25)
     X1 = translate(stretch(stretch(sd.generate_ball(133, dim, 10), 0, 1.4), 1, 1.4), 0, 25)
     X2 = translate(sd.generate_ball(110, dim, 10), 1, 20)
     X3 = translate(noise(sd.generate_ball(95, dim, 10), 2, 0.6, 0, 2), 2, 15)
@@ -64,20 +61,7 @@ def hypersphere(dim):
 
     return ctrl_sys
 
-def iris():
-    """
-    Example for loading in real data from txt. Not yet working.
-    """
-    data = np.loadtxt('iris.data.txt', dtype= [('f0',float),('f1',float), ('f2',float),('f3',float), ('f4', object)], delimiter=',', unpack=False)
-    X = {}
-
-    for row in data:
-        try:
-            np.row_stack((X[row[4]], (np.array([row[i] for i in range(4)]))))
-        except:
-            X[row[4]] = (np.array([row[i] for i in range(4)]))
-
-#ctrl_sys = disc()
-ctrl_sys = hypersphere(6)
+ctrl_sys = disc()
+#ctrl_sys = hypersphere(6)
 
 halt= True

@@ -18,8 +18,6 @@ from shapely.geometry import polygon as P
 from descartes.patch import PolygonPatch
 import numpy as np
 
-
-
 class polygon_domain(object):
     """
     """
@@ -301,22 +299,24 @@ class GUI_domain_handler(object):
             self.polygon_domain_obj.grow()
             self.domain = self.polygon_domain_obj.polygon
             self.gui_grow_state = 3
-            self.show_domain()
+            self.show_domain(ev)
             if self.verbose:
                 print("Domain complete")
         except AttributeError:
             return
 
-    def show_domain(self):
+    def show_domain(self, ev):
         fig_struct, figure = self.gui.plotter._resolveFig(None)
+
+        ##ISSUE: This try/except should probably be moved to domain_GUI.
         try:
             self.gui.plotter._resolveLayer(figure, 'gx_objects')
         except KeyError:
-            self.gui.plotter.addLayer('gx_objects', subplot='11', kind = 'obj') #subplot='11' needs to be changed.
+            self.gui.plotter.addLayer('gx_objects', subplot=ev.inaxes, kind = 'obj')
             print("Created layer gx_objects to support domain polygon")
 
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
-        self.gui.plotter.addObj([xs, ys], mpl.lines.Line2D, layer='gx_objects', style= 'y-')
+        self.gui.set_selected_object(fovea.graphics.domain_GUI(self.gui, [xs, ys], name= 'domain1', subplot= ev.inaxes), figure= self.plotter.currFig)
         self.gui.plotter.show(ignore_wait = True)
 
     def unshow_domain(self):
@@ -334,3 +334,7 @@ class GUI_domain_handler(object):
 
         self.gui.fig.canvas.draw()
 
+
+#Local import
+#Must import at bottom, as graphics already imports domain2D.
+import fovea.graphics

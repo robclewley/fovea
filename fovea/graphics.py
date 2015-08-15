@@ -522,7 +522,7 @@ class plotter2D(object):
         if set_to_active:
             self.set_active_layer(layer_name, figure=figure)
 
-        #Adds the layer to the arrange, stranslating an axes 'subplot' into a subplot string.
+        #Adds the layer to the arrange, translating an axes 'subplot' into a subplot string.
         if subplot is None:
             pass
         elif isinstance(subplot, str):
@@ -1143,6 +1143,9 @@ class plotter2D(object):
 
         Optional force_wait argument to override current wait_status attribute
         to either pause execution until <RETURN> key pressed or stop pausing.
+
+        Set ignore_wait to True if updates from one call to show() must take effect
+        while the wait status of a different call is set to True.
         """
         if update == 'current':
             fig_struct, fig_name = self._resolveFig(None)
@@ -1208,8 +1211,7 @@ class plotter2D(object):
                       #format='png')
 
 
-    def buildLayers(self, layer_list, ax, rescale=None, figure=None,
-                    rebuild=False):
+    def buildLayers(self, layer_list, ax, rescale=None, figure=None, rebuild=False):
         """
         Convenience function to group layer refresh/build calls. Current figure for
         given list of layer names is assumed unless optionally specified.
@@ -1293,8 +1295,7 @@ class plotter2D(object):
         return subplots
 
 
-    def buildLayer(self, figure_name, layer_name, ax, rescale=None,
-                   force=False):
+    def buildLayer(self, figure_name, layer_name, ax, rescale=None, force=False):
         """
         Consolidates layer information into matplotlib.artist objects
         rescale (pair of pairs) may be set if the axes' current scalings
@@ -1324,6 +1325,17 @@ class plotter2D(object):
                     pass
 
             lay.handles = OrderedDict({})
+
+        ##ISSUE: Would be preferable to only do this if we know these fields have been changed.
+        for hname, handle in lay.handles.items():
+            ##ISSUE: Sometimes an hname isn't in the lay.data. Should not have to use a try except here.
+            try:
+                handle.set_linewidth(lay.data[hname]['linewidth'])
+                handle.set_markersize(lay.data[hname]['markersize'])
+                handle.set_zorder(lay.data[hname]['zorder'])
+                handle.set_color(lay.data[hname]['style'][0])
+            except (KeyError, AttributeError) as e:
+                pass
 
         for dname, dstruct in lay.data.items():
             # we should have a way to know if the layer contains points
@@ -1402,6 +1414,7 @@ class plotter2D(object):
                 except TypeError: #Rectangle
                     l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'], fill= False)
 
+                ##ISSUE: try/except not needed here.
                 try:
                     self.gui.context_objects[dname].handle = l
                     lay.handles[dname] = ax.add_artist(l)
@@ -2033,6 +2046,8 @@ class diagnosticGUI(object):
     def addLegend(self, colors, labels, subplot):
         """
         Creates a matplotlib legend associated with a given subplot.
+
+        May not be compatible with versions earlier than python 2.7 and matplotlib 1.2.
         """
         fig_struct, fig = self.plotter._resolveFig(None)
 
@@ -2260,34 +2275,44 @@ class diagnosticGUI(object):
         """
         Pick artists in axes and set them as the selected object.
         """
-        event.is_con_obj = False
+        ##ISSUE: If click is within range of multiple artist, pick_on is called many times in succession,
+        ##and picks all those artists as selected objects in sequence.
         fig_struct, fig = self.plotter._resolveFig(None)
+        found_con_obj = False
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
+            found_con_obj = True
 
         elif isinstance(event.artist, mpl.patches.Rectangle):
             #Need to use width of rectangle to CALCUlATE other vertices.
             artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
                            [event.artist.get_y(), event.artist.get_y()+ event.artist.get_height()]]
+            found_con_obj = True
 
-        for con_obj in self.context_objects.values():
-            if artist_data[0][0] == con_obj.x1 and \
-               artist_data[0][1] == con_obj.x2 and \
-               artist_data[1][0] == con_obj.y1 and \
-               artist_data[1][1] == con_obj.y2:
-                self.set_selected_object(con_obj)
-                event.is_con_obj = True
+        else:
+            for subplot, subplot_struct in fig_struct.arrange.items():
+                if event.mouseevent.inaxes is subplot_struct['axes_obj']:
+                    for lay in subplot_struct['layers']:
+                        layer_struct = self.plotter._resolveLayer(fig, lay)
+                        for name, artist in layer_struct.handles.items():
+                            if artist is event.artist:
+                                self.set_selected_object(data_GUI(name, artist, lay))
+
+        if found_con_obj:
+            for con_obj in self.context_objects.values():
+                if isinstance(con_obj, shape_GUI) and \
+                   artist_data[0][0] == con_obj.x1 and \
+                   artist_data[0][1] == con_obj.x2 and \
+                   artist_data[1][0] == con_obj.y1 and \
+                   artist_data[1][1] == con_obj.y2:
+                    self.set_selected_object(con_obj)
+
+                if isinstance(con_obj, domain_GUI):
+                    ##ISSUE: domain_GUI picking not yet implemented.
+                    pass
 
         self.user_pick_func(event)
-
-        for subplot, subplot_struct in fig_struct.arrange.items():
-            if event.mouseevent.inaxes is subplot_struct['axes_obj']:
-                for lay in subplot_struct['layers']:
-                    layer_struct = self.plotter._resolveLayer(fig, lay)
-                    for name, artist in layer_struct.handles.items():
-                        if artist is event.artist:
-                            self.set_selected_object(artist)
 
 
     def show_tree(self, event= None):
@@ -2308,10 +2333,10 @@ class diagnosticGUI(object):
         """
         so = self.selected_object
         fig_struct, figure = self.plotter._resolveFig(None)
+        layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
         #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
-            layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
 
             ax = fig_struct['arrange'][layer_struct['data'][so.name]['subplot']]['axes_obj']
 
@@ -2377,28 +2402,37 @@ class diagnosticGUI(object):
                 #else:
                     #so.update(x1 = xl[0], x2 = xl[1], y1 = np.mean([so.y1, so.y2]), y2 = np.mean([so.y1, so.y2]))
 
-        else:
+        elif isinstance(so, data_GUI):
             #Retrieve the layer_struct holding this handle.
-            for subplot, subplot_struct in fig_struct.arrange.items():
-                for layer in subplot_struct['layers']:
-                    ls = self.plotter._resolveLayer(figure, layer)
-                    for hname, handle in ls.handles.items():
-                        if self.selected_object == handle:
-                            layer_struct = ls
-                            break
+            #for subplot, subplot_struct in fig_struct.arrange.items():
+                #for layer in subplot_struct['layers']:
+                    #ls = self.plotter._resolveLayer(figure, layer)
+                    #for hname, handle in ls.handles.items():
+                        #if self.selected_object == handle:
+                            #layer_struct = ls
+                            #break
 
             if k == 'up' or k == 'down':
-                for hname, handle in layer_struct.handles.items():
-                    #Direct comparison doesn't work. Compare labels.
-                    if handle == so:
-                        handles= list(layer_struct.handles.values())
-                        #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
-                        if k == 'up':
-                            selected_handle = handles[(handles.index(handle)+1)%len(handles)]
-                        elif k == 'down':
-                            selected_handle = handles[(handles.index(handle)-1)%len(handles)]
-                        self.set_selected_object(selected_handle)
-                        break
+                handles = list(layer_struct.handles.values())
+                hnames = list(layer_struct.handles.keys())
+                if k == 'up':
+                    idx = (handles.index(so.handle)+1)%len(handles)
+                elif k == 'down':
+                    idx = (handles.index(so.handle)-1)%len(handles)
+                #selected_handle = handles[idx]
+                self.set_selected_object(data_GUI(hnames[idx], handles[idx], so.layer))
+                self.user_pick_func(None)
+
+                #for hname, handle in layer_struct.handles.items():
+                    #if handle == so:
+                        #handles= list(layer_struct.handles.values())
+                        ##selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        #if k == 'up':
+                            #selected_handle = handles[(handles.index(handle)+1)%len(handles)]
+                        #elif k == 'down':
+                            #selected_handle = handles[(handles.index(handle)-1)%len(handles)]
+                        #self.set_selected_object(selected_handle)
+                        #break
 
     def key_on(self, ev):
         self._key = k = ev.key  # keep record of last keypress
@@ -2615,7 +2649,7 @@ class diagnosticGUI(object):
 
                 ##ISSUE: box_GUI should not have markersize field. Never gets used.
                 for hname, handle in layer_struct.handles.items():
-                    if selected_handle == handle:
+                    if selected_handle is handle:
                         layer_struct.data[hname]['selected'] = True
                         layer_struct.data[hname]['linewidth'] = 2.5
                         layer_struct.data[hname]['markersize'] = 12
@@ -2624,10 +2658,9 @@ class diagnosticGUI(object):
                         layer_struct.data[hname]['linewidth'] = 1
                         layer_struct.data[hname]['markersize'] = 6
 
-
-                    handle.set_linewidth(layer_struct.data[hname]['linewidth'])
-                    if isinstance(handle, mpl.lines.Line2D):
-                        handle.set_markersize(layer_struct.data[hname]['markersize'])
+                    #handle.set_linewidth(layer_struct.data[hname]['linewidth'])
+                    #if isinstance(handle, mpl.lines.Line2D):
+                        #handle.set_markersize(layer_struct.data[hname]['markersize'])
 
         self.selected_object = selected_object
         self.plotter.show(ignore_wait = True)
@@ -2661,8 +2694,42 @@ class context_object(object):
     # Abstract base class
     pass
 
+class data_GUI():
+    """
+    Currently, this class just makes it convenient to retrieve important fovea properties (such as the layer and name)
+    of data in dstruct, given a matplotlib object (returned by on_pick).
+
+    Right now data_GUIs are created on the spot when the selected_object changes and never referred to again.
+    In the future, data_GUIs should be persistent, created when data is added to the plotter, and finally drawn in .buildLayer
+    using attributes stored here (not the other way around), much like how shape_GUIs are created.
+
+    May want to make this a subclass of context_object as well.
+    """
+    def __init__(self, name, handle, layer):
+        self.name = name
+        self.handle = handle
+        self.layer = layer
+
 class domain_GUI(context_object):
-    pass # Not implemented yet!
+    """
+    Irregular polygon context objects created by domain2D. Not fully implemented.
+    (e.g., missing other methods used in shape_GUI)
+
+    ISSUE: Creating domainGUI's causes other context objects to behave strangely. For instance,
+    if a line_GUI already exists, then a domain_GUI is created, the line_GUI will become bold
+    and will no longer update.
+    """
+    def __init__(self, gui, coords, layer='gx_objects', name= None, subplot= None):
+        self.name = name
+        self.layer = layer
+        self.handle = []
+        self.gui = gui
+
+        self.gui.declare_in_context(self)
+
+        self.gui.plotter.addObj(coords, mpl.lines.Line2D, name= self.name, layer= layer, style= 'y-')
+
+        self.gui.plotter.show(ignore_wait = True)
 
 class shape_GUI(context_object):
     def __init__(self, gui, pt1, pt2, layer='gx_objects', name= None, subplot=None):
@@ -2815,18 +2882,22 @@ class shape_GUI(context_object):
 
     def make_event_def(self, uniquename, dircode=0):
         """
-        Not sure how this will behave for a box_GUI.
+        make_event_def was created for line_GUIs, before box_GUI was a distinct object. This method has not
+        been tested for box_GUIs and will probably behave unexpectedly.
+
+        make_event_def should probably also be called in .update, if an event already exists. Right now,
+        if a line is created, then moved, the event will behave as though there were a line in the original spot.
         """
         fig_struct, figure = self.gui.plotter._resolveFig(None)
 
-        for field in ['handles', 'data', 'trajs']:
-            fig_struct.layers[self.layer][field][uniquename] = \
-                fig_struct.layers[self.layer][field].pop(self.name)
+        #for field in ['handles', 'data', 'trajs']:
+            #fig_struct.layers[self.layer][field][uniquename] = \
+                #fig_struct.layers[self.layer][field].pop(self.name)
 
-        #Update changes the diagnosticGUI object.
-        self.gui.plotter.figs[figure] = fig_struct
+        ##Update changes the diagnosticGUI object.
+        #self.gui.plotter.figs[figure] = fig_struct
 
-        self.name = uniquename
+        #self.name = uniquename
         res = pp.make_distance_to_line_auxfn('exit_line_'+uniquename, 'exit_fn_'+uniquename,
                                           ['x', 'y'], True)
 
@@ -2894,7 +2965,9 @@ class box_GUI(shape_GUI):
         Determine if a trajectory passes through the box object and add that segment of the trajectory
         to a layer. Uses coorddict format of addDataPoints.
 
-        Also return the data from that segment.
+        Current version only takes horizontal slices of the trajectory, preserving all change in the y-direction.
+        Should be adapted to 2D. It would be preferable if traj was not required as a param, and found with
+        a test for containment.
 
         Note: This method may be redundant when better event creation/handling has been implemented
         for box_GUIs.
@@ -2906,10 +2979,8 @@ class box_GUI(shape_GUI):
             xs = pts[params['x']]
             ys = pts[var]
 
-            #self.gui.plotter.addData([xs, ys], layer= params['layer'], name= params['name'], style = params['style'], traj= pts, force= True)
-
-        ##Issue: Fairly specific to spike sorting. Only one var in coorddict and assuming 1D data.
-        return ys
+            self.gui.plotter.addData([xs, ys], layer= params['layer'],
+                                 name= params['name'], style = params['style'], traj= pts, force= True)
 
     def order_points(self, x1, x2, y1, y2):
         if x1 > x2:
