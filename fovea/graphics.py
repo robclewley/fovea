@@ -2278,19 +2278,33 @@ class diagnosticGUI(object):
         ##ISSUE: If click is within range of multiple artist, pick_on is called many times in succession,
         ##and picks all those artists as selected objects in sequence.
         fig_struct, fig = self.plotter._resolveFig(None)
-        found_con_obj = False
+        is_con_obj = False
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
-            found_con_obj = True
 
         elif isinstance(event.artist, mpl.patches.Rectangle):
             #Need to use width of rectangle to CALCUlATE other vertices.
             artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
                            [event.artist.get_y(), event.artist.get_y()+ event.artist.get_height()]]
-            found_con_obj = True
 
-        else:
+        for con_obj in self.context_objects.values():
+            if isinstance(con_obj, shape_GUI) and \
+               artist_data[0][0] == con_obj.x1 and \
+               artist_data[0][1] == con_obj.x2 and \
+               artist_data[1][0] == con_obj.y1 and \
+               artist_data[1][1] == con_obj.y2:
+                self.set_selected_object(con_obj)
+
+                is_con_obj = True
+
+            if isinstance(con_obj, domain_GUI):
+                ##ISSUE: domain_GUI picking not yet implemented.
+                is_con_obj = True
+                pass
+
+
+        if not is_con_obj:
             for subplot, subplot_struct in fig_struct.arrange.items():
                 if event.mouseevent.inaxes is subplot_struct['axes_obj']:
                     for lay in subplot_struct['layers']:
@@ -2298,19 +2312,6 @@ class diagnosticGUI(object):
                         for name, artist in layer_struct.handles.items():
                             if artist is event.artist:
                                 self.set_selected_object(data_GUI(name, artist, lay))
-
-        if found_con_obj:
-            for con_obj in self.context_objects.values():
-                if isinstance(con_obj, shape_GUI) and \
-                   artist_data[0][0] == con_obj.x1 and \
-                   artist_data[0][1] == con_obj.x2 and \
-                   artist_data[1][0] == con_obj.y1 and \
-                   artist_data[1][1] == con_obj.y2:
-                    self.set_selected_object(con_obj)
-
-                if isinstance(con_obj, domain_GUI):
-                    ##ISSUE: domain_GUI picking not yet implemented.
-                    pass
 
         self.user_pick_func(event)
 
