@@ -25,6 +25,8 @@ from collections import OrderedDict
 import hashlib, time
 import euclid as euc
 
+import warnings
+
 from PyDSTool import * #Need Events from here.
 
 from PyDSTool import args, numeric_to_traj, Point, Points
@@ -830,6 +832,8 @@ class plotter2D(object):
         except AttributeError:
             pass
 
+        ##ISSUE: Should this loop through all the dstructs? Seems like it just needs the one associated
+        ## with the call to addData.
         for name, dstruct in layer_struct.data.items():
             if traj is not None:
                 layer_struct.trajs[name] = pointset_to_traj(traj)
@@ -1341,6 +1345,8 @@ class plotter2D(object):
             # we should have a way to know if the layer contains points
             # that may or may not already be updated *in place* and therefore
             # don't need to be redrawn
+
+            ##ISSUE: This block doesn't seem to do anything.
             try:
                 obj = lay.handles[dname]
             except KeyError:
@@ -1384,6 +1390,8 @@ class plotter2D(object):
                 #markersize = 6
 
             if lay.kind == 'text' and dstruct['display']:
+                ##ISSUE: These probably just need to be "if dname not in handles:", since force = True
+                ## will clear lay.handles anyways.
                 if dname not in lay.handles or force:
                     if dstruct['use_axis_coords']:
                         lay.handles[dname] = ax.text(dstruct['data'][ix0],
@@ -1430,6 +1438,9 @@ class plotter2D(object):
                         if style_as_string:
                             #Check if data are two or three dimensional.
                             if len(dstruct['data']) == 2:
+                                ##ISSUE: Should repeat changes made to this case (i.e., setting the picker and new dstruct properties)
+                                ## to the other cases. At least the other 2d case.
+                                ## style_as_string == False is a potential landmine.
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
                                             s, linewidth= dstruct['linewidth'],
@@ -1452,7 +1463,7 @@ class plotter2D(object):
                                 lay.handles[dname].set_picker(True)
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
-                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix2],
+                                    ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
                                             **s)[0]
 
                     #ax.add_artist(lay.handles[dname])
@@ -1611,7 +1622,7 @@ class diagnosticGUI(object):
     def addDataPoints(self, data, figure=None, layer=None, subplot=None,
                            style=None, linewidth = 1, name=None, display=True,
                            force=False, log=None, coorddict=None):
-        maxspeed = 2.2 #This should be replaced with something general purpose. Borrowed from Bombardier.
+        maxspeed = 2.2 #ISSUE: This should be replaced with something general purpose. Borrowed from Bombardier.
 
         try:
             fig_struct, figure = self.plotter._resolveFig(None)
@@ -1628,8 +1639,11 @@ class diagnosticGUI(object):
                            force=force, log=log)
 
         elif isinstance(data, Points.Pointset) or isinstance(data, pp.Point2D):
-            #Newly created code
-            if coorddict is not None:
+            if coorddict is None:
+                warnings.warn("coorddict needed to specify how Pointset coords should be plotted.")
+                return
+
+            else:
                 addingDict = {}
 
                 for key, val in coorddict.items():
@@ -1688,7 +1702,7 @@ class diagnosticGUI(object):
                     except KeyError:
                         pass
 
-                    #Extract style
+                    #Extract name
                     try:
                         addingDict[key]['name'] = val['name']
                     except KeyError:
@@ -1731,7 +1745,7 @@ class diagnosticGUI(object):
                         pass
 
                     try:
-                        tra = self.reducePointset(data, coorddict, list(addingDict.keys())[0])
+                        tra = self._reducePointset(data, coorddict, list(addingDict.keys())[0])
                     except (KeyError, ValueError) as e:
                         tra = None
 
@@ -1762,9 +1776,10 @@ class diagnosticGUI(object):
                                         linewidth = linewidth, ##ISSUE: Should do this through coorddict as well.
                                         force = True)
         else:
-            print("Unsupported datatype")
+            warnings.warn("addDataPoints received an unsupported type for parameter data")
+            return
 
-    def reducePointset(self, ptset, coorddict, key):
+    def _reducePointset(self, ptset, coorddict, key):
         """
         Convenience function for extracting two desired points from a pointset
         with many variables.
@@ -2145,32 +2160,55 @@ class diagnosticGUI(object):
         for figName in self.plotter.figs:
 
             fig_struct = self.plotter.figs[figName]
-            pt_dict = {'t': self.t, 'ix': self.ix}
 
-            for subplot, subplot_struct in fig_struct.arrange.items():
-                layer_info = subplot_struct['layers']
 
-                for layName in layer_info:
-                    #yvar = fig_struct.layers[layName].axes_vars[1]
-                    # ignore dynamic sub-plots such as phase plane, which don't show
-                    # time-varying quantities that can be sampled this way
-                    if layName in self.timePlots:
-                        for data_name, traj in fig_struct.layers[layName].trajs.items():
-                            if fig_struct.layers[layName].kind == 'data':
-                                pt_dict[data_name] = traj(self.t)['y'] #Why is it hardwired to select y coord?
+            if self.t is not None:
+                pt_dict = {'t': self.t, 'ix': self.ix}
+
+                for subplot, subplot_struct in fig_struct.arrange.items():
+                    layer_info = subplot_struct['layers']
+
+                    for layName in layer_info:
+                        #yvar = fig_struct.layers[layName].axes_vars[1]
+                        # ignore dynamic sub-plots such as phase plane, which don't show
+                        # time-varying quantities that can be sampled this way
+                        if layName in self.timePlots:
+                            for data_name, traj in fig_struct.layers[layName].trajs.items():
+                                if fig_struct.layers[layName].kind == 'data':
+                                    pt_dict[data_name] = traj(self.t)['y'] #ISSUE: Why is it hardwired to select y coord?
+
+            elif self.selected_object is not None:
+                pt_dict = {}
+
+                for layer, layer_struct in fig_struct.layers.items():
+                    for dname, dstruct in layer_struct.data.items():
+
+                        if dname == self.selected_object.name:
+                            key = dname+'_'+layer
+                            pt_dict[key] = data_GUI(dname, layer_struct.handles[dname], layer)
+
+            else:
+                print("No selected object or points at time-step to capture")
+                return
 
             print("figName: ")
             print(figName)
             print("pt_dict: ")
             print(pt_dict)
             print(type(pt_dict))
-            print("Point(pt_dict): ")
-            print(Point(pt_dict))
-            type(Point(pt_dict))
-            print("...")
-            pts_dict.update({figName: Point(pt_dict)})
 
-        if self.verbose >= 1:
+            if self.t is not None:
+                print("Point(pt_dict): ")
+                print(Point(pt_dict))
+                type(Point(pt_dict))
+                print("...")
+                pts_dict.update({figName: Point(pt_dict)})
+
+            else:
+                print("...")
+                pts_dict.update({figName: pt_dict})
+
+        if self.verbose >= 1 and self.t is not None:
             # print point information to stdout console
             for figName, pt in pts_dict.items():
                 print("\n\n==============================")
@@ -2278,19 +2316,33 @@ class diagnosticGUI(object):
         ##ISSUE: If click is within range of multiple artist, pick_on is called many times in succession,
         ##and picks all those artists as selected objects in sequence.
         fig_struct, fig = self.plotter._resolveFig(None)
-        found_con_obj = False
+        is_con_obj = False
 
         if isinstance(event.artist, mpl.lines.Line2D):
             artist_data = event.artist.get_data()
-            found_con_obj = True
 
         elif isinstance(event.artist, mpl.patches.Rectangle):
             #Need to use width of rectangle to CALCUlATE other vertices.
             artist_data = [[event.artist.get_x(), event.artist.get_x()+ event.artist.get_width()],
                            [event.artist.get_y(), event.artist.get_y()+ event.artist.get_height()]]
-            found_con_obj = True
 
-        else:
+        for con_obj in self.context_objects.values():
+            if isinstance(con_obj, shape_GUI) and \
+               artist_data[0][0] == con_obj.x1 and \
+               artist_data[0][1] == con_obj.x2 and \
+               artist_data[1][0] == con_obj.y1 and \
+               artist_data[1][1] == con_obj.y2:
+                self.set_selected_object(con_obj)
+
+                is_con_obj = True
+
+            if isinstance(con_obj, domain_GUI):
+                ##ISSUE: domain_GUI picking not yet implemented.
+                is_con_obj = True
+                pass
+
+
+        if not is_con_obj:
             for subplot, subplot_struct in fig_struct.arrange.items():
                 if event.mouseevent.inaxes is subplot_struct['axes_obj']:
                     for lay in subplot_struct['layers']:
@@ -2298,19 +2350,6 @@ class diagnosticGUI(object):
                         for name, artist in layer_struct.handles.items():
                             if artist is event.artist:
                                 self.set_selected_object(data_GUI(name, artist, lay))
-
-        if found_con_obj:
-            for con_obj in self.context_objects.values():
-                if isinstance(con_obj, shape_GUI) and \
-                   artist_data[0][0] == con_obj.x1 and \
-                   artist_data[0][1] == con_obj.x2 and \
-                   artist_data[1][0] == con_obj.y1 and \
-                   artist_data[1][1] == con_obj.y2:
-                    self.set_selected_object(con_obj)
-
-                if isinstance(con_obj, domain_GUI):
-                    ##ISSUE: domain_GUI picking not yet implemented.
-                    pass
 
         self.user_pick_func(event)
 
