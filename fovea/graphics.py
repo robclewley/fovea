@@ -562,7 +562,7 @@ class plotter2D(object):
     def addPatch(self, data, patch, figure=None, layer=None, subplot=None, name=None,
                 display=True, force=False, log=None, **kwargs):
         """
-        patch is a callable matplotlib patch object. Accepts kwargs for patch objects.
+        patch is a matplotlib patch class. Accepts kwargs for patch objects.
         """
         try:
             size = np.shape(data)
@@ -2152,6 +2152,9 @@ class diagnosticGUI(object):
         Create a dict of Point objects from the current time point in all sub-plots
         of all figures. Keys of the dict are the figure names
         Stored in the attribute capturedPts
+
+        For non time-based data, capturePoint creates a dictionary of related data_GUI objects.
+        Data are considered related if they share the same name (despite being in different layers).
         """
         pts_dict = {}
         # pts_dict : figName -> Point with coords t and <layer_names>
@@ -2185,7 +2188,7 @@ class diagnosticGUI(object):
 
                         if dname == self.selected_object.name:
                             key = dname+'_'+layer
-                            pt_dict[key] = data_GUI(dname, layer_struct.handles[dname], layer)
+                            pt_dict[key] = data_GUI(dname, layer_struct.handles[dname], layer, self)
 
             else:
                 print("No selected object or points at time-step to capture")
@@ -2349,7 +2352,7 @@ class diagnosticGUI(object):
                         layer_struct = self.plotter._resolveLayer(fig, lay)
                         for name, artist in layer_struct.handles.items():
                             if artist is event.artist:
-                                self.set_selected_object(data_GUI(name, artist, lay))
+                                self.set_selected_object(data_GUI(name, artist, lay, self))
 
         self.user_pick_func(event)
 
@@ -2459,7 +2462,7 @@ class diagnosticGUI(object):
                 elif k == 'down':
                     idx = (handles.index(so.handle)-1)%len(handles)
                 #selected_handle = handles[idx]
-                self.set_selected_object(data_GUI(hnames[idx], handles[idx], so.layer))
+                self.set_selected_object(data_GUI(hnames[idx], handles[idx], so.layer, self))
                 self.user_pick_func(None)
 
                 #for hname, handle in layer_struct.handles.items():
@@ -2733,7 +2736,7 @@ class context_object(object):
     # Abstract base class
     pass
 
-class data_GUI():
+class data_GUI(object):
     """
     Currently, this class just makes it convenient to retrieve important fovea properties (such as the layer and name)
     of data in dstruct, given a matplotlib object (returned by on_pick).
@@ -2744,10 +2747,26 @@ class data_GUI():
 
     May want to make this a subclass of context_object as well.
     """
-    def __init__(self, name, handle, layer):
+    def __init__(self, name, handle, layer, gui):
         self.name = name
         self.handle = handle
         self.layer = layer
+        self.gui = gui
+
+        self.__str__ = self.__repr__
+
+    def getData(self):
+        """
+        Recovers data associated with this data_GUI from the fig_struct.
+        """
+        fig_struct, fig = self.gui.plotter._resolveFig(None)
+
+        data = fig_struct.layers[self.layer].data[self.name]['data']
+
+        return data
+
+    def __repr__(self):
+        return "data_GUI(%s: %s in %s)" %(self.name, self.handle.__str__(), self.layer)
 
 class domain_GUI(context_object):
     """
