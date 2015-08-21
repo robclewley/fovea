@@ -743,7 +743,7 @@ class plotter2D(object):
             # object not actually plotted yet
             pass
 
-    def setData2(self, data, layer, figure=None, **kwargs):
+    def setData2(self, label, layer, figure=None, **kwargs):
         """
         Set properties for a specific dataset in given layer, specified
         by the keys of the keyword arguments
@@ -760,17 +760,17 @@ class plotter2D(object):
             raise KeyError("Layer does not exist in figure!")
 
         # Check to see that data exists
-        if data not in fig_struct.layers[layer].data:
+        if label not in fig_struct.layers[layer].data:
             raise KeyError("Data does not exist in layer!")
 
         for kw in kwargs:
             # Check to see that parameter exists in layers
             # ISSUE: Possibly change to account for different properties of
             # specific artist objects?
-            if kw not in fig_struct.layers[layer].data[data]:
+            if kw not in fig_struct.layers[layer].data[label]:
                 raise KeyError("Parameter is not a property of the data.")
 
-            fig_struct.layers[layer].data[data][kw] = kwargs[kw]
+            fig_struct.layers[layer].data[label][kw] = kwargs[kw]
 
 
     def setData(self, layer, figure=None, **kwargs):
@@ -2911,6 +2911,8 @@ class shape_GUI(context_object):
                 fig_struct.layers[self.layer]['data'][self.name]['data'][1][1] = y2
                 self.b = self.y2 - self.x2*self.m
                 show = True
+
+            self.m = (self.y2 - self.y1)/(self.x2 - self.x1)
 
         if isinstance(self, box_GUI):
             if y1 is not None:
