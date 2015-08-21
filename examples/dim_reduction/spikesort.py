@@ -34,7 +34,9 @@ import time
 global default_sw
 default_sw = 64
 
-global show_after_load
+global tutorial_on
+tutorial_on = True
+
 show_after_load = True
 
 class spikesorter(graphics.diagnosticGUI):
@@ -78,12 +80,15 @@ class spikesorter(graphics.diagnosticGUI):
             #spike.append(i)
             #last_i = i
 
-        print("STEP 1:")
-        print("Create a horizontal line of interest by pressing 'l'.")
-        print("Once created, this line can be forced to extent by pressing 'm'.")
-        print("Enter 'ssort.selected_object.update(name = 'thresh')' to identify the line as a threshold for spike detection")
-        print("Once the line is renamed to 'thresh', the arrow keys can be used to move it up and down.")
-        self.tutorial = 'step2'
+        if tutorial_on:
+            print("STEP 1:")
+            print("Create a horizontal line of interest by pressing 'l'.")
+            print("Once created, this line can be forced to extent by pressing 'm'.")
+            print("Enter 'ssort.selected_object.update(name = 'thresh')' to identify the line as a threshold for spike detection")
+            print("Once the line is renamed to 'thresh', the arrow keys can be used to move it up and down.")
+            self.tutorial = 'step2'
+        else:
+            self.tutorial = None
 
     def fovea_setup(self):
         #Setup code
@@ -102,14 +107,14 @@ class spikesorter(graphics.diagnosticGUI):
         self.plotter.addLayer('scores')
 
         self.setup({'11':
-                   {'name': 'waveform',
+                   {'name': 'Waveform',
                     'scale': DOI,
                     'layers':['spikes', 'thresh_crosses'],
                     'callbacks':'*',
                     'axes_vars': ['x', 'y']
                     },
                    '12':
-                   {'name': 'detected spikes',
+                   {'name': 'Detected Spikes',
                     'scale': [(0, default_sw), (-80, 80)],
                     'layers':['detected'],
                     #'callbacks':'*',
@@ -119,7 +124,7 @@ class spikesorter(graphics.diagnosticGUI):
                     {'name': 'Principal Components',
                      'scale': [(0, default_sw), (-0.5, 0.5)],
                      'layers':['pcs'],
-                     'callbacks':'*',
+                     #'callbacks':'*',
                      'axes_vars': ['x', 'y']
                      },
                     '22':
@@ -194,6 +199,10 @@ class spikesorter(graphics.diagnosticGUI):
 
     def user_update_func(self):
         if self.selected_object.name is 'thresh':
+            if self.selected_object.m != 0:
+                print("Make 'thresh' a horizontal threshold by pressing 'm'.")
+                return
+
             try:
                 self.search_width = self.context_objects['ref_box'].dx
                 self.context_objects['ref_box'].remove()
@@ -307,9 +316,6 @@ class spikesorter(graphics.diagnosticGUI):
 
             c += 1
 
-        #self.plotter.setLayer('loading_text', display=False)
-        #self.set_selected_object(self.context_objects['thresh'])
-
         return X
 
     def project_to_PC(self):
@@ -400,12 +406,13 @@ class spikesorter(graphics.diagnosticGUI):
                 self.tutorial = 'step4'
 
         if k == 'p':
-            print('doing PCA...')
             try:
                 X = self.X
             except AttributeError:
                 print('Must detect spikes before performing PCA.')
                 return
+
+            print('doing PCA...')
 
             #self.p = da.doPCA(X, len(X[0]), len(X[0]))
             self.p = PCANode(output_dim=0.99, reduce= True, svd= True)
@@ -438,8 +445,7 @@ class spikesorter(graphics.diagnosticGUI):
                 print("STEP 4: ")
                 print("Use mouse clicks to explore the data.")
                 print("Clicking on detected spikes in the top-right will highlight the corresponding projection in the bottom right (and vice versa).")
-                print("You can also change the set of PCs onto which the data are projected by clicking the desired project PCs in the bottom left")
-                print("Try exploring simdata1_100000.dat, which is a larger dataset and reveals clearer spiking clusters.")
+                print("You can also change the set of PCs onto which the data are projected by clicking the desired projection PCs in the bottom left")
 
                 print("NOTE ALSO: ")
                 print("Creating a bounding box in the upper-left plot and renaming it to 'ref_box', will change the search width of the detected spike.")
@@ -452,19 +458,3 @@ ssort = spikesorter("SSort")
 fig_struct, figs = ssort.plotter._resolveFig(None)
 
 halt = True
-
-##threshline = line_GUI(ssort, pt1, pt2)
-#threshline = line_GUI(ssort, pp.Point2D(0,ssort.mthresh), pp.Point2D(100000, ssort.mthresh), layer='gx_objects', subplot='11',
-                     #name='thresh', select=True)
-#ssort.navigate_selected_object('down')
-#ssort.navigate_selected_object('up')
-
-###class keyev(object):
-###    pass
-###
-###ev = keyev
-###ev.key = 'down'
-###ssort.key_on(ev)
-
-
-#halt = True
