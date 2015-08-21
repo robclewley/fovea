@@ -1,5 +1,8 @@
 """
-shortsimdata1.data recovered from <http://www2.le.ac.uk/departments/engineering/research/bioengineering/neuroengineering-lab/software>
+GUI module for detecting spikes from waveform data and letting users explore their low-D projections
+with principal component analysis.
+
+Data recovered from <http://www2.le.ac.uk/departments/engineering/research/bioengineering/neuroengineering-lab/software>
 
 Based on work described in:
 Martinez, J., Pedreira, C., Ison, M. J., Quian Quiroga, R. (2009). Realistic simulation of extracellular recordings.
@@ -20,7 +23,7 @@ from fovea.graphics import *
 import PyDSTool as dst
 import PyDSTool.Toolbox.phaseplane as pp
 
-from PyDSTool.Toolbox.neuro_data import *
+#from PyDSTool.Toolbox.neuro_data import *
 #from PyDSTool.Toolbox import data_analysis as da
 from mdp.nodes import PCANode
 
@@ -29,15 +32,11 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-import time
-
 global default_sw
 default_sw = 64
 
 global tutorial_on
 tutorial_on = True
-
-show_after_load = True
 
 class spikesorter(graphics.diagnosticGUI):
     def __init__(self, title):
@@ -155,10 +154,6 @@ class spikesorter(graphics.diagnosticGUI):
 
         self.plotter.show()
 
-    def model_namer(self):
-        name = 'spikesorter_traj'
-        return name
-
     def bandpass_filter(self, data, lowcut, highcut, fs, order= 5):
         nyq = 0.5 * fs
         low = lowcut / nyq
@@ -218,8 +213,6 @@ class spikesorter(graphics.diagnosticGUI):
             cutoff =  self.selected_object.y1
 
             traj_samp = self.traj.sample()['x']
-            #r = np.array([traj_samp[x] for x in self.selected_object.points()[0]]) > np.array(self.selected_object.points()[1])
-            #r = traj_samp > self.selected_object.points()[1]
             r = traj_samp > cutoff
             above_thresh = np.where(r == True)[0]
 
@@ -232,7 +225,6 @@ class spikesorter(graphics.diagnosticGUI):
                 if i - 1 != last_i:
                     crosses.append(i)
                     #Return x value of the highest y value.
-                    #peaks.append(np.where(traj_samp == max(list(traj_samp[spike])))[0][0])
                     spikes.append(spike)
                     spike = []
                 spike.append(i)
@@ -242,10 +234,7 @@ class spikesorter(graphics.diagnosticGUI):
             self.crosses = crosses
             self.spikes = spikes
 
-            #self.addDataPoints([crosses, [cutoff]*len(crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
             self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
-            #self.plotter.addData([self.crosses, [self.selected_object.points()[1][cross] for cross in self.crosses]],
-                                  #layer='thresh_crosses', style='r*', zorder= 10, name='crossovers', force= True)
 
             self.show()
 
@@ -260,10 +249,6 @@ class spikesorter(graphics.diagnosticGUI):
                 rem_names.append(con_name)
         for name in rem_names:
             self.context_objects[name].remove(draw= False)
-            #try:
-                #del fig_struct['layers']['detected']['data']['det_'+name]
-            #except KeyError:
-                #pass
 
         fig_struct['layers']['detected']['data'] = {}
 
@@ -272,17 +257,6 @@ class spikesorter(graphics.diagnosticGUI):
         #Create new bounding boxes
         c = 0
         for spike in self.spikes:
-            #thresh_ix = round(x)
-            #tlo = thresh_ix - round(self.search_width/2)
-            #thi = thresh_ix + round(self.search_width/2)
-            #result = find_internal_extrema(self.traj.sample(tlo= tlo, thi= thi))
-
-            ##Center box around spike peak
-            ##tlo = tlo + result['global_max'][0] - math.floor(search_width/2)
-
-            ##Place peak at step 20 (as in Martinez et al.)
-            #tlo = tlo + result['global_max'][0] - 20
-            #thi = tlo + self.search_width
             peak = np.where(self.traj_samp == max(list(self.traj_samp[spike])))[0][0]
             tlo = peak - 20
             thi = tlo + self.search_width
@@ -291,36 +265,18 @@ class spikesorter(graphics.diagnosticGUI):
             box_GUI(self, pp.Point2D(tlo, self.traj.sample()['x'][peak]),
                     pp.Point2D(thi, valley),name= 'spike_box'+str(c), select= False)
 
-
-            #Pin data
-            #coorddict = {'x':
-                         #{'x':'t', 'layer':'detected', 'style':'k-', 'name':'det_spike'+str(c)}
-                         #}
-            ###ISSUE: spike_seg length becomes very small for any self.x1 > 100000.
-            #spike_seg = ssort.context_objects['spike_box'+str(c)].pin_contents(self.traj, coorddict)
-
             spike_seg = self.traj_samp[tlo:thi]
 
-            #print('length of spike_seg:',len(spike_seg))
-            #print('c:',c)
             try:
                 X = np.row_stack((X, spike_seg))
             except NameError:
                 X = spike_seg
-            #except ValueError: #Returns wrong concatenation size.
-                #pass
-
-            #self.plotter.setText('load_perc', 'Complete: %0.2f'%(c/len(self.crosses)), 'loading_text')
-            #if show_after_load:
-                #self.show()
 
             c += 1
 
         return X
 
     def project_to_PC(self):
-        #print('shape proj vecs:', np.column_stack((self.proj_vec1, self.proj_vec2)).shape)
-        #print('shape X', self.X.shape)
         Y = np.dot(self.X, np.column_stack((self.proj_vec1, self.proj_vec2)))
 
         #If moving to a smaller number of spikes, just forcing out data by reassigning names won't work. Must clear.
@@ -414,13 +370,10 @@ class spikesorter(graphics.diagnosticGUI):
 
             print('doing PCA...')
 
-            #self.p = da.doPCA(X, len(X[0]), len(X[0]))
             self.p = PCANode(output_dim=0.99, reduce= True, svd= True)
             self.p.train(X)
             self.proj_vec1 = self.p.get_projmatrix()[:, 0]
             self.proj_vec2 = self.p.get_projmatrix()[:, 1]
-
-            #print('proj mat shape: ', self.p.get_projmatrix().shape)
 
             self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', name= 'firstPC', force= True)
             self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', name= 'secondPC', force= True)
