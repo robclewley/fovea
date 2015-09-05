@@ -732,8 +732,9 @@ Function used by mouse_event_force, tied to the ' ' callback.
 
 ##TUTORIALS
 
-(PCA for neural data)[http://robclewley.github.io/pca_demo_with_fovea/]
-(Spike detection and feature extraction for neural signals)[http://robclewley.github.io/spike_detection_with_fovea/]
+[PCA for neural data](http://robclewley.github.io/pca_demo_with_fovea/)
+
+[Spike detection and feature extraction for neural signals](http://robclewley.github.io/spike_detection_with_fovea/)
 
 
 ##LICENSE
