@@ -1,3 +1,8 @@
+"""
+This module holds the keypress control system class, Fovea setup, and linalg methods
+used to transform disc data for the PCA user story.
+"""
+
 from __future__ import absolute_import, print_function
 
 from PyDSTool.Toolbox import data_analysis as da
@@ -170,7 +175,6 @@ class ControlSys:
         self.highlight_eigens()
 
         #Initialize Bombardier callbacks on 2D subplot.
-        #gui.initialize_callbacks(gui.masterWin, plotter.figs['Master']['arrange']['12']['axes_obj'])
         gui.current_domain_handler.assign_criterion_func(self.get_projection_distance)
         gui.assign_user_func(self.get_displacements)
 
@@ -191,7 +195,6 @@ class ControlSys:
         """
         #Judge by nearest point rather than points inside. Otherwise, I would need to access the whole polygon,
         #which would be difficult.
-
         nearest_pt = []
         index = []
 

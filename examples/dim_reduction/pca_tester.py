@@ -1,3 +1,9 @@
+"""
+Executable code for the PCA user story.
+Run disc() to explore a randomly generated flat disc data. Run hypesphere to explore a high dimensional ball
+of randomly generated data.
+"""
+
 import pca_disc
 from pca_disc import plotter, gui, stretch, ControlSys, rotate_x, rotate_y, rotate_z, translate, noise
 from fovea import *
