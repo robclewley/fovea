@@ -26,7 +26,9 @@ plotter.addLayer('meta_data', kind='text')
 plotter.arrangeFig([1,1], {'11':
                            {'name': 'Secant method',
                             'scale': DOI,
-                            'layers': '*',  # all layers will be selected
+                            # "*" functionality is broken
+                            #'layers': '*',  # all layers will be selected
+                            'layers': ['fn_data', 'meta_data'],
                             'axes_vars': ['x', 'y']}
                            })
 
