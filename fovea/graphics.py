@@ -610,7 +610,8 @@ class plotter2D(object):
 
     def addObj(self, data, obj, figure=None, layer=None, subplot=None, name=None,
                  display=True, force=False, log=None, linewidth=1, markersize=6, **kwargs):
-        ##ISSUE: May want to combine this with patch.
+        # ISSUE: May want to combine this with patch, e.g. to addClass,
+        # or keep this as add_context_obj for an internal function (not for end user).
         try:
             size = np.shape(data)
         except:
@@ -1168,7 +1169,6 @@ class plotter2D(object):
         # and move all to buildLayer method?
         for figName, fig in self.figs.items():
             f = plt.figure(fig.fignum)
-            # ISSUE: gca not useful in multi-subplot usage
             for pos in fig.arrange.keys():
                 ax = fig.arrange[pos]['axes_obj']
                 xdom, ydom = fig.arrange[pos]['scale']
@@ -1244,7 +1244,8 @@ class plotter2D(object):
                 if not argsLayer.dynamic:
                     continue
                 else:
-                    assert isinstance(dynamicFns, dict), "Dynamic functions must be a dictionary of layer-function pairs"
+                    assert isinstance(dynamicFns, dict), \
+                           "Dynamic functions must be a dictionary of layer-function pairs"
 
                     if layer in dynamicFns:
                         #print("updateDynamic calling function: %s" % str(dynamicFns[layer]))
