@@ -16,6 +16,12 @@ global dm
 # reuse existing objects
 dm = pp_func.dm
 plotter = gui.plotter
+dm.use_dir('saddle_logs')
+dm.make_log('log.json')
+
+# connect the diagnostic_manager to the plotter
+plotter.dm = dm
+
 import tinydb as tdb
 
 # user selection
@@ -268,11 +274,14 @@ plotter.addFig('Master',
                xlabel='phi', ylabel='nu', # redundant vs. arrangeFig options below?
                domain=DOI)
 
-plotter.addLayer('fp_data')
-plotter.addLayer('vf_data')
-plotter.addLayer('nullcline_data')
-plotter.addLayer('manifold_data')
-plotter.addLayer('manifold_metadata')
+common_layer_setup = {'axes_vars': ['phi', 'nu'],
+                      'scale': DOI}
+
+plotter.addLayer('fp_data', **common_layer_setup)
+plotter.addLayer('vf_data', **common_layer_setup)
+plotter.addLayer('nullcline_data', **common_layer_setup)
+plotter.addLayer('manifold_data', **common_layer_setup)
+plotter.addLayer('manifold_metadata', **common_layer_setup)
 
 # phase plane tools are in the Toolbox module aliased as 'pp'
 
@@ -309,9 +318,6 @@ for fp_coord in fp_coords:
 
 saddle = fps[1]
 
-
-#if all_plots:
-#    for fp_obj in fps:
 plotter.set_active_layer('fp_data')
 plot_PP_fp(saddle, 'fp_data', do_evecs=True, markersize=7)
 

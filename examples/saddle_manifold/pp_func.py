@@ -395,12 +395,12 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             norm_to_flow = get_perp(f/normf)
             if verboselevel>1:
                 # show flow direction from IC as solid red line
-                plotter.addData([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
-                     [x0_ic[yname], x0_ic[yname]+dsscaled*f[yname]/normf],
+                plotter.addData(([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
+                     [x0_ic[yname], x0_ic[yname]+dsscaled*f[yname]/normf]),
                      style='r-', name=dm.get_unique_name('flow_fwd'), log=dm.log)
                 # show normal to flow direction from IC as dotted red line
-                plotter.addData([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
-                     [x0_ic[yname], x0_ic[yname]+dsscaled*norm_to_flow[yname]],
+                plotter.addData(([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
+                     [x0_ic[yname], x0_ic[yname]+dsscaled*norm_to_flow[yname]]),
                      style='r:', name=dm.get_unique_name('flow_perp'), log=dm.log)
             ds_perp_default = ds_perp
             # CORRECTION
