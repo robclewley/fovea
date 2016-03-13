@@ -436,7 +436,7 @@ class plotter2D(object):
 
                    name        Name of the subplot to appear in figure
                    layers      List of layers to be displayed in subplot
-                   axes        Name of axes, [xlabel, ylabel]
+                   axes_vars   Names of axes, [xlabel, ylabel]
                    scale       Scale of axes [(xlo, xhi), (ylo, yhi)]
                                 (will NOT overwrite any already declared for a layer)
 
