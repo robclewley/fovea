@@ -41,12 +41,18 @@ class calc_context(object):
         except:
             print("local_init could not complete at initialization")
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
         """
         Refresh workspace after update in attached simulator.
-        Returns workspace.
+        Option to pass positional or keyword arguments that will be used
+        to refresh the local_init() method for this context.
+
+        Returns the updated workspace.
         """
-        self.local_init(*self._refresh_init_args)
+        if len(args) + len(kwargs) == 0:
+            self.local_init(*self._refresh_init_args)
+        else:
+            self.local_init(*args, **kwargs)
         for fn_name in self._update_order:
             f = getattr(self, fn_name)
             # discard result but keep side-effects on workspace update
@@ -187,3 +193,21 @@ def prep(attr_name):
         fn.attr_name = attr_name
         return fn
     return decorator
+
+def map_workspace(con, pts, *args):
+    """
+    Returns a list of dictionaries, each representing the state of the
+    calc_context workspace for each of the points given. Optional
+    positional arguments will be passed first to the calc_context when
+    calling it.
+
+    This assumes the calc_context local_init accepts `pt` as an argument.
+    """
+    wseq = []
+    for pt in pts:
+        con(*args, pt=pt)
+        wseq.append(dst.filteredDict(con.workspace.__dict__, ['_name'], neg=True))
+    return wseq
+
+def extract_variable_from_wseq(varname, wseq):
+    return [w[varname] for w in wseq]
