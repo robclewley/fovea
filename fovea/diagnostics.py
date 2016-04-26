@@ -73,7 +73,8 @@ class diagnostic_manager(object):
         self.name_to_digest = {}
 
     def use_dir(self, dirpath):
-        """
+        """Uses directory from given path (relative or absolute) for
+        log files, etc. Directory is created if it doesn't already exist.
         """
         import os
         if os.path.isfile(dirpath):
