@@ -178,31 +178,3 @@ def newtonraphson(f, f_, x0, TOL=0.001, NMAX=100):
         else:
             x0 = x1
     return False
-
-if __name__ == "__main__":
-
-    def func(x):
-        """
-        Function x^3 - x -2
-        We will calculate the root of this function using different methods.
-        """
-        return math.pow(x,3) - x -2
-
-    def func_(x):
-        """
-        Derivative of the function f(x) = x^3 - x -2
-        This will be used in Newton-Rahson method.
-        """
-        return 3*math.pow(x,2)-1
-
-    #Invoking Bisection Method
-    res = bisection(func,1,2)
-    print(res)
-
-    #Invoking Secant Method
-    res = bisection(func,1,2)
-    print(res)
-
-    #Invoking Newton Raphson Method
-    res = newtonraphson(func,func_,1)
-    print(res)
