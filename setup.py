@@ -25,14 +25,16 @@ setup(
     name="fovea",
     version=__version__,
     packages=find_packages(),
+    dependency_links = ["https://github.com/robclewley/pyeuclid/tarball/master#egg=euclid-0.01"],
     install_requires=[
         "pydstool>=0.90",
         "shapely>=1.2",
         "descartes>=1.0",
-        "pyyaml>=3.11",
         "euclid>=0.01",
+        "pyyaml>=3.11",
         "structlog>=15.1",
-        "tinydb>=2.0"
+        "tinydb>=2.0",
+        "matplotlib>=1.5.0",
     ],
     author="Rob Clewley",
     author_email="rob.clewley@gmail.com",
