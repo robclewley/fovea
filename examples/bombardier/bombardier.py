@@ -14,7 +14,8 @@ from matplotlib.widgets import Slider, Button, RectangleSelector
 
 import fovea
 import fovea.domain2D as dom
-from fovea import common, prep, graphics
+from fovea import common, prep
+import fovea.graphics as gx
 
 
 gentype = 'dopri'
@@ -73,7 +74,8 @@ _non_pickle_attr = ['ax', 'fig',
 _non_pickle_subattr = ['context_objects',  # e.g. line_GUI
                        'tracked_objects']  # e.g. measure with dynamic fns
 
-class GUIrocket(object):
+
+class GUIrocket(gx.diagnosticGUI):
     def __init__(self, bodies, title, axisbgcol='black'):
         """
         bodies is a dict-like mapping of 1 or more:
@@ -83,30 +85,10 @@ class GUIrocket(object):
         """
         global next_fighandle
 
-        # Sim setup
-        self.model = None
-        # context objects (lines of interest, domains, etc)
-        self.context_objects = []
-        # external tracked objects (measures, etc)
-        self.tracked_objects = []
-        #
-        self.selected_object = None
-        self.selected_object_temphandle = None
-        #
+        plotter = gx.plotter2D()
+        gx.diagnosticGUI.__init__(self, plotter)
+
         self.current_domain_handler = dom.GUI_domain_handler(self)
-
-        # name of task controlling mouse click event handler
-        self.mouse_wait_state_owner = None
-
-        # last output from a UI action
-        self.last_output = None
-
-        # if defined, will be refreshed on each Go!
-        self.calc_context = None
-
-        # Graphics widgets to be set for application
-        self.widgets = {}
-
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -123,40 +105,50 @@ class GUIrocket(object):
         self.startpt = None
         self.endpt = None
         self.quartiles = None
-        # Currently unused
-        #self.vtext = None
-        #self.atext = None
-
-        # ---------
-
-        # ---- Make these generic in a parent class, then
-        # specifcaly configured to bombardier here
 
         # Axes background colour
         self.axisbgcol = axisbgcol
 
-        # Move these to a _recreate method than can be reused for un-pickling
-        self.fig = figure(next_fighandle, figsize=(14,9))
-        self.fignum = next_fighandle
-        plt.subplots_adjust(left=0.09, right=0.98, top=0.95, bottom=0.1,
-                               wspace=0.2, hspace=0.23)
-        self.ax = plt.axes([0.05, 0.12, 0.9, 0.85], axisbg=axisbgcol)
-        self.ax.set_title(title)
-        self.name = title
-        evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
-        evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
+        #Setup code
+        DOI = [(-xdomain_halfwidth,xdomain_halfwidth),(0,1)]
+        self.clean() # in case rerun in same session
+        self.addFig('master',
+                        title='Bombardier',
+                        xlabel='x', ylabel='y',
+                        domain=DOI)
 
-        AngSlide = plt.axes([0.1, 0.055, 0.65, 0.03])
-        self.widgets['AngBar'] = Slider(AngSlide, 'Shoot Angle', -maxangle, maxangle,
-                                            valinit=self.ang, color='b',
-                                            dragging=False, valfmt='%2.3f')
-        self.widgets['AngBar'].on_changed(self.updateAng)
+        #Setup all layers
 
-        VelSlide = plt.axes([0.1, 0.02, 0.65, 0.03])
-        self.widgets['VelBar'] = Slider(VelSlide, 'Shoot Speed', 0.01, 2,
-                                            valinit=self.vel, color='b',
-                                            dragging=False, valfmt='%1.4f')
-        self.widgets['VelBar'].on_changed(self.updateVel)
+        self.addLayer('trajs')
+        self.addLayer('bodies', kind='patch')
+        self.addLayer('text', kind='text')
+
+        self.name = 'gamespace'
+
+        self.setup({'11':
+                    {'name': self.name,
+                     'scale': DOI,
+                     'layers':['trajs', 'bodies', 'text'],
+                     'callbacks':'*',
+                     'axes_vars': ['x', 'y']
+                     }
+                    },
+                  size=(9, 7), with_times=False, basic_widgets=False)
+
+        self.fignum = 1
+
+        fig_struct, fig = self.plotter._resolveFig('master')
+        self.ax = fig_struct.arrange['11']['axes_obj']
+
+        self.addWidget(Slider, callback=self.updateAng, axlims = (0.1, 0.055, 0.65, 0.03),
+                      label='Shoot Angle', valmin= -maxangle, valmax= maxangle,
+                      valinit= self.ang, color='b', dragging=False, valfmt='%2.3f')
+
+        self.addWidget(Slider, callback=self.updateVel, axlims=(0.1, 0.02, 0.65, 0.03),
+                      label='Shoot Speed', valmin=0.01, valmax=2,
+                      valinit=self.vel, color='b',
+                      dragging=False, valfmt='%1.4f')
+
 
         # assume max of N-2 planetoid bodies + target + source
         self.N = len(bodies)
@@ -171,23 +163,13 @@ class GUIrocket(object):
         # --- END OF BOMBARDIER SPECIFICS
 
         # Move these to a _recreate method than can be reused for un-pickling
-        GoButton = Button(plt.axes([0.005, 0.1, 0.045, 0.03]), 'Go!')
-        GoButton.on_clicked(self.go)
-        self.widgets['Go'] = GoButton
 
-        self.RS_line = RectangleSelector(self.ax, self.onselect_line, drawtype='line') #,
-#                                         minspanx=0.005, minspany=0.005)
-        self.RS_line.set_active(False)
-#        self.RS_box = RectangleSelector(self.ax, self.onselect_box, drawtype='box',
-#                                        minspanx=0.005, minspany=0.005)
-#        self.RS_box.set_active(False)
+        self.addWidget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03), label='Go!')
 
         # context_changed flag set when new objects created using declare_in_context(),
         # and unset when Generator is created with the new context code included
         self.context_changed = False
-        self.setup_gen()
-        self.traj = None
-        self.pts = None
+        self.setup_gen(self.model_namer)
 
         self.mouse_cid = None # event-connection ID
         self.go(run=False)
@@ -202,21 +184,50 @@ class GUIrocket(object):
     def graphics_refresh(self, cla=True):
         if cla:
             self.ax.cla()
-        self.plot_bodies()
-        self.plot_traj()
-        # plot additional stuff
-        self.plot_context()
-        self.ax.set_aspect('equal')
-        self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
-        self.ax.set_ylim(0,1)
-        self.fig.canvas.draw()
 
-    def plot_context(self):
-        for con_obj in self.context_objects:
-            con_obj.show()
-        for track_obj in self.tracked_objects:
-            # external to main GUI window
-            track_obj.show()
+        #Make quartiles
+        xquarts = Point({'x': 4})
+        yquarts = Point({'y': 4})
+
+        try:
+            n = len(self.points)
+            coorddict = {'xq':
+                         {'x':'xq', 'y':'yq', 'layer':'trajs', 'name':'quarts1', 'style':'kd'}
+                         }
+            quarts = Pointset({'coordarray': np.array([[self.points['x'][int(0.25*n)], self.points['x'][int(0.5*n)], self.points['x'][int(0.75*n)]],
+                                           [self.points['y'][int(0.25*n)], self.points['y'][int(0.5*n)], self.points['y'][int(0.75*n)]]]),
+                      'coordnames': ['xq', 'yq']})
+            self.addDataPoints(quarts, coorddict=coorddict)
+
+        except TypeError:
+            pass
+
+        #Traj Pointset
+        coorddict = {'x':
+                     {'x':'x', 'y':'y','layer':'trajs','name':'data1', 'object':'collection'},
+                      #{'x':'x', 'y':'y','layer':'trajs', 'object':'collection'},
+                     'speed':
+                     {'map_color_to':'x'}
+                     }
+        self.addDataPoints(self.points, coorddict=coorddict)
+
+        #Bodies Pointset
+        bodsPoints = Pointset({'coordarray': np.array([[self.pos[i][0] for i in range(len(self.pos))],
+                                       [self.pos[i][1] for i in range(len(self.pos))],
+                                       [self.radii[i] for i in range(len(self.radii))]]),
+                  'coordnames': ['px', 'py', 'radii']})
+        coorddict = {'px':
+                     {'x':'px', 'y':'py','layer':'bodies','name':'bods1', 'style':'g', 'object':'circle'},
+                     'radii':
+                     {'map_radius_to':'px'}
+                     }
+        self.addDataPoints(bodsPoints, coorddict=coorddict)
+
+        pos = np.array(self.pos).transpose()
+        for i in range(len(pos[0])):
+            self.plotter.addText(pos[0][i], pos[1][i], i, style='k', layer='text')
+
+        self.plotter.show(rebuild=False)
 
     # Methods for pickling protocol
     def __getstate__(self):
@@ -244,11 +255,11 @@ class GUIrocket(object):
     def _recreate(self):
         raise NotImplementedError
 
-    def declare_in_context(self, con_obj):
-        # context_changed flag set when new objects created and unset when Generator is
-        # created with the new context code included
-        self.context_changed = True
-        self.context_objects.append(con_obj)
+    #def declare_in_context(self, con_obj):
+        ## context_changed flag set when new objects created and unset when Generator is
+        ## created with the new context code included
+        #self.context_changed = True
+        #self.context_objects.append(con_obj)
 
     def __str__(self):
         return self.name
@@ -282,30 +293,17 @@ class GUIrocket(object):
         self.icpos = np.array((0.0, 0.08))
         self.icvel = np.array((0.0, 0.0))
 
-    def setup_gen(self):
-        if self.context_changed:
-            self.context_changed = False
-            self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
-        else:
-            try:
-                self.model = self.gen_versioner.load_gen('sim_N%i'%self.N+'_fig%i'%self.fignum)
-            except:
-                self.make_gen(self.body_pars, 'sim_N%i'%self.N+'_fig%i'%self.fignum)
-            else:
-                self.model.set(pars=self.body_pars)
-
-
     def make_gen(self, pardict, name):
         # scrape GUI diagnostic object extras for generator
         extra_events = []
         extra_fnspecs = {}
         extra_pars = {}
         extra_auxvars = {}
-        for gui_obj in self.context_objects:
-            extra_events.append(gui_obj.extra_events)
-            extra_fnspecs.update(gui_obj.extra_fnspecs)
-            extra_pars.update(gui_obj.extra_pars)
-            extra_auxvars.update(gui_obj.extra_auxvars)
+        for con_obj in self.context_objects.values():
+            extra_events.append(con_obj.extra_events)
+            extra_fnspecs.update(con_obj.extra_fnspecs)
+            extra_pars.update(con_obj.extra_pars)
+            extra_auxvars.update(con_obj.extra_auxvars)
 
         Fx_str = ""
         Fy_str = ""
@@ -422,7 +420,7 @@ class GUIrocket(object):
         if run:
             self.run()
             self.graphics_refresh(cla=False)
-        self.fig.canvas.draw()
+        self.masterWin.canvas.draw()
         plt.draw()
 
     def set(self, pair, ic=None, by_vel=False):
@@ -457,10 +455,10 @@ class GUIrocket(object):
 
 
     def setAng(self, ang):
-        self.widgets['AngBar'].set_val(ang)
+        self.widgets['Shoot Angle'].set_val(ang)
 
     def setVel(self, vel):
-        self.widgets['VelBar'].set_val(vel)
+        self.widgets['Shoot Speed'].set_val(vel)
 
     def updateAng(self, ang):
         if ang < -maxangle:
@@ -477,129 +475,11 @@ class GUIrocket(object):
         self.vel = vel
         self.go(run=False)
 
-    def key_on(self, ev):
-        self._key = k = ev.key  # keep record of last keypress
-        # TEMP
-        print("Pressed", k)
-        if self.mouse_wait_state_owner == 'domain' and \
-           k in change_mouse_state_keys:
-            # reset state of domain handler first
-            self.current_domain_handler.event('clear')
-
-        if k in da_dict:
-            Da = da_dict[k]*self.da
-            self.updateAng(self.ang+Da)
-            self.widgets['AngBar'].set_val(self.ang)
-        elif k in dv_dict:
-            Dv = dv_dict[k]*self.dv
-            self.updateVel(self.vel+Dv)
-            self.widgets['VelBar'].set_val(self.vel)
-        elif k == 'g':
-            print("Go! Running simulation.")
-            self.go()
-        elif k == 'l':
-            print("Make a line of interest")
-            self.RS_line.set_active(True)
-            self.mouse_wait_state_owner = 'line'
-        elif k == ' ':
-            print("Forces at clicked mouse point")
-            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_force)
-            self.mouse_wait_state_owner = 'forces'
-        elif k == 's':
-            print("Snap clicked mouse point to closest point on trajectory")
-            self.mouse_cid = self.fig.canvas.mpl_connect('button_release_event', self.mouse_event_snap)
-            self.mouse_wait_state_owner = 'snap'
-        elif k == dom_key:
-            print("Click on domain seed point then initial radius point")
-            # grow domain
-            if self.current_domain_handler.func is None:
-                print("Assign a domain criterion function first!")
-                return
-            else:
-                # this call may have side-effects
-                self.current_domain_handler.event('key')
-                self.mouse_wait_state_owner = 'domain'
-
-    def key_off(self, ev):
-        self._key = None
-
-    def plot_bodies(self):
-        for i in range(self.N):
-            px, py = self.pos[i]
-            if self.radii[i] > 0:
-                if self.density[i] == 0:
-                    col = 'green'
-                else:
-                    col = 'grey'
-                self.ax.add_artist(plt.Circle((px,py),self.radii[i],color=col))
-                self.ax.plot(px,py,'k.')
-                self.ax.text(px-0.016,min(0.96, max(0.01,py-0.008)), str(i))
-
-    def plot_traj(self, pts=None, with_speeds=True):
-        """
-        with_speeds option makes a "heat map" like color code along trajectory that denotes speed.
-        """
-        if pts is None:
-            if self.pts is not None:
-                pts = self.pts
-            else:
-                # nothing to plot
-                return
-        if self.axisbgcol == 'black':
-            col = 'w'
-        else:
-            col = 'k'
-        firstpt = pts[0]
-        lastpt = pts[-1]
-
-        if self.startpt is None:
-            self.startpt = self.ax.plot(firstpt['x'],firstpt['y'],'ys', markersize=15)[0]
-        else:
-            self.startpt.set_xdata(firstpt['x'])
-            self.startpt.set_ydata(firstpt['y'])
-
-        if self.trajline is not None:
-            self.trajline.remove()
-        if with_speeds:
-            speeds = pts['speed']
-            norm = mpl.colors.Normalize(vmin=0, vmax=self.maxspeed)
-            cmap=plt.cm.jet #gist_heat
-            RGBAs = cmap(norm(speeds))
-            xs = pts['x'][1:-1]
-            ys = pts['y'][1:-1]
-            segments = [( (xs[i], ys[i]), (xs[i+1], ys[i+1]) ) for i in range(len(xs)-1)]
-            linecollection = mpl.collections.LineCollection(segments, colors=RGBAs)
-            self.trajline = self.ax.add_collection(linecollection)
-        else:
-            self.trajline = self.ax.plot(pts['x'][1:-1], pts['y'][1:-1], col+'.-')[0]
-
-        if self.endpt is None:
-            self.endpt = self.ax.plot(lastpt['x'], lastpt['y'], 'r*', markersize=17)[0]
-        else:
-            self.endpt.set_xdata(lastpt['x'])
-            self.endpt.set_ydata(lastpt['y'])
-        n = len(pts)
-        ptq1 = pts[int(0.25*n)]
-        ptq2 = pts[int(0.5*n)]
-        ptq3 = pts[int(0.75*n)]
-        if self.quartiles is None:
-            self.quartiles = [self.ax.plot(ptq1['x'], ptq1['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq2['x'], ptq2['y'], col+'d', markersize=10)[0],
-                              self.ax.plot(ptq3['x'], ptq3['y'], col+'d', markersize=10)[0]]
-        else:
-            self.quartiles[0].set_xdata(ptq1['x'])
-            self.quartiles[0].set_ydata(ptq1['y'])
-            self.quartiles[1].set_xdata(ptq2['x'])
-            self.quartiles[1].set_ydata(ptq2['y'])
-            self.quartiles[2].set_xdata(ptq3['x'])
-            self.quartiles[2].set_ydata(ptq3['y'])
-        plt.draw()
-
-
     def run(self, tmax=None):
         self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
-        self.pts = self.traj.sample()
+        self.addDataTraj(self.traj)
+        self.pts = self.points #Shouldn't have to do this.
         if self.calc_context is not None:
             # Update calc context
             self.calc_context()
@@ -657,76 +537,16 @@ class GUIrocket(object):
 
         self.model.set(pars=pardict)
         self.body_pars.update(pardict)
-        self.ax.cla()
-        self.ax.set_aspect('equal')
-        self.ax.set_xlim(-xdomain_halfwidth,xdomain_halfwidth)
-        self.ax.set_ylim(0,1)
 
         self.trajline = None
         self.startpt = None
         self.endpt = None
         self.go(run=False)
-        #self.graphics_refresh()
+        self.graphics_refresh()
 
-    def mouse_event_force(self, ev):
-        print("\n(%.4f, %.4f)" %(ev.xdata, ev.ydata))
-        fs, fvecs = self.get_forces(ev.xdata, ev.ydata)
-        print(fs)
-        print("Last output = (force mag dict, force vector dict)")
-        self.last_output = (fs, fvecs)
-        self.selected_object = pp.Point2D(ev.xdata, ev.ydata)
-        if self.selected_object_temphandle is not None:
-            self.selected_object_temphandle.remove()
-        self.selected_object_temphandle = self.ax.plot(ev.xdata, ev.ydata, 'go')[0]
-        self.fig.canvas.draw()
-        self.fig.canvas.mpl_disconnect(self.mouse_cid)
-        self.mouse_wait_state_owner = None
-
-    def mouse_event_snap(self, ev):
-        if self.pts is None:
-            print("No trajectory defined")
-            return
-        print("\nClick: (%.4f, %.4f)" %(ev.xdata, ev.ydata))
-        # have to guess phase, use widest tolerance
-        try:
-            data = pp.find_pt_nophase_2D(self.pts, pp.Point2D(ev.xdata, ev.ydata),
-                                         eps=0.1)
-        except ValueError:
-            print("No nearby point found. Try again")
-            self.fig.canvas.mpl_disconnect(self.mouse_cid)
-            return
-        self.last_output = data
-        x_snap = data[2]['x']
-        y_snap = data[2]['y']
-        self.selected_object = pp.Point2D(x_snap, y_snap)
-        if self.selected_object_temphandle is not None:
-            self.selected_object_temphandle.remove()
-        self.selected_object_temphandle = self.ax.plot(x_snap, y_snap, 'go')[0]
-        self.fig.canvas.draw()
-        print("Last output = (index, distance, point)")
-        print("            = (%i, %.3f, (%.3f, %.3f))" % (data[0], data[1],
-                                                          x_snap, y_snap))
-        self.fig.canvas.mpl_disconnect(self.mouse_cid)
-        self.mouse_wait_state_owner = None
-
-    def onselect_line(self, eclick, erelease):
-        if eclick.button == 1:
-            # left (primary)
-            x1, y1 = eclick.xdata, eclick.ydata
-            x2, y2 = erelease.xdata, erelease.ydata
-            self.selected_object = graphics.line_GUI(self, self.ax,
-                                            pp.Point2D(x1, y1),
-                                            pp.Point2D(x2, y2))
-            print("Created line as new selected object, now give it a name")
-            print("  by writing this object's selected_object.name attribute")
-            self.RS_line.set_active(False)
-            self.mouse_wait_state_owner = None
-
-    def onselect_box(self, eclick, erelease):
-        self.mouse_wait_state_owner = None
-
-
-
+    def model_namer(self):
+        name = 'sim_N%i'%self.N+'_fig%i'%self.fignum
+        return name
 
 
 # also make a circular version (using radial event)
@@ -842,7 +662,7 @@ def make_forcelines(sim, x, y, i):
     #Fsi = Fs[i]
     #Fvi_x, Fvi_y = Fvecs[i]
     bx, by = sim.pos[i]
-    line_i = graphics.line_GUI(sim, x, y, bx, by)
+    line_i = gx.line_GUI(sim, x, y, bx, by)
     return line_i
 
 def relative_angle(line1, line2):
@@ -1009,6 +829,7 @@ class body_context(fovea.calc_context):
         # np.double might be easier to make work with Symbolic
         w.r_cross_v0 = np.double(np.cross(w.r0, w.v0))
         w.m = self.sim.masses[n]
+        # ISSUE: G is a global!
         w.mu = G*w.m
         w.v = np.linalg.norm(w.v0)
         w.r = np.linalg.norm(w.r0)
