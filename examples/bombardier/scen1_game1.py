@@ -57,9 +57,9 @@ game1.set( (-79, 0.7) )
 #ltarget = game1.selected_object
 
 ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
-                      pp.Point2D(0.42, 0.8))
+                      pp.Point2D(0.42, 0.8), subplot='11')
 ltarget.make_event_def('target1', 1)
-game1.setup_gen()
+game1.setup_gen(game1.model_namer)
 
 # make event terminal
 game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
