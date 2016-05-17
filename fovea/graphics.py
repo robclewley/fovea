@@ -280,6 +280,9 @@ class plotter2D(object):
         fig_struct, figure = self._resolveFig(figure)
         arrPlots = fig_struct.arrange
 
+        if not arrPlots:
+            print("  This figure has no associated layer data.")
+            return
         for ixstr, spec in arrPlots.items():
             if subplot is not None and subplot not in \
                               [ixstr, spec['name']]:
@@ -292,7 +295,8 @@ class plotter2D(object):
                 print("\nLAYER: %s" % str(layer))
                 print("  sub-plot: %s" % ixstr)
                 print("  style %s" % lay.style)
-                print("  axes: %s - %s" % (lay.axes_vars[0], lay.axes_vars[1]))
+                if lay.axes_vars:
+                    print("  axes: %s - %s" % (lay.axes_vars[0], lay.axes_vars[1]))
                 print("  data:")
                 for dname, dstruct in lay.data.items():
                     if not dstruct['display']:
