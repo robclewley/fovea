@@ -1176,8 +1176,9 @@ class plotter2D(object):
                 ax.set_ylim(ydom)
             f.canvas.draw()
         if not self.shown:
+            # TEMP
             plt.ion() #Artists not appearing on axes without call to ion
-            plt.show()
+            #plt.show()
             self.shown = True
 
         do_save = False # default
@@ -2528,6 +2529,8 @@ class diagnosticGUI(object):
                 self.mouse_wait_state_owner = 'domain'
 
     def key_off(self, ev):
+        # TEMP
+        #pass
         self._key = None
 
     def onselect_line(self, eclick, erelease):

@@ -26,6 +26,9 @@ Test optimization:
 
 """
 from __future__ import division
+print("See scen1_game1.py")
+raise SystemExit("This module is redundant and will be phased out.")
+
 from PyDSTool import *
 import PyDSTool.Toolbox.phaseplane as pp
 from bombardier import *
@@ -87,6 +90,7 @@ print("Eccentricity = %.3f" % ecc1)
 
 dom_thresh = 0.6
 
+# This function only works with 4 bodies present!
 def body4_dominant_at_point(pt_array, fsign=None):
     """
     Returns scalar relative to user threshold of %age dominant out of net force

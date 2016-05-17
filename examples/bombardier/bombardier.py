@@ -175,7 +175,8 @@ class GUIrocket(gx.diagnosticGUI):
         self.go(run=False)
         # force call to graphics_refresh because run=False above
         self.graphics_refresh(cla=False)
-        plt.show()
+        # TEMP
+        #plt.show()
 
         # next_fighandle for whenever a new model is put in a new figure (new game instance)
         next_fighandle += 1
