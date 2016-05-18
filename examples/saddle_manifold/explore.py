@@ -174,7 +174,7 @@ def plot_PP_fp(fp, plotter_layer, coords=None, do_evecs=True, markersize=10):
             line = np.array((p1, p2))
             name = dm.get_unique_name(name)
             dm.log.msg('Plot evec', name=name, layer=plotter_layer)
-            plotter.addData(line.T, style=style, layer=plotter_layer, name=name)
+            plotter.add_data(line.T, style=style, layer=plotter_layer, name=name)
 
 
 def plot_PP_vf_custom(gen, xname, yname, N=20, subdomain=None, scale_exp=0):
@@ -269,19 +269,19 @@ ode_sys = build_sys()
 # domain of interest
 DOI = ([-3.25,-3],[-0.075,0.075])
 plotter.clean()
-plotter.addFig('Master',
+plotter.add_fig('Master',
                title='Manifold Computation Diagnostic',
-               xlabel='phi', ylabel='nu', # redundant vs. arrangeFig options below?
+               xlabel='phi', ylabel='nu', # redundant vs. arrange_fig options below?
                domain=DOI)
 
 common_layer_setup = {'axes_vars': ['phi', 'nu'],
                       'scale': DOI}
 
-plotter.addLayer('fp_data', **common_layer_setup)
-plotter.addLayer('vf_data', **common_layer_setup)
-plotter.addLayer('nullcline_data', **common_layer_setup)
-plotter.addLayer('manifold_data', **common_layer_setup)
-plotter.addLayer('manifold_metadata', **common_layer_setup)
+plotter.add_layer('fp_data', **common_layer_setup)
+plotter.add_layer('vf_data', **common_layer_setup)
+plotter.add_layer('nullcline_data', **common_layer_setup)
+plotter.add_layer('manifold_data', **common_layer_setup)
+plotter.add_layer('manifold_metadata', **common_layer_setup)
 
 # phase plane tools are in the Toolbox module aliased as 'pp'
 
@@ -290,7 +290,7 @@ plotter.addLayer('manifold_metadata', **common_layer_setup)
 if all_plots:
     plot_PP_vf_custom(ode_sys, 'vf_data', scale_exp=-0.25)
 
-plotter.arrangeFig([1,1], {'11': {'name': 'PP',
+plotter.arrange_fig([1,1], {'11': {'name': 'PP',
                                   'scale': DOI,
                                   'layers': ['fp_data', 'manifold_data', 'manifold_metadata'],
                                   'axes_vars': ['phi', 'nu']}
