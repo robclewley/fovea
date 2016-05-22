@@ -10,7 +10,7 @@ class HopfieldNetwork:
 
     c.f. https://en.wikipedia.org/wiki/Hopfield_Network
     """
-    def __init__(self, num_neurons):
+    def __init__(self, num_neurons, activation_fn=None):
         """
         Instantiates a Hopfield Network comprised of "num_neurons" neurons.
         
@@ -23,6 +23,7 @@ class HopfieldNetwork:
         self.num_neurons = num_neurons
         self._weights = np.zeros((self.num_neurons, self.num_neurons), dtype=np.int_)
         self._trainers = {"hebbian": self._hebbian, "storkey": self._storkey}
+        self._learn_modes = {"synchronous": self._synchronous, "asynchronous": self._asynchronous}
         self._vec_activation = np.vectorize(self._activation)
 
     def weights(self):
@@ -33,7 +34,7 @@ class HopfieldNetwork:
 
     def reset(self):
         """
-        Reset's the network's matrix to the matrix which is identically zero.
+        Reset's the network's weight matrix to the matrix which is identically zero.
 
         Useful for retraining the network from scratch after an initial round
         of training has already been completed.
@@ -42,7 +43,7 @@ class HopfieldNetwork:
 
     def train(self, patterns, method="hebbian", threshold=0):
         """
-        The wrapper function for the network's various training methods stored in
+        The wrapper method for the network's various training algorithms stored in
         self._trainers.
 
         patterns        A list of the on which to train the network. Patterns are
@@ -63,26 +64,63 @@ class HopfieldNetwork:
         try:
             return self._trainers[method](patterns, threshold)
         except KeyError:
-            print(method + " is not a valid learning method.")
+            print(method + " is not a valid training method.")
 
-    def learn(self, patterns, steps=None):
+    def learn(self, patterns, steps=None, mode="asynchronous"):
         """
+        Wrapper method for self._synchronous and self._asynchronous.
+
         To be used after training the network.
+
+        patterns        The input vectors to learn
+
+        steps           Number of steps to compute. Defaults to None.
 
         Given 'patterns', learn(patterns) classifies these patterns based on those
         which the network has already seen.
         """
+        try:
+            return self._learn_modes[mode](patterns, steps)
+        except KeyError:
+            print(mode + " is not a valid learning mode.")
+
+    def _synchronous(self, patterns, steps=10):
         if steps:
             for i in range(steps):
-                learn = np.dot(patterns, self._weights)
-            return self._vec_activation(learn)
+                patterns = np.dot(patterns, self._weights)
+            return self._vec_activation(patterns)
         else:
-            pre_learn = patterns
             while True:
-                post_learn = [np.dot(pattern, self._weights) for pattern in patterns]
-                if np.array_equal(pre_learn, post_learn):
+                post_learn = self._vec_activation(np.dot(patterns, self._weights))
+                if np.array_equal(patterns, post_learn):
                     return self._vec_activation(post_learn)
-                pre_learn = post_learn
+                patterns = post_learn
+
+    def _asynchronous(self, patterns, steps=None):
+        patterns = np.array(patterns)
+        if steps:
+            for i in range(steps):
+                index = random.randrange(self.num_neurons)
+                patterns[:,index] = np.dot(self._weights[index,:], np.transpose(patterns))
+            return self._vec_activation(patterns)
+        else:
+            post_learn = patterns.copy()
+            while True:
+                index = random.randrange(self.num_neurons)
+                print(index)
+                post_learn[:,index] = np.dot(self._weights[index,:], np.transpose(patterns))
+                post_learn = self._vec_activation(post_learn)
+                print(patterns)
+                if np.array_equal(patterns, post_learn):
+                    return self._vec_activation(post_learn)
+                print(post_learn)
+                patterns = post_learn
+
+    def energy(self, neuron):
+        """
+        Returns the energy for any input to the network.
+        """
+        return -0.5 * np.sum(np.multiply(np.outer(neuron, neuron), self._weights))
 
     def _activation(self, value, threshold=0):
         """
@@ -108,3 +146,10 @@ class HopfieldNetwork:
         Implements Storkey learning.
         """
         pass
+
+myNet = HopfieldNetwork(3)
+A = [-1, 1, 1]
+B = [1, 1, -1]
+myNet.train([A, B])
+D = myNet.learn([[-1, 1, -1]])
+
