@@ -95,7 +95,6 @@ def force_line_to_extent(a, b, p_domain, coordnames):
         raise ValueError("No intersection")
 
 
-
 class plotter2D(object):
 
     colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
@@ -124,7 +123,7 @@ class plotter2D(object):
         # record whether this class ever called show()
         self.shown = False
 
-    def auto_scale_domain(self, xcushion = 0.05, ycushion = 0.05, subplot= None, figure=None):
+    def auto_scale_domain(self, xcushion=0.05, ycushion=0.05, subplot=None, figure=None):
         """
         Set domain limits to that of the data in all layers
         with the greatest extent.
@@ -134,7 +133,6 @@ class plotter2D(object):
         # ISSUE: Setting domains at the figure level (as opposed to subplot level) doesn't work.
         # Changes will likely need to be made in other functions, not here (such as buildLayers or buildPlotter2D)
 
-        # initial values
         x_extent = [0,0]
         y_extent = [0,0]
 
@@ -148,27 +146,21 @@ class plotter2D(object):
                 out = x
             return out
 
-        if figure is None:
+        if not figure: 
             figure = self.currFig
 
         found_fig = False
         for figName, fig in self.figs.items():
-
-            #Extract only those layers in the chosen subplot.
-            if subplot is not None:
-                layer_info = {}
-                subplot_struct = fig.arrange[subplot]
-                for layName in subplot_struct['layers']:
-                    layer_info[layName] = fig.layers[layName]
+            if figure == figName:
+                found_fig = True
+            # Extract only those layers in the chosen subplot.
+            if subplot:
+                subplot_layers = fig.arrange[subplot]['layers']
+                layer_info = { layer_name : fig.layers[layer_name] for layer_name in subplot_layers }
             else:
                 layer_info = fig.layers
-
-            if figure != figName:
-                continue
-            else:
-                found_fig = True
             for layerName, layer in layer_info.items():
-                if layer.kind is not 'text':
+                if layer.kind != 'text':
                     for dName, d in list(layer['data'].items()):
                         x_extent[0] = min(auto_minmax(d['data'][0], min), x_extent[0])
                         x_extent[1] = max(auto_minmax(d['data'][0], max), x_extent[1])
@@ -188,8 +180,6 @@ class plotter2D(object):
             plt.figure(fig.fignum)
             plt.xlim(x_extent)
             plt.ylim(y_extent)
-
-        #self.show()
 
     def set_active_layer(self, layer, figure=None):
         """
