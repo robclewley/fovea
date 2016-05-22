@@ -75,8 +75,8 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
             plotter.toggleDisplay(layer='bisect_data_%d'%(n-1))
             rebuild = False
         ##ISSUE: Must include subplot arg to ensure layer ends up in fig_struct.arrange. This is unexpected and inconvenient.
-        plotter.addLayer('bisect_data_%d'%n, subplot= '11')
-        plotter.addLayer('bisect_text_%d'%n, kind='text', subplot= '11')
+        plotter.add_layer('bisect_data_%d'%n, subplot= '11')
+        plotter.add_layer('bisect_text_%d'%n, kind='text', subplot= '11')
         c = (a+b)/2.0
         dm.log.msg('Bisect loop', a=a, b=b, c=c)
         a_pt = plot_pt(a, f, n, 'a', 'r', 'bisect', 'o')
@@ -123,8 +123,8 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
             plotter.toggleDisplay(layer='secant_text_%d'%(n-1))
             plotter.toggleDisplay(layer='secant_data_%d'%(n-1))
             rebuild = False
-        plotter.addLayer('secant_data_%d'%n, subplot= '11')
-        plotter.addLayer('secant_text_%d'%n, kind='text', subplot= '11')
+        plotter.add_layer('secant_data_%d'%n, subplot= '11')
+        plotter.add_layer('secant_text_%d'%n, kind='text', subplot= '11')
         x2 = x1 - f(x1)*((x1-x0)/(f(x1)-f(x0)))
         x0_pt = plot_pt(x0, f, n, 'x0', 'r', 'secant', 'o')
         x1_pt = plot_pt(x1, f, n, 'x1', 'g', 'secant', 'o')

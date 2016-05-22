@@ -80,7 +80,7 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
     if proj_vecsLO is None:
         proj_vecsLO = ortho_proj_mat(len(Y[0]), 2)
 
-    plotter.setLayer(layer, figure='Master', data={})
+    plotter.set_layer(layer, figure='Master', data={})
 
     #If data are high-dimensional, use the projection vectors.
     if len(X[0]) > 3:
@@ -94,23 +94,23 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
-    gui.addDataPoints([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
+    gui.add_dataPoints([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
-    gui.addDataPoints([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
+    gui.add_dataPoints([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
 
     for j in range(0, len(pcPts), 2):
-        gui.addDataPoints([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
-        gui.addDataPoints([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
+        gui.add_dataPoints([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
+        gui.add_dataPoints([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
 
-    gui.addDataPoints([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
+    gui.add_dataPoints([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
     print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
 
-    plotter.setLayer(layer, figure='Master', display=False)
+    plotter.set_layer(layer, figure='Master', display=False)
 
     plotter.show(rebuild=False)
 
@@ -119,19 +119,19 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
 
 def setupDisplay(clus_layers, clus_styles, DOI):
     plotter.clean() # in case rerun in same session
-    plotter.addFig('Master',
+    plotter.add_fig('Master',
                    title='PCA Disc',
                    xlabel='x', ylabel='y',
                    domain=DOI)
 
     #Setup all layers
-    plotter.addLayer('orig_data')
-    plotter.addLayer('meta_data', kind='text')
+    plotter.add_layer('orig_data')
+    plotter.add_layer('meta_data', kind='text')
 
     for clus in clus_layers:
-            plotter.addLayer(clus)
+            plotter.add_layer(clus)
 
-    plotter.arrangeFig([1,3], {'11':
+    plotter.arrange_fig([1,3], {'11':
                                {'name': 'BEFORE',
                                 'scale': [(-10,10),(-10,10)],
                                 'layers': clus_layers+['orig_data'],
@@ -232,14 +232,14 @@ class ControlSys:
                 self.c -= 1
 
             for clus in self.clus_layers:
-                    plotter.setLayer(clus, display= False)
+                    plotter.set_layer(clus, display= False)
 
             plotter.toggleDisplay(layer=self.clus_layers[self.c%len(self.clus_layers)]) #figure='Master',
 
         if event.key == 'm':
             self.m = not self.m
             for clus in self.clus_layers:
-                    plotter.setLayer(clus, figure='Master', display=self.m)
+                    plotter.set_layer(clus, figure='Master', display=self.m)
 
         if event.key == 'h':
             plotter.toggleDisplay(layer='orig_data', figure='Master')

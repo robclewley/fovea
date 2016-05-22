@@ -59,3 +59,108 @@ Reduced_model4:
     mass: 0.031415926535897934
     position: [0.028799999999999992, 0.5389999999999999]
     radius: 0.1414213562373095
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model4:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.031415926535897934
+    position: [0.028799999999999992, 0.5389999999999999]
+    radius: 0.1414213562373095
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
+Reduced_model2:
+  0:
+    density: 0.0
+    position: [0.0, 0.0]
+    radius: 0.08
+  1:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [-0.1784, 0.486]
+    radius: 0.07071067811865475
+  2:
+    density: 0.5
+    mass: 0.007853981633974483
+    position: [0.236, 0.592]
+    radius: 0.07071067811865475
