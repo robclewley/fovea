@@ -85,6 +85,13 @@ class HopfieldNetwork:
             print(mode + " is not a valid learning mode.")
 
     def _synchronous(self, patterns, steps=10):
+        """
+        Updates all network neurons simultaneously during each iteration of the
+        learning process.
+
+        Faster than asynchronous updating, but convergence of the learning method
+        is not guaranteed.
+        """
         if steps:
             for i in range(steps):
                 patterns = np.dot(patterns, self._weights)
@@ -97,6 +104,13 @@ class HopfieldNetwork:
                 patterns = post_learn
 
     def _asynchronous(self, patterns, steps=None):
+        """
+        Updates a single, randomly selected neuron during each iteration of the learning
+        process.
+
+        Convergence is guaranteed, but the learning is slower than when neurons are updated
+        in synchrony.
+        """
         patterns = np.array(patterns)
         if steps:
             for i in range(steps):
@@ -105,16 +119,15 @@ class HopfieldNetwork:
             return self._vec_activation(patterns)
         else:
             post_learn = patterns.copy()
+            indicies = set()            
             while True:
                 index = random.randrange(self.num_neurons)
-                print(index)
+                indicies.add(index)
                 post_learn[:,index] = np.dot(self._weights[index,:], np.transpose(patterns))
                 post_learn = self._vec_activation(post_learn)
-                print(patterns)
-                if np.array_equal(patterns, post_learn):
+                if np.array_equal(patterns, post_learn) and len(indicies) == self.num_neurons:
                     return self._vec_activation(post_learn)
-                print(post_learn)
-                patterns = post_learn
+                patterns = post_learn.copy()
 
     def energy(self, neuron):
         """
@@ -138,18 +151,11 @@ class HopfieldNetwork:
         """
         for pattern in patterns:
             self._weights += np.outer(pattern, pattern)
-        self._weights = self._vec_activation(self._weights, threshold)
         np.fill_diagonal(self._weights, 0)
+        self._weights = self._weights / len(patterns)
 
     def _storkey(self, patterns):
         """
         Implements Storkey learning.
         """
         pass
-
-myNet = HopfieldNetwork(3)
-A = [-1, 1, 1]
-B = [1, 1, -1]
-myNet.train([A, B])
-D = myNet.learn([[-1, 1, -1]])
-
