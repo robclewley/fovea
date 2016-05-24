@@ -123,7 +123,7 @@ class plotter2D(object):
         # record whether this class ever called show()
         self.shown = False
 
-    def auto_scale_domain(self, xcushion=0.05, ycushion=0.05, subplot=None, figure=None):
+    def auto_scale_domain(self, xcushion=0, ycushion=0, subplot=None, figure=None):
         """
         Set domain limits to that of the data in all layers
         with the greatest extent.
@@ -132,9 +132,6 @@ class plotter2D(object):
         """
         # ISSUE: Setting domains at the figure level (as opposed to subplot level) doesn't work.
         # Changes will likely need to be made in other functions, not here (such as buildLayers or buildPlotter2D)
-
-        x_extent = [0,0]
-        y_extent = [0,0]
 
         def auto_minmax(x, f):
             """
@@ -155,26 +152,26 @@ class plotter2D(object):
                 found_fig = True
             # Extract only those layers in the chosen subplot.
             if subplot:
-                subplot_layers = fig.arrange[subplot]['layers']
+                subplot_struct = fig.arrange[subplot]
+                subplot_layers = subplot_struct['layers']
                 layer_info = { layer_name : fig.layers[layer_name] for layer_name in subplot_layers }
             else:
                 layer_info = fig.layers
             for layerName, layer in layer_info.items():
                 if layer.kind != 'text':
                     for dName, d in list(layer['data'].items()):
-                        x_extent[0] = min(auto_minmax(d['data'][0], min), x_extent[0])
-                        x_extent[1] = max(auto_minmax(d['data'][0], max), x_extent[1])
-                        y_extent[0] = min(auto_minmax(d['data'][1], min), y_extent[0])
-                        y_extent[1] = max(auto_minmax(d['data'][1], max), y_extent[1])
+                        data_points = d['data']
+                        x_extent = [auto_minmax(data_points[0], min), auto_minmax(data_points[0], max)]
+                        y_extent = [auto_minmax(data_points[1], min), auto_minmax(data_points[1], max)]
 
         if not found_fig:
             raise ValueError("No such figure")
 
-        if subplot is not None:
+        if subplot:
             x_length = x_extent[1] - x_extent[0]
             y_length = y_extent[1] - y_extent[0]
             subplot_struct['scale'] = [tuple([x_extent[0] - xcushion*x_length, x_extent[1] + xcushion*x_length]),
-                                       tuple([y_extent[0] - ycushion*y_length, y_extent[1] + ycushion*y_length])]
+                                             tuple([y_extent[0] - ycushion*y_length, y_extent[1] + ycushion*y_length])]
         else:
             fig.domain = (x_extent, y_extent)
             plt.figure(fig.fignum)
@@ -195,72 +192,6 @@ class plotter2D(object):
         else:
             self.active_layer = (figure, layer)
             self.active_layer_structs = (fig_struct, layer_struct)
-
-
-    # ISSUE: This method is never called!
-##    def build(self, wait=False, figure=None, labels=None, autoscale=True):
-##        """
-##        Separate function for building figures to optimize simulation speeds.
-##        Call build() when user wants figure(s) to be displayed.
-##
-##        wait        Will automatically pause for user command after plotting figures when set to True; default False
-##        figure      Allows user to specify which figure to plot; overwrites figure.display settings
-##        labels      Specify whether to display labels on the plots and at which level
-##                    None | layers | data
-##        """
-##
-##        for figName in self.figs:
-##
-##            fig_struct = self.figs[figName]
-##
-##            if not fig_struct.display:
-##                continue
-##
-##            fig = plt.figure(fig_struct.fignum)
-##            #plt.title(fig_struct.title)
-##
-##            if len(fig_struct.arrange) == 0:
-##                ax = fig.add_subplot(1,1,1)
-##
-##                for layName in fig_struct.layers:
-##                    self._buildLayer_(figName, layName, ax)[0]
-##                ax.set_xlabel(fig_struct.xlabel)
-##                ax.set_ylabel(fig_struct.ylabel)
-##                ax.set_xlim(fig_struct.xdom)
-##                ax.set_ylim(fig_struct.ydom)
-##                ax.autoscale(enable=autoscale)
-##            else:
-##                shape = fig_struct.shape
-##                for ix, subplot in fig_struct.arrange.items():
-##                    ax = fig.add_subplot(shape[0], shape[1], shape[1]*(int(ix[0])-1)+int(ix[1]))
-##                    try:
-##                        axesLabels = subplot['axes']
-##                        if axesLabels is not None:
-##                            ax.set_xlabel(axesLabels[0])
-##                            ax.set_ylabel(axesLabels[1])
-##                    except:
-##                        raise ValueError("Error setting axis label for subplot")
-##                    try:
-##                        plt.title(subplot['name'])
-##                    except:  #### What exception is caught here?
-##                        pass
-##                    layer = subplot['layers']
-##                    if isinstance(layer, list):
-##                        if len(layer) > 0:
-##                            for layName in layer:
-##                                self._buildLayer_(figName, layName, ax)
-##                        else:
-##                            continue
-##                    else:
-##                        self._buildLayer_(figName, layer, ax)
-##                    plt.autoscale(enable=autoscale)
-##
-##            fig.canvas.draw()
-##            self.figs[figName].window = fig
-##
-##        if wait:
-##            pause = raw_input("Press <Enter> to continue...")
-
 
     def show_legends(self, figure=None, subplot=None):
         """
@@ -293,11 +224,8 @@ class plotter2D(object):
                         continue
                     print("     name: %s, style: %s" % (dname, dstruct['style']))
 
-
-
     ## Figure Management Tools ##
 
-    # ISSUE: make compound method names with _ not camelCase
     def add_fig(self, label, title="", xlabel="", ylabel="", tdom=None,
                domain=None, display=True):
         """
