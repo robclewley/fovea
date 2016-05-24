@@ -132,6 +132,8 @@ class plotter2D(object):
         """
         # ISSUE: Setting domains at the figure level (as opposed to subplot level) doesn't work.
         # Changes will likely need to be made in other functions, not here (such as buildLayers or buildPlotter2D)
+        x_extent = [0, 0]
+        y_extent = [0, 0]
 
         def auto_minmax(x, f):
             """
@@ -159,10 +161,12 @@ class plotter2D(object):
                 layer_info = fig.layers
             for layerName, layer in layer_info.items():
                 if layer.kind != 'text':
-                    for dName, d in list(layer['data'].items()):
-                        data_points = d['data']
-                        x_extent = [auto_minmax(data_points[0], min), auto_minmax(data_points[0], max)]
-                        y_extent = [auto_minmax(data_points[1], min), auto_minmax(data_points[1], max)]
+                   for dName, d in list(layer['data'].items()):
+                       data_points = d['data']
+                       x_extent[0] = min(auto_minmax(data_points[0], min), x_extent[0])
+                       x_extent[1] = max(auto_minmax(data_points[0], max), x_extent[1])
+                       y_extent[0] = min(auto_minmax(data_points[1], min), y_extent[0])
+                       y_extent[1] = max(auto_minmax(data_points[1], max), y_extent[1])
 
         if not found_fig:
             raise ValueError("No such figure")
