@@ -8,13 +8,13 @@ y = x**2
 plotter = plotter2D()
 gui = diagnosticGUI(plotter)
 
-plotter.add_fig('Master', title='quadratic', xlabel='x', ylabel='y', domain=[(-5, 5), (0,25)])
+plotter.addFig('Master', title='quadratic', xlabel='x', ylabel='y', domain=[(-5, 5), (0,25)])
 
-plotter.add_layer('fn_data')
+plotter.addLayer('fn_data')
 
-plotter.add_data([x,y], layer='fn_data', style='g-')
+plotter.addData([x,y], layer='fn_data', style='g-')
 
-plotter.arrange_fig([1,1], {'11':
+plotter.arrangeFig([1,1], {'11':
                            {'name': 'Plot of x**2',
                             'scale': [(-5,5),(0,25)],
                             'layers': ['fn_data'],

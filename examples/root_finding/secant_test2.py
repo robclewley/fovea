@@ -9,7 +9,7 @@ from test_funcs import f2
 DOI = ([0,20],[-1,0.5])
 
 plotter.clean()
-plotter.add_fig('Master',
+plotter.addFig('Master',
                title='Root Finding Diagnostic',
                xlabel='x', ylabel='y',
                domain=DOI)
@@ -20,10 +20,10 @@ plotter.dm = dm
 # default to wait for user input on each iteration
 plotter.wait_status = True
 
-plotter.add_layer('fn_data')
-plotter.add_layer('meta_data', kind='text')
+plotter.addLayer('fn_data')
+plotter.addLayer('meta_data', kind='text')
 
-plotter.arrange_fig([1,1], {'11':
+plotter.arrangeFig([1,1], {'11':
                            {'name': 'Secant method',
                             'scale': DOI,
                             # "*" functionality is broken
@@ -38,7 +38,7 @@ plotter.addHLine(0, style='k:', layer='fn_data')
 plotter.addVLine(0, style='k:', layer='fn_data')
 xs = npy.linspace(DOI[0][0], DOI[0][1], 1000)
 ys = f2(xs)
-plotter.add_data([xs, ys], layer='fn_data', style='k-')
+plotter.addData([xs, ys], layer='fn_data', style='k-')
 
 root = secant(f2, 3, 12)
 print("Root is x=%.4f"%root)

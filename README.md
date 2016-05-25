@@ -62,23 +62,23 @@ String. If the parent Layer of the data  has been assigned to different subplots
 
 graphics.py includes two main classes for managing GUIs, Layers, and the graphical objects stored inside them:
 
-_plotter2D_ creates the graphical components for specific calculations. It can be used to create and store new figures and Layers and generates artists placed upon them (data, text, axis lines, etc.). For example, two Layers containing clusters of data points observed during two separate experiments may be created and entitled as ‘exp1_data’ and ‘exp2_data’ using separate calls to the method add_layer, then the boundaries of the figure containing these layers may be resized with the method auto_scale_domain. The following code snippet demonstrates how layers can be initialized in a single axes object and used to store different types of data:
+_plotter2D_ creates the graphical components for specific calculations. It can be used to create and store new figures and Layers and generates artists placed upon them (data, text, axis lines, etc.). For example, two Layers containing clusters of data points observed during two separate experiments may be created and entitled as ‘exp1_data’ and ‘exp2_data’ using separate calls to the method addLayer, then the boundaries of the figure containing these layers may be resized with the method auto_scale_domain. The following code snippet demonstrates how layers can be initialized in a single axes object and used to store different types of data:
 
 ```python
 plotter = gui.plotter
 
 #Create a root figure
-plotter.add_fig('Master',
+plotter.addFig('Master',
     title='Project Title',
     xlabel='x', ylabel='y',
     domain=([0,10],[-2,1.5]))
 
 #Add layers to Master figure with titles.
-plotter.add_layer('exp1_data', figure = 'Master')
-plotter.add_layer('exp2_data', figure = 'Master')
+plotter.addLayer('exp1_data', figure = 'Master')
+plotter.addLayer('exp2_data', figure = 'Master')
 
 #Create a single axes object at 11, containing our layers.
-plotter.arrange_fig([1,1], {'11':
+plotter.arrangeFig([1,1], {'11':
     {'name': 'Two Experiments',
     'scale': ([0,10],[-2,1.5]),
     'layers': ['exp1_data','exp2_data'],
@@ -88,8 +88,8 @@ plotter.arrange_fig([1,1], {'11':
 gui.buildPlotter2D((8,8), with_times=False)
 
 #Add list data to our layers.
-plotter.add_data(dataset1, layer='exp1_data', style='k-')
-plotter.add_data(dataset2, layer='exp2_data', style='r-')
+plotter.addData(dataset1, layer='exp1_data', style='k-')
+plotter.addData(dataset2, layer='exp2_data', style='r-')
 
 plotter.auto_scale_domain(figure='Master')
 plotter.show()
@@ -105,28 +105,28 @@ From the user's perspective, Layers may be thought of as transparent slides that
 
 Layers currently support four different kinds: 'data', 'text', 'patch' and 'obj'. Each one has a corresponding plotter2D method for adding artist specifications to the list of instructions that is the layer structure.
 
-_add_data_  
-Accepts a pair of sequences in [x, y] format (@param data), which are eventually converted into a matplotlib.lines.line2D in _buildLayer_ with a call to mpl's _plot()_ function. Given three numeric sequences [x, y, z] for @param data, _add_data_ will create 3-dimensional data, but the 'projection' type of the axes must be set to '3d' in the call to plotter.arrange_fig for 3d plotting to work. A mpl.collections.LineCollection object can also be provided for @param data, in which case, _buildLayer_ will add an artist to the axes with .add_collection. 
+_addData_  
+Accepts a pair of sequences in [x, y] format (@param data), which are eventually converted into a matplotlib.lines.line2D in _buildLayer_ with a call to mpl's _plot()_ function. Given three numeric sequences [x, y, z] for @param data, _addData_ will create 3-dimensional data, but the 'projection' type of the axes must be set to '3d' in the call to plotter.arrangeFig for 3d plotting to work. A mpl.collections.LineCollection object can also be provided for @param data, in which case, _buildLayer_ will add an artist to the axes with .add_collection. 
 
-_add_data_ is also unique in that calling this method will create a PyDSTool Trajectory object that underlies the data added. The internal method _.\_updateTraj()_ called by _add_data()_ will convert @param trajs (a PyDSTool Pointset given to _add_data_) into a Trajectory stored as a value in the .trajs field of the given layer's struct. If @param trajs is None, a traj is created with the PyDSTool method _numeric\_to\_traj_ from @param data. Trajs allow the snap callback to locate a point on the data.
+_addData_ is also unique in that calling this method will create a PyDSTool Trajectory object that underlies the data added. The internal method _.\_updateTraj()_ called by _addData()_ will convert @param trajs (a PyDSTool Pointset given to _addData_) into a Trajectory stored as a value in the .trajs field of the given layer's struct. If @param trajs is None, a traj is created with the PyDSTool method _numeric\_to\_traj_ from @param data. Trajs allow the snap callback to locate a point on the data.
 
 
 _addText_  
 Takes a string for @param text to be displayed at [x, y] coordinates @param data. The text will eventually be created on the given axes with a call to mpl's _.text()_ method. If @param use\_axis\_coords is True, the [x, y] position is treated as a fraction of the length of the x and y limits of the axes (i.e., @param data = [0.5, 0.5] will produce place the text in the center of the axes, [1, 0] in its bottom-right corner, [1, 1] in its top-right, etc.'). If use\_axis\_coords is false, the position of the text is simply at that position on the axes (so if you want to label a data point with a bit of text, they can have the same values for lay.data.data).
 
-_add_patch_  
-Like _add_data_, this method accepts a pair of [x, y] sequences. Each pair in the sequence specifies the position of a patch to be created from the parameter @param patch, which should itself be a callable matplotlib patch object. In _buildLayer_, matplotlib's _add\_artist_ is called with @param patch (with _add_patch_'s kwargs as its arguments)
+_addPatch_  
+Like _addData_, this method accepts a pair of [x, y] sequences. Each pair in the sequence specifies the position of a patch to be created from the parameter @param patch, which should itself be a callable matplotlib patch object. In _buildLayer_, matplotlib's _add\_artist_ is called with @param patch (with _addPatch_'s kwargs as its arguments)
 
-ISSUE: Currently, add_patch assumes a 'radius' keyword has been provided and will only work for patches that use this keyword (such as circles).
+ISSUE: Currently, addPatch assumes a 'radius' keyword has been provided and will only work for patches that use this keyword (such as circles).
 
-_add_obj_  
-Similar behavior to _add_patch_, except @param obj replaces @param patch, and can be any callable object. It has only been tested for instances of obj = mpl.lines.line2D and obj = mpl.patches.Rectangle. Currently only used to created context objects (box_GUIs and line_GUIs).
+_addObj_  
+Similar behavior to _addPatch_, except @param obj replaces @param patch, and can be any callable object. It has only been tested for instances of obj = mpl.lines.line2D and obj = mpl.patches.Rectangle. Currently only used to created context objects (box_GUIs and line_GUIs).
 
-ISSUE: I might suggest merging add_patch and add_obj into a single function, since both exist to create a chosen mpl object at the positions specified in data with some kwargs. Alternatively, it might be useful to rename add_obj to addConObj and include some error handling to ensure it's only used to create context objects, since that's what it's being used for now.
+ISSUE: I might suggest merging addPatch and addObj into a single function, since both exist to create a chosen mpl object at the positions specified in data with some kwargs. Alternatively, it might be useful to rename addObj to addConObj and include some error handling to ensure it's only used to create context objects, since that's what it's being used for now.
 
-Parameters shared by each add method include the figure, layer and subplot the artists should appear in. The parameters figure and layer will accept only the string name of the given structure, but subplot can be given either a string (e.g., '11' for the top-left subplot, or '21' for the bottom-left on a 4-by-4 grid), or the matplotlib axes object located on the figure. Note that, when given an axes object, the add methods will translate it into a subplot-string before storing it in the data's structure. The subplot can also only be specified when the given layer has been added to multiple subplot's in the call to _arrange_fig_. If a layer occurs in multiple subplots, but @param subplot is left as None, the artist will default to the first subplot its layer belongs to.
+Parameters shared by each add method include the figure, layer and subplot the artists should appear in. The parameters figure and layer will accept only the string name of the given structure, but subplot can be given either a string (e.g., '11' for the top-left subplot, or '21' for the bottom-left on a 4-by-4 grid), or the matplotlib axes object located on the figure. Note that, when given an axes object, the add methods will translate it into a subplot-string before storing it in the data's structure. The subplot can also only be specified when the given layer has been added to multiple subplot's in the call to _arrangeFig_. If a layer occurs in multiple subplots, but @param subplot is left as None, the artist will default to the first subplot its layer belongs to.
 
-A few other add methods are included for the user's convenience. The following methods don't have their own layer type, but instead wrap _add_data_.
+A few other add methods are included for the user's convenience. The following methods don't have their own layer type, but instead wrap _addData_.
 
 _addLineByPoints_  
 
@@ -136,38 +136,38 @@ _addVLine_
 
 _addHLine_  
 
-Once the data and layer structures have been specified with calls to _plotter2D_'s different add methods, the graphics can finally be displayed with _buildLayer_. However, _plotter2d.show()_ will typically be the calling function of _buildLayer_, as it loops through each subplot in the arrangement and each layer in the figure applying all the changes specified by the different add and set methods. In summary, _add_data_, _addText_, _add_patch_, and _add_obj_ create specifications for graphical objects to be displayed, but the actual execution of these specifications occurs in _show()_.
+Once the data and layer structures have been specified with calls to _plotter2D_'s different add methods, the graphics can finally be displayed with _buildLayer_. However, _plotter2d.show()_ will typically be the calling function of _buildLayer_, as it loops through each subplot in the arrangement and each layer in the figure applying all the changes specified by the different add and set methods. In summary, _addData_, _addText_, _addPatch_, and _addObj_ create specifications for graphical objects to be displayed, but the actual execution of these specifications occurs in _show()_.
 
 The properties of figures, layers, and data can be changed after having been added to the plotter using the _plotter2D_ "set" methods:
 
-_set_fig_  
+_setFig_  
 Sets the current figure to that named by @param label. kwargs can be included to adjust specific properties of the figure.
 
-_set_layer_  
+_setLayer_  
 Change the values of layer attributes with kwargs (e.g., style, handles, display). Note that _setDisplay()_ and _toggleDisplay()_ can also be used to change a layer's display attribute.
 
-_set_data_2_  
-Change attributes associated with data. Currently Fovea includes two methods, _set_data_ and _set_data_2_, but the original _set_data_ will be phased out in a future version. The code snippet below illustrated the difference between calls to the two methods:
+_setData2_  
+Change attributes associated with data. Currently Fovea includes two methods, _setData_ and _setData2_, but the original _setData_ will be phased out in a future version. The code snippet below illustrated the difference between calls to the two methods:
 
 OLD VERSION:
 ```python
-gui.set_data(layname, data={dname: {'data': [float_a, float_b], 'style':'b--', 'display': True}}, display=True)
+gui.setData(layname, data={dname: {'data': [float_a, float_b], 'style':'b--', 'display': True}}, display=True)
 ```
 
 NEW VERSION:
 ```python
-gui.set_data_2(dname, layer= layname, data = [float_a, float_b], style = 'b--', display=True)
+gui.setData2(dname, layer= layname, data = [float_a, float_b], style = 'b--', display=True)
 ```
 
-Whereas set_data is essentially a repackaging of set_layer where the user must supply a new dictionary to update data, set_data_2 allows the user to change data attribute directly as keyword arguments.
+Whereas setData is essentially a repackaging of setLayer where the user must supply a new dictionary to update data, setData2 allows the user to change data attribute directly as keyword arguments.
 
 
 #####Adding PyDSTool Pointsets
-In the previous section, we saw how different _plotter2D_ add methods can be used to create the specifications of artists to be displayed in a Fovea GUI. Due to the importance of adding data to layers and the repition with which these methods will be called, the _diagnosticGUI_ method _add_dataPoints()_ is included to add multiple different kinds of artist simultaneously. In other words, _diagnosticGUI.add_dataPoints()_ attempts to translate any type of inputs it receives into the specifications in a layer's structure.
+In the previous section, we saw how different _plotter2D_ add methods can be used to create the specifications of artists to be displayed in a Fovea GUI. Due to the importance of adding data to layers and the repition with which these methods will be called, the _diagnosticGUI_ method _addDataPoints()_ is included to add multiple different kinds of artist simultaneously. In other words, _diagnosticGUI.addDataPoints()_ attempts to translate any type of inputs it receives into the specifications in a layer's structure.
 
-In the simplest case, if @param data is a numpy array or a 2 or 3 dimensional list, _add_dataPoints()_ acts as a wrapper function, calling _plotter2D.add_data()_ with _add_dataPoints()_'s arguments.
+In the simplest case, if @param data is a numpy array or a 2 or 3 dimensional list, _addDataPoints()_ acts as a wrapper function, calling _plotter2D.addData()_ with _addDataPoints()_'s arguments.
 
-The bigger appeal of _add_dataPoints()_ is using it to convert PyDSTool Pointsets into different types of artists. Because a Pointsets is essentially a list of named arrays with arbitrary names provided by the user, @param coorddict is used to specify how each dimension in the Pointset is supposed to be used to create an artist. They keys of coorddict should be the names of only those dimensions of the Pointset the user wishes to be represented graphically. For instance, a Pointset may include dimensions for x and y positions of a trajectory (named 'posx' and 'posy' respectively), in addition to the velocity of that trajectory (named 'velx' and 'vely') at each timestep. If the user wishes to plot out the trajectory and a graph of its changing velocity (while perhaps not including some fifth, irrelevant variable 'var' from the graph), they do this by adding each desired variable as a key in coorddict.
+The bigger appeal of _addDataPoints()_ is using it to convert PyDSTool Pointsets into different types of artists. Because a Pointsets is essentially a list of named arrays with arbitrary names provided by the user, @param coorddict is used to specify how each dimension in the Pointset is supposed to be used to create an artist. They keys of coorddict should be the names of only those dimensions of the Pointset the user wishes to be represented graphically. For instance, a Pointset may include dimensions for x and y positions of a trajectory (named 'posx' and 'posy' respectively), in addition to the velocity of that trajectory (named 'velx' and 'vely') at each timestep. If the user wishes to plot out the trajectory and a graph of its changing velocity (while perhaps not including some fifth, irrelevant variable 'var' from the graph), they do this by adding each desired variable as a key in coorddict.
 
 ```python
 coorddict = {'posx': {inner_dict}, 'velx': {inner_dictionary}}
@@ -197,13 +197,13 @@ _'name'_
 The name of the data structure to be added by the plotter.
 
 _'layer'_  
-The layer to which the data are to be added. Unlike _plotter.add_data_, _add_dataPoints_ call add a new layer to the plotter if the value of this key doesn't currently exist.
+The layer to which the data are to be added. Unlike _plotter.addData_, _addDataPoints_ call add a new layer to the plotter if the value of this key doesn't currently exist.
 
 _'style'_  
 The style in which the artist should be displayed.
 
 _'object'_  
-The type of artist to be displayed. If left empty, _add_dataPoints()_ will use _add_data()_ to display scatter or line data. Also currently accepts the string 'circle' to use _add_patch()_ to create an instance of a pyplot circle. The string 'collection' is also an admissable value, and will add a lineCollections to the axes using _add_data()_
+The type of artist to be displayed. If left empty, _addDataPoints()_ will use _addData()_ to display scatter or line data. Also currently accepts the string 'circle' to use _addPatch()_ to create an instance of a pyplot circle. The string 'collection' is also an admissable value, and will add a lineCollections to the axes using _addData()_
 
 _'map\_radius\_to'_  
 The value belonging to this key must specify the name of the Pointset dimension (@param data) to which the given coorddict key should be used as the radii parameter. Only applicable when the coorddict key's value includes {'object':'circle'}.
@@ -223,7 +223,7 @@ coorddict =
     'radii':
         {'map_radius_to':'px'}
     }
-diagnosticGUI.add_dataPoints(bodsPoints, coorddict=coorddict)
+diagnosticGUI.addDataPoints(bodsPoints, coorddict=coorddict)
 ```
 
 ISSUE: It might make more sense if 'map\_radius\_to'  was changed to make 'radii' and would behave like so:
@@ -235,39 +235,39 @@ coorddict =
     }
 ```
 
-Once this format is used to create specifications of how the plotter should use each dimension of the Pointset input, multiple datasets of different types can be plotted with a single call to _add_dataPoints()_. The following code snippets both plot the same artists, but demonstrate the difference between adding data at the diagnosticGUI level (with _add_dataPoints_) and adding data at the plotter2D level (with _add_data_).
+Once this format is used to create specifications of how the plotter should use each dimension of the Pointset input, multiple datasets of different types can be plotted with a single call to _addDataPoints()_. The following code snippets both plot the same artists, but demonstrate the difference between adding data at the diagnosticGUI level (with _addDataPoints_) and adding data at the plotter2D level (with _addData_).
 
-Using _plotter.add_data_:
+Using _plotter.addData_:
 
 ```python
-plotter.add_layer('V')
-plotter.add_data([trajPts['t'], trajPts['V']], layer='V', style='k-',
+plotter.addLayer('V')
+plotter.addData([trajPts['t'], trajPts['V']], layer='V', style='k-',
                 name='V')
-plotter.add_data([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
+plotter.addData([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
                 name='Vinf')
 
-plotter.add_layer('activs')
-plotter.add_data([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
+plotter.addLayer('activs')
+plotter.addData([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
                 name='m')
-plotter.add_data([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
+plotter.addData([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
                 name='minf')
 
-plotter.add_data([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
+plotter.addData([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
                 name='n')
-plotter.add_data([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
+plotter.addData([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
                 name='ninf')
 
-plotter.add_data([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
+plotter.addData([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
                 name='tauv')
-plotter.add_data([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
+plotter.addData([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
                 name='taum')
-plotter.add_data([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
+plotter.addData([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
                 name='taun')
 
 plotter.show()
 ```
 
-Using _diagnosticGUI.add_dataPoints_:
+Using _diagnosticGUI.addDataPoints_:
 
 ```python
 coorddict = {'V':
@@ -289,16 +289,16 @@ coorddict = {'V':
              'K.taun':
                 {'x':'t', 'y':'K.taun', 'layer':'activs','name':'taun', 'style':'r:'}
              }
-gui.add_dataPoints(trajPts, coorddict = coorddict)
+gui.addDataPoints(trajPts, coorddict = coorddict)
 
 gui.show()
 ```
 
-Although learning to construct coorddicts properly takes a bit of effort, _add_dataPoints_ simplifies the process of adding data to Fovea GUIs considerably, both by making the code more readable, and removing the need to _add_layer_ excessively. For more information on the Pointsets demonstrated in the above code snippets, see the Hodgkin-Huxley demo in HH_simple_demo.py in examples/HH_neuron.
+Although learning to construct coorddicts properly takes a bit of effort, _addDataPoints_ simplifies the process of adding data to Fovea GUIs considerably, both by making the code more readable, and removing the need to _addLayer_ excessively. For more information on the Pointsets demonstrated in the above code snippets, see the Hodgkin-Huxley demo in HH_simple_demo.py in examples/HH_neuron.
 
 #####GUI vs. Plotter
 
-Together, _diagnosticGUI_ and _plotter2D_ provide the front and back ends of Fovea. The GUI class is intended as the user's point of entry to the system. It provides _add_dataPoints()_ to enter pointSet data that may later be visualized with the plotter and comes built in with a number of "basic" widgets (the save, capturePoint, refresh and back buttons), which can be hidden by setting the optional parameter "basic_widgets" as False when the display is initialized with _buildPlotter2D()_. The suite of basic widgets can also be extended with the _addWidget()_ method, which saves the user the trouble of creating widget objects with matplotlib and adding them to GUI figures directly. For instance, a slider object (ranging from -10 to 10 and initialized at 0) can be added to the figure and connected to the user's callback (self.slideCallback):
+Together, _diagnosticGUI_ and _plotter2D_ provide the front and back ends of Fovea. The GUI class is intended as the user's point of entry to the system. It provides _addDataPoints()_ to enter pointSet data that may later be visualized with the plotter and comes built in with a number of "basic" widgets (the save, capturePoint, refresh and back buttons), which can be hidden by setting the optional parameter "basic_widgets" as False when the display is initialized with _buildPlotter2D()_. The suite of basic widgets can also be extended with the _addWidget()_ method, which saves the user the trouble of creating widget objects with matplotlib and adding them to GUI figures directly. For instance, a slider object (ranging from -10 to 10 and initialized at 0) can be added to the figure and connected to the user's callback (self.slideCallback):
 
 ```python
 gui.addWidget(Slider, callback=self.slideCallback, axlims = (0.1, 0.055, 0.65, 0.03),
@@ -308,7 +308,7 @@ gui.addWidget(Slider, callback=self.slideCallback, axlims = (0.1, 0.055, 0.65, 0
 
 The overall design of _diagnosticGUI_ emphasizes features general to any application, while giving the user the flexibility to patch in their own extensions. Another example is the _key\_on()_ method, which defines hotkeys and connects each to a callback (such as _mouse\_event\_snap()_ in _diagnosticGUI_ and _RectangleSelector_ in matplotlib). Some of these key commands tie into functions defined in the user's application. _diagnosticGUI.assign_user_func()_ takes a callable, such as a function created by the user, and stores this as an attribute of the GUI. This callable (user_func) will then be used by _mouse\_event\_user\_function()_ connected in _key\_on()_.
 
-Although the actions of _plotter2D_ are largely intended to take place within the context of a GUI object, in advanced applications it may be necessary to set properties and give commands to the plotter directly. Currently, **layers** are implemented as a struct (layer_struct) whose fields are the layer's attributes (e.g. data, style, axes_obj) is an instance of _plotter2D_. Any of these properties can be set with _plotter2D.set_layer()_, which along with _add_layer()_, provide the user (at the command line or in user-functions) direct control over how data are displayed and managed in a GUI's subplots.
+Although the actions of _plotter2D_ are largely intended to take place within the context of a GUI object, in advanced applications it may be necessary to set properties and give commands to the plotter directly. Currently, **layers** are implemented as a struct (layer_struct) whose fields are the layer's attributes (e.g. data, style, axes_obj) is an instance of _plotter2D_. Any of these properties can be set with _plotter2D.setLayer()_, which along with _addLayer()_, provide the user (at the command line or in user-functions) direct control over how data are displayed and managed in a GUI's subplots.
 
 To curtail excessive calls to the plotter within the user's application, a number of wrapper methods and convenience functions have been defined for diagnosticGUI. The previous example for setting up a Fovea scenario can be simplified using these methods as follows:
 
@@ -316,7 +316,7 @@ To curtail excessive calls to the plotter within the user's application, a numbe
 from fovea.graphics import gui
 
 #Create a root figure
-gui.add_fig('Master',  
+gui.addFig('Master',  
     title='Project Title',
     xlabel='x', ylabel='y',
     domain=([0,10],[-2,1.5]))
@@ -331,13 +331,13 @@ gui.setup({'11':
     size= (8, 8), with_times= False)
 
 #Add list data to our layers.
-gui.add_dataPoints(dataset1, layer='exp1_data', style='k-')
-gui.add_dataPoints(dataset2, layer='exp2_data', style='r-')
+gui.addDataPoints(dataset1, layer='exp1_data', style='k-')
+gui.addDataPoints(dataset2, layer='exp2_data', style='r-')
 
 gui.show()
 
 ```
-Notice that the previous calls to _plotter.add_fig()_ and _plotter.show()_ have been replaced with the equivalent _gui.add_fig()_ and _gui.show()_ and _gui.add_dataPoints()_ now takes the place of _gui.add_data()_. Furthermore, the calls to _plotter.add_layer()_ have been removed altogether. Instead _add_dataPoints()_, upon receiving 'exp1_data' and 'exp2_data' as layer arguments, understands that these are new layers to be added to the plotter and calls _plotter.add_layer()_ internally. _gui.setup()_ also combines _plotter.arrange_fig()_ and _plotter.buildPlotter2D()_ into a convenient function, as these two methods will often be called together. An added benefit to using _gui.setup()_ is that it is no longer necessary to specify the shape of the figure arrangement explicity. The function looks at the keys of arrPlots (its first positional argument) and infers the largest row column values should define the shape of the figure. For example, if the keys of the dict passed into _gui.setup()_ are '11', '12', '21', '22', the figure will be arranged 2-by-2.
+Notice that the previous calls to _plotter.addFig()_ and _plotter.show()_ have been replaced with the equivalent _gui.addFig()_ and _gui.show()_ and _gui.addDataPoints()_ now takes the place of _gui.addData()_. Furthermore, the calls to _plotter.addLayer()_ have been removed altogether. Instead _addDataPoints()_, upon receiving 'exp1_data' and 'exp2_data' as layer arguments, understands that these are new layers to be added to the plotter and calls _plotter.addLayer()_ internally. _gui.setup()_ also combines _plotter.arrangeFig()_ and _plotter.buildPlotter2D()_ into a convenient function, as these two methods will often be called together. An added benefit to using _gui.setup()_ is that it is no longer necessary to specify the shape of the figure arrangement explicity. The function looks at the keys of arrPlots (its first positional argument) and infers the largest row column values should define the shape of the figure. For example, if the keys of the dict passed into _gui.setup()_ are '11', '12', '21', '22', the figure will be arranged 2-by-2.
 
 
 #####Importing vs. Subclassing
@@ -361,15 +361,15 @@ class customGUI(graphics.diagnosticGUI):
         self.do_fovea_stuff(name)
 
     def do_fovea_stuff(self, name):
-        self.add_fig(self.fig,  
+        self.addFig(self.fig,  
             title= self.title,
             xlabel='x', ylabel='y',
             domain= self.doi)
 
-        self.plotter.add_layer(name)
+        self.plotter.addLayer(name)
 ```
 
-The class customGUI initializes graphics.diagnosticGUI as its superclass with a plotter object. Any instance of customGUI can be acted on by diagnosticGUI and plotter2D methods such as _add_fig()_ and _add_layer()_. In addition, new functions such as _do\_fovea\_stuff()_ can be defined by the user and used like any other diagnosticGUI method.
+The class customGUI initializes graphics.diagnosticGUI as its superclass with a plotter object. Any instance of customGUI can be acted on by diagnosticGUI and plotter2D methods such as _addFig()_ and _addLayer()_. In addition, new functions such as _do\_fovea\_stuff()_ can be defined by the user and used like any other diagnosticGUI method.
 
 In some circumstances, it is necessary to create a custom object that subclasses diagnosticGUI. _diagnosticGUI.make\_gen()_ is a method for creating PyDSTool generator models, which may vary enormously in form, depending on the user's needs. As such, _make\_gen()_ is left empty and will raise a NotImplementedError if called by the global singleton gui. It is up the user to override this method (by defining in the subclass their own method of the same name), if they wish to associate their own PyDSTool model with the GUI. Similarly, _user\_nav\_func()_ will also be called when diagnosticGUI navigation keys (see next section, Callbacks) are pressed, even though it is left empty. The method is there to be overridden if some special behavior is desired during context object navigation.
 
@@ -441,10 +441,10 @@ gui.assign_user_func(self.get_displacements)
 ISSUE: Fovea provides most user hooks by creating an empty function to be overridden (e.g., user_nav_func), these should be replaced with assign_funcs like the ones above (or the assign_funcs should be replaced with overridable empty functions like user_nav_func) so the style remains consistent and easy to learn. It would probably make more sense to go with assign_funcs, as the overrides can only be used if the user wants to subclass diagnosticGUI.
 
 
-Note that these callbacks will only work in subplots in which they have been assigned during the call to arrange_fig. For example, if the figure is arranged like below, then all the callbacks will work, but only when clicking on the axes of the second subplot:
+Note that these callbacks will only work in subplots in which they have been assigned during the call to arrangeFig. For example, if the figure is arranged like below, then all the callbacks will work, but only when clicking on the axes of the second subplot:
 
 ```python
-plotter.arrange_fig([1,2], 
+plotter.arrangeFig([1,2], 
     {'11':
         {'name': 'BEFORE',
         'scale': [(-10,10),(-10,10)],
@@ -461,7 +461,7 @@ plotter.arrange_fig([1,2],
 ```
  
 ISSUE: If the 'callbacks' value is not None, all are activated. 'callbacks' should instead receive a list, to activate them individually.
-ISSUE: Seems redundant to both have an initializing statement in buildPlotter2D and arrange_fig. initialize_callbacks should just be called in arrange_fig.
+ISSUE: Seems redundant to both have an initializing statement in buildPlotter2D and arrangeFig. initialize_callbacks should just be called in arrangeFig.
 
 ####Selecting Data and Context Objects
 Any artist on a 2D subplot can be picked by clicking on or near them. When an artist is picked, it is redrawn with a thicker line or bigger markers, and set as the currently selected object (found at diagnosticGUI.selected_object). The selected object can be either data or a context object, each represented by different class:
@@ -589,7 +589,7 @@ layer_struct is a dictionary associated with a unique, named layer. It contains 
 
 The value of the 'data' key in layer_struct is a dictionary, whose keys are 'style' (string), 'display' (boolean) and 'data' (numpy array)
 
-arrange_fig checks if positions of the subplots are consistent with the declared shape, and if so, stores shape and arrange as items in the fig_struct. These are used later to actually build the figure and plots.
+arrangeFig checks if positions of the subplots are consistent with the declared shape, and if so, stores shape and arrange as items in the fig_struct. These are used later to actually build the figure and plots.
 
 
 ####Class Line_GUI
@@ -610,9 +610,9 @@ Binds an event to this instance of line_GUI, which is triggered when the line is
 ####Methods:
 
 ####buildPlotter2D
-Creates GUI based on the properties set with arrange_fig. Takes as input a fig_size (integer pair), which gives the width and height of the master window in inches, and with_times (boolean), which determines if a continuous "time slider" widget should be created. Creates core GUI buttons and sets up their callbacks.
+Creates GUI based on the properties set with arrangeFig. Takes as input a fig_size (integer pair), which gives the width and height of the master window in inches, and with_times (boolean), which determines if a continuous "time slider" widget should be created. Creates core GUI buttons and sets up their callbacks.
 
-subplot_struct contains the values for a subplot at a given position named in the call to arrange_fig
+subplot_struct contains the values for a subplot at a given position named in the call to arrangeFig
 
 ######unshow(self)
 Make this line instance invisible.
@@ -643,7 +643,7 @@ _self.active\_layer\_structs_
 ####addText(self, data, figure=None, layer=None, style=None, name=None, display=True, force=False, log=None)
 Does NOT accept a list of text/list of position coords to create text en mass.
 
-####add_data(self, data, figure=None, layer=None, style=None, name=None, display=True, force=False, log=None)
+####addData(self, data, figure=None, layer=None, style=None, name=None, display=True, force=False, log=None)
 """
 User tool to add data to a named layer (defaults to current active layer).
 *data* consists of a pair of sequences of x, y data values, in the same
@@ -659,12 +659,12 @@ visible by default.
 
 Creates a name for the data parameter in this layer, and adds it to layer_struct.data as a dictionary of dictionaries with the builtin update() method defined for dictionaries. The sub-dictionary's keys are 'data' (the np array passed in as an argument), 'style', and 'display'.
 
-#####add_layer(self, layer_name, figure=None, set_to_active=True, **kwargs)
+#####addLayer(self, layer_name, figure=None, set_to_active=True, **kwargs)
 Add a layer to the figure. layer_names can be created or stored, but they can also be initialized with layer properties such as data, style, scale and kind.
 
 Basically takes a new figure name, and associates with that string its own figure_struct
 
-#####set_layer(self, label, figure=None, **kwargs)
+#####setLayer(self, label, figure=None, **kwargs)
 Arrange data sets in a figure's layer
 
 Change or reset properties of an existing layer named _label_. Note that plotter2D.show() must be called afterwards in order to update layer axes.
@@ -698,7 +698,7 @@ string indicating kind of information displayed in this layer (e.g., "text", "da
 
 #####_subplots(self, layers, fig_name, rebuild= False)
 
-Nested loop over shape provided in fig_struct. Retrieve the subplot_struct ('name', 'projection', 'layers', ... Things defined in arrange_fig) Each time through the loop.
+Nested loop over shape provided in fig_struct. Retrieve the subplot_struct ('name', 'projection', 'layers', ... Things defined in arrangeFig) Each time through the loop.
 
 ##EXAMPLES
 
