@@ -18,7 +18,7 @@ from fovea import common, prep
 import fovea.graphics as gx
 
 
-gentype = 'dopri'
+gentype = 'vode'
 
 # let rocket mass be negligible
 # and G chosen to absorb m_rocket
@@ -112,16 +112,16 @@ class GUIrocket(gx.diagnosticGUI):
         #Setup code
         DOI = [(-xdomain_halfwidth,xdomain_halfwidth),(0,1)]
         self.clean() # in case rerun in same session
-        self.addFig('master',
+        self.add_fig('master',
                         title='Bombardier',
                         xlabel='x', ylabel='y',
                         domain=DOI)
 
         #Setup all layers
 
-        self.addLayer('trajs')
-        self.addLayer('bodies', kind='patch')
-        self.addLayer('text', kind='text')
+        self.add_layer('trajs')
+        self.add_layer('bodies', kind='patch')
+        self.add_layer('text', kind='text')
 
         self.name = 'gamespace'
 
@@ -198,7 +198,7 @@ class GUIrocket(gx.diagnosticGUI):
             quarts = Pointset({'coordarray': np.array([[self.points['x'][int(0.25*n)], self.points['x'][int(0.5*n)], self.points['x'][int(0.75*n)]],
                                            [self.points['y'][int(0.25*n)], self.points['y'][int(0.5*n)], self.points['y'][int(0.75*n)]]]),
                       'coordnames': ['xq', 'yq']})
-            self.addDataPoints(quarts, coorddict=coorddict)
+            self.add_dataPoints(quarts, coorddict=coorddict)
 
         except TypeError:
             pass
@@ -210,7 +210,7 @@ class GUIrocket(gx.diagnosticGUI):
                      'speed':
                      {'map_color_to':'x'}
                      }
-        self.addDataPoints(self.points, coorddict=coorddict)
+        self.add_dataPoints(self.points, coorddict=coorddict)
 
         #Bodies Pointset
         bodsPoints = Pointset({'coordarray': np.array([[self.pos[i][0] for i in range(len(self.pos))],
@@ -222,7 +222,7 @@ class GUIrocket(gx.diagnosticGUI):
                      'radii':
                      {'map_radius_to':'px'}
                      }
-        self.addDataPoints(bodsPoints, coorddict=coorddict)
+        self.add_dataPoints(bodsPoints, coorddict=coorddict)
 
         pos = np.array(self.pos).transpose()
         for i in range(len(pos[0])):
@@ -479,7 +479,7 @@ class GUIrocket(gx.diagnosticGUI):
     def run(self, tmax=None):
         self.model.compute('test', force=True)
         self.traj = self.model.trajectories['test']
-        self.addDataTraj(self.traj)
+        self.add_dataTraj(self.traj)
         self.pts = self.points #Shouldn't have to do this.
         if self.calc_context is not None:
             # Update calc context

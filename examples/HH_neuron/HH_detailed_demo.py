@@ -140,18 +140,18 @@ class PPcallback_m(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
+        plotter.add_data([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
                 layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
 
         dvinf_dt_n = ptsDSSRT[gui.ix]['Omega_n']
         # self.dQ_dt('vinf', gui.ix, gui.points)
-        plotter.addData([[pt['Na.m'], pt['Na.m']],
+        plotter.add_data([[pt['Na.m'], pt['Na.m']],
                          [pt['vinf'], pt['vinf']+dvinf_dt_n*self.vel_arrow_scale]],
                 layer='state_vel_mV', name='vinf', style=vinf_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['Na.m'], gui.points['V']],
+            plotter.add_data([gui.points['Na.m'], gui.points['V']],
                             layer='vfp_mV', name='traj', style='y')
 
         # Virtual fixed point and linearized nullclines
@@ -169,15 +169,15 @@ class PPcallback_m(PPcallback):
             lin_ms = np.linspace(sc[0][0], sc[0][1], 3)
             lin_vinfs = [loc.lin.auxfns.vinf(m) for m in lin_ms]
             lin_minfs = [loc.lin.auxfns.fnim(m) for m in lin_ms]
-            plotter.addData([lin_ms, lin_vinfs], layer='vfp_mV', name='lin_nullV', style='b:', force=True)
-            plotter.addData([lin_ms, lin_minfs], layer='vfp_mV', name='lin_nullm', style='g:', force=True)
+            plotter.add_data([lin_ms, lin_vinfs], layer='vfp_mV', name='lin_nullV', style='b:', force=True)
+            plotter.add_data([lin_ms, lin_minfs], layer='vfp_mV', name='lin_nullm', style='g:', force=True)
 
         # update (or create) points
         try:
-            plotter.setPoint('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
-            plotter.setPoint('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
+            plotter.set_point('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
+            plotter.set_point('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
             if vfp:
-                plotter.setPoint('vfp_pt', Point2D(vfp['m'], vfp['v']), 'points_mV')
+                plotter.set_point('vfp_pt', Point2D(vfp['m'], vfp['v']), 'points_mV')
         except KeyError:
             plotter.addPoint(Point2D(pt['Na.m'], pt['V']),
                          layer='points_mV', style='ko', name='state_pt')
@@ -219,7 +219,7 @@ class PPcallback_m(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_mV', style=self.nullcY_style,
+            plotter.add_data(self.nully, layer='nullclines_mV', style=self.nullcY_style,
                             name='yNull_'+str(time), force=force)
 
             dssrt_data = ptsDSSRT[gui.ix]
@@ -227,7 +227,7 @@ class PPcallback_m(PPcallback):
             if dssrt_data['d'] > 0:
                 state = (pt['Na.m'], pt['V'])
                 d_state = (dssrt_data['d']*sin(dssrt_data['c']), dssrt_data['d']*cos(dssrt_data['c']))
-                plotter.addData([[state[0]+d_state[0], state[0]],
+                plotter.add_data([[state[0]+d_state[0], state[0]],
                               [state[1]+d_state[1], state[1]]], layer='horiz_PP',
                             style=horiz_style, name='horiz_'+str(time), force=force)
 
@@ -239,7 +239,7 @@ class PPcallback_m(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_mV',
+                plotter.add_data(self.nullx, layer='nullclines_mV',
                                 style=self.nullcX_style,
                                 name='xNull', force=force)
 
@@ -319,20 +319,20 @@ class PPcallback_n(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        plotter.addData([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
+        plotter.add_data([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
                 layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
 
         dvinf_dt_m = ptsDSSRT[gui.ix]['Omega_m']
         # self.dQ_dt('vinf', gui.ix, gui.points)
-        plotter.addData([[pt['K.n'], pt['K.n']],
+        plotter.add_data([[pt['K.n'], pt['K.n']],
                          [pt['vinf'], pt['vinf']+dvinf_dt_m*self.vel_arrow_scale]],
                 layer='state_vel_nV', name='vinf', style=vinf_vec_style, force=True)
 
         if self.first_call:
-            plotter.addData([gui.points['K.n'], gui.points['V']],
+            plotter.add_data([gui.points['K.n'], gui.points['V']],
                             layer='vfp_nV', name='traj', style='y')
-            plotter.addData([gui.points['K.n'], gui.points['vinf']],
+            plotter.add_data([gui.points['K.n'], gui.points['vinf']],
                             layer='vfp_nV', name='quasiVnull', style='m--')
 
         vs = np.linspace(sc[1][0], sc[1][1], 100)
@@ -347,9 +347,9 @@ class PPcallback_n(PPcallback):
 
         vinfs_inv_n = np.array([fsolve(vinf, gen.auxfns.K_dssrt_fn_ninf(v), args=(v,)) for v in vs]).T[0]
         if self.first_call:
-            plotter.addData([vinfs_inv_n, vs], layer='vfp_nV', name='vinf_fastm', style='b--')
+            plotter.add_data([vinfs_inv_n, vs], layer='vfp_nV', name='vinf_fastm', style='b--')
         else:
-            plotter.setData('vfp_nV', data={'vinf_fastm': {'data': [vinfs_inv_n, vs], 'style':'b--', 'display': True}}, display=True)
+            plotter.set_data('vfp_nV', data={'vinf_fastm': {'data': [vinfs_inv_n, vs], 'style':'b--', 'display': True}}, display=True)
 
         # Virtual fixed point and linearized nullclines
         if 'fast_m' in model.name:
@@ -366,17 +366,17 @@ class PPcallback_n(PPcallback):
             lin_ns = np.linspace(sc[0][0], sc[0][1], 3)
             lin_vinfs = [loc.lin.auxfns.vinf(n) for n in lin_ns]
             lin_ninfs = [loc.lin.auxfns.fnin(n) for n in lin_ns]
-            plotter.addData([lin_ns, lin_vinfs], layer='vfp_nV',
+            plotter.add_data([lin_ns, lin_vinfs], layer='vfp_nV',
                             name='lin_nullV', style='b:', force=True)
-            plotter.addData([lin_ns, lin_ninfs], layer='vfp_nV',
+            plotter.add_data([lin_ns, lin_ninfs], layer='vfp_nV',
                             name='lin_nulln', style='r:', force=True)
 
         # update (or create) points
         try:
-            plotter.setPoint('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
-            plotter.setPoint('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
+            plotter.set_point('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
+            plotter.set_point('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
             if vfp:
-                plotter.setPoint('vfp_pt', Point2D(vfp['n'], vfp['v']), 'points_nV')
+                plotter.set_point('vfp_pt', Point2D(vfp['n'], vfp['v']), 'points_nV')
         except KeyError:
             plotter.addPoint(Point2D(pt['K.n'], pt['V']),
                          layer='points_nV', style='ko', name='state_pt')
@@ -418,7 +418,7 @@ class PPcallback_n(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            plotter.addData(self.nully, layer='nullclines_nV', style=self.nullcY_style,
+            plotter.add_data(self.nully, layer='nullclines_nV', style=self.nullcY_style,
                             name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
@@ -429,7 +429,7 @@ class PPcallback_n(PPcallback):
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                plotter.addData(self.nullx, layer='nullclines_nV',
+                plotter.add_data(self.nullx, layer='nullclines_nV',
                                 style=self.nullcX_style,
                                 name='xNull', force=force)
 
@@ -472,12 +472,12 @@ def add_epochs_to_layer(kind, to_layer, epochs, style, figure=None):
     if to_layer not in fig_struct.layers:
         raise ValueError("Target layer %s not found" % to_layer)
     layer_name = kind + ' epochs @ ' + to_layer
-    plotter.addLayer(layer_name, kind='epochs_'+kind)
+    plotter.add_layer(layer_name, kind='epochs_'+kind)
     layer = fig_struct.layers[to_layer]
     for traj_name, traj in layer.trajs.items():
         if layer.kind == 'data':
             vals = traj(ep_times)['y']
-            plotter.addData([ep_times, vals], layer=layer_name,
+            plotter.add_data([ep_times, vals], layer=layer_name,
                             style=style,
                             name=traj_name+'.epochs')
     return layer_name
@@ -567,7 +567,7 @@ else:
 
 # re-sample traj at constant dt and declare to GUI
 trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
-#gui.addDataPoints(trajPts)
+#gui.add_dataPoints(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -575,33 +575,33 @@ trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts 
 ## ----- ----- ----- ----- ----- ----- ##
 
 plotter.clean()
-plotter.addFig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
+plotter.add_fig('Master', title='Geometric Dynamic Analysis: '+dssrt_name,
                tdom=[0, t_end])
 
 # Add layers and their data
 
-plotter.addLayer('V')
-plotter.addData([trajPts['t'], trajPts['V']], layer='V', style='k-',
+plotter.add_layer('V')
+plotter.add_data([trajPts['t'], trajPts['V']], layer='V', style='k-',
                 name='V')
-plotter.addData([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
+plotter.add_data([trajPts['t'], trajPts['vinf']], layer='V', style='k:',
                 name='Vinf')
 
-plotter.addLayer('activs')
-plotter.addData([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
+plotter.add_layer('activs')
+plotter.add_data([trajPts['t'], trajPts['Na.m']], layer='activs', style='g-',
                 name='m')
-plotter.addData([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
+plotter.add_data([trajPts['t'], trajPts['Na.minf']], layer='activs', style='g--',
                 name='minf')
 
-plotter.addData([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
+plotter.add_data([trajPts['t'], trajPts['K.n']], layer='activs', style='r-',
                 name='n')
-plotter.addData([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
+plotter.add_data([trajPts['t'], trajPts['K.ninf']], layer='activs', style='r--',
                 name='ninf')
 
-plotter.addData([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
+plotter.add_data([trajPts['t'], trajPts['tauv']], layer='activs', style='b:',
                 name='tauv')
-plotter.addData([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
+plotter.add_data([trajPts['t'], trajPts['Na.taum']], layer='activs', style='g:',
                 name='taum')
-plotter.addData([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
+plotter.add_data([trajPts['t'], trajPts['K.taun']], layer='activs', style='r:',
                 name='taun')
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -626,38 +626,38 @@ show_epochs(epochs_rate)
 ptsDSSRT['Psi_n'][0] = 1 # prevents NaN messing up plot
 ptsDSSRT['Omega_n'][0] = 1 # prevents NaN messing up plot
 
-plotter.addLayer('A')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['A']], layer='A', style='k-',
+plotter.add_layer('A')
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['A']], layer='A', style='k-',
                 name='A')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['accn']], layer='A', style='k:',
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['accn']], layer='A', style='k:',
                 name='accn')
-plotter.addLayer('Omegas')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['Omega_n']], layer='Omegas', style='r-',
+plotter.add_layer('Omegas')
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Omega_n']], layer='Omegas', style='r-',
                 name='Omega_n')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['Omega_m']], layer='Omegas', style='g-',
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Omega_m']], layer='Omegas', style='g-',
                 name='Omega_m')
-plotter.addLayer('Vdot')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['Vdot']], layer='Vdot', style='b-',
+plotter.add_layer('Vdot')
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Vdot']], layer='Vdot', style='b-',
                 name='Vdot')
 
-plotter.addLayer('A_hline')
+plotter.add_layer('A_hline')
 plotter.addHLine(0, layer='A_hline', style='k:', name='zero')
 
-plotter.addLayer('rel times')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['tleft']], layer='rel times',
+plotter.add_layer('rel times')
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['tleft']], layer='rel times',
                 style='g-', name='tleft')
-plotter.addData([ptsDSSRT['t'], ptsDSSRT['horiz_t']], layer='rel times',
+plotter.add_data([ptsDSSRT['t'], ptsDSSRT['horiz_t']], layer='rel times',
                 style='b-', name='horiz_t')
-plotter.addLayer('t_hline')
+plotter.add_layer('t_hline')
 plotter.addHLine(0, layer='t_hline', style='k:', name='zero')
 
 
-##plotter.addLayer('dom_m_to_n')
-##plotter.addData([ptsDSSRT['t'], ptsDSSRT['Psi_m']/ptsDSSRT['Psi_n']],
+##plotter.add_layer('dom_m_to_n')
+##plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Psi_m']/ptsDSSRT['Psi_n']],
 ##                layer='dom_m_to_n', style='k-', name='psi_rat')
-##plotter.addData([ptsDSSRT['t'], ptsDSSRT['Omega_m']/ptsDSSRT['Omega_n']],
+##plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Omega_m']/ptsDSSRT['Omega_n']],
 ##                layer='dom_m_to_n', style='b-', name='omega_rat')
-##plotter.addLayer('rat_hlines')
+##plotter.add_layer('rat_hlines')
 ##plotter.addHLine(1, layer='rat_hlines', style='k:', name='plus_one')
 ##plotter.addHLine(-1, layer='rat_hlines', style='k:', name='minus_one')
 
@@ -680,9 +680,9 @@ def make_layer(xvar):
     else:
         suffix = 'nV'
     PP_layer_name = 'nullclines_'+suffix
-    plotter.addLayer(PP_layer_name, dynamic=True)
+    plotter.add_layer(PP_layer_name, dynamic=True)
     if xvar == 'Na.m':
-        plotter.addLayer('horiz_PP')
+        plotter.add_layer('horiz_PP')
         nullcX_style = 'g-'
         PPclass = PPcallback_m
     else:
@@ -692,9 +692,9 @@ def make_layer(xvar):
     PPplot = PPclass(xvar, nullcY_style = {'color': 'b', 'linestyle': '-', 'linewidth': 1},
                                                       nullcX_style=nullcX_style)
     gui.dynamicPlotFns[PP_layer_name] = PPplot
-    plotter.addLayer('points_'+suffix)
-    plotter.addLayer('state_vel_'+suffix)
-    plotter.addLayer('vfp_'+suffix)
+    plotter.add_layer('points_'+suffix)
+    plotter.add_layer('state_vel_'+suffix)
+    plotter.add_layer('vfp_'+suffix)
 
 make_layer('Na.m')
 make_layer('K.n')
@@ -760,7 +760,7 @@ for ixstr, dP in dPlot_dict.items():
     epoch_layer_name_omega = add_epochs_to_layer('Omega', data_layer, epochs_rate, 'b+')
     dP['layers'].extend([epoch_layer_name_psi, epoch_layer_name_omega])
 
-plotter.arrangeFig([2,3], dPlot_dict)
+plotter.arrange_fig([2,3], dPlot_dict)
 
 gui.buildPlotter2D((14,7))
 
