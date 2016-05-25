@@ -181,7 +181,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
         # validate coord names
         xn, yn = layer_struct.axes_vars
         if xname != xn and yname != yn:
-            raise ValueError("x and y name mismatch with plotter2D")
+            raise ValueError("x and y name mismatch with Plotter")
 
     def test_fn(x, dircode):
         if verboselevel>1:

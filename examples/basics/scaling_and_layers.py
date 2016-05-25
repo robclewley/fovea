@@ -5,7 +5,7 @@ from matplotlib.pyplot import *
 x = linspace(-5, 5)
 y = x ** 2
 
-plotter = plotter2D()
+plotter = Plotter()
 gui = diagnosticGUI(plotter)
 
 plotter.add_fig('Master', title='domain_test', xlabel='x', ylabel='y', domain=[(-100, 100), (-100, 100)])
