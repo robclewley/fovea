@@ -42,7 +42,7 @@ class spikesorter(graphics.diagnosticGUI):
     def __init__(self, title):
 
         #global plotter
-        plotter = graphics.plotter2D()
+        plotter = graphics.Plotter()
         graphics.diagnosticGUI.__init__(self, plotter)
 
         #Recover data:

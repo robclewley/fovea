@@ -95,7 +95,7 @@ def force_line_to_extent(a, b, p_domain, coordnames):
         raise ValueError("No intersection")
 
 
-class plotter2D(object):
+class Plotter(object):
 
     colors = ['b', 'g', 'r', 'c', 'm', 'k', 'y']
 
@@ -1046,7 +1046,7 @@ class plotter2D(object):
                 # refresh this in case layer contents have changed
                 self.subplot_lookup[ax] = (fig_name, layer_info, ixstr)
 
-                # ISSUE: these should be built into plotter2D's figure domains instead
+                # ISSUE: these should be built into Plotter's figure domains instead
                 if scale is not None:
                     # scale may be [None, None], [None, [ylo, yhi]], etc.
                     try:
@@ -1421,8 +1421,8 @@ class diagnosticGUI(object):
     """
     def __init__(self, objPlotter, points=None, verbose_level=1):
 
-        assert isinstance(objPlotter, plotter2D), \
-               "plotter2D_GUI must be instantiated with a plotter2D object."
+        assert isinstance(objPlotter, Plotter), \
+               "Plotter_GUI must be instantiated with a Plotter object."
 
         self.cb_axes = []
 
@@ -3244,7 +3244,7 @@ def _escape_underscore(text):
 # singleton pattern
 
 # plotter is not a globally visible object outside of this module
-plotter = plotter2D()
+plotter = Plotter()
 
 gui = diagnosticGUI(plotter)
 

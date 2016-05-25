@@ -85,7 +85,7 @@ class GUIrocket(gx.diagnosticGUI):
         """
         global next_fighandle
 
-        plotter = gx.plotter2D()
+        plotter = gx.Plotter()
         gx.diagnosticGUI.__init__(self, plotter)
 
         self.current_domain_handler = dom.GUI_domain_handler(self)
