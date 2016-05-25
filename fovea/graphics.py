@@ -131,7 +131,7 @@ class plotter2D(object):
         cushion is the fraction of the total x/y domain to extend the domain (leaving some white space).
         """
         # ISSUE: Setting domains at the figure level (as opposed to subplot level) doesn't work.
-        # Changes will likely need to be made in other functions, not here (such as buildLayers or buildPlotter2D)
+        # Changes will likely need to be made in other functions, not here (such as build_layers or build_plotter)
         x_extent = [0, 0]
         y_extent = [0, 0]
 
@@ -188,7 +188,7 @@ class plotter2D(object):
         of the given figure name (optional, defaults to Master)
         and the named layer struct.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         try:
             layer_struct = fig_struct.layers[layer]
         except KeyError:
@@ -202,7 +202,7 @@ class plotter2D(object):
         Show all figure legends of visible data layers to stdout.
         Option to filter results by sub-plot string code or name, e.g. '21'
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         arrPlots = fig_struct.arrange
 
         if not arrPlots:
@@ -370,7 +370,7 @@ class plotter2D(object):
                    figure is used
 
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         if len(shape) != 2:
             raise ValueError("shape must be (rows,cols)")
@@ -410,7 +410,7 @@ class plotter2D(object):
         """
         # ISSUE: Not sure that figure or whole layer display attribute values
         # are respected
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         # Check to see layer does not already exist
         if layer_name in fig_struct.layers:
@@ -470,7 +470,7 @@ class plotter2D(object):
         """
         # figure will be the same before and after unless figure was
         # None, in which case defaults to name of master figure
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         # Check to see that layer exists
         if label not in fig_struct.layers:
@@ -502,12 +502,12 @@ class plotter2D(object):
         except IndexError:
             pass
 
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
-            layer_struct = self._resolveLayer(figure, layer)
+            layer_struct = self._resolve_layer(figure, layer)
 
         if not layer_struct.kind == 'patch':
             raise ValueError("Incompatible layer type (should be `patch`)")
@@ -550,12 +550,12 @@ class plotter2D(object):
         except IndexError:
             pass
 
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
-            layer_struct = self._resolveLayer(figure, layer)
+            layer_struct = self._resolve_layer(figure, layer)
 
         if not layer_struct.kind == 'obj':
             raise ValueError("Incompatible layer type (should be `obj`)")
@@ -618,12 +618,12 @@ class plotter2D(object):
         except IndexError:
             pass
 
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
-            layer_struct = self._resolveLayer(figure, layer)
+            layer_struct = self._resolve_layer(figure, layer)
 
         # inherit default style from layer if not given
         if style is None:
@@ -650,10 +650,10 @@ class plotter2D(object):
                          'zorder':zorder,'display': display, 'subplot': subplot, 'selected':False}})
         layer_struct.force = force
 
-        # ISSUE: _updateTraj only meaningful for time-param'd trajectories
+        # ISSUE: _update_traj only meaningful for time-param'd trajectories
         # Maybe a different, more general purpose solution is needed
 
-        self._updateTraj(figure, layer, traj = traj)
+        self._update_traj(figure, layer, traj = traj)
 
     def set_point(self, name, pt, layer, figure=None):
         """
@@ -661,7 +661,7 @@ class plotter2D(object):
 
         Figure defaults to currFig if not specified.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         lay = fig_struct.layers[layer]
         pt_struct = lay.data[name]
         try:
@@ -680,7 +680,7 @@ class plotter2D(object):
         """
         # figure will be the same before and after unless figure was
         # None, in which case defaults to name of master figure
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         # Check to see that layer exists
         if layer not in fig_struct.layers:
@@ -707,7 +707,7 @@ class plotter2D(object):
 
         Figure defaults to currFig if not specified.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         # Check to see that layer exists
         try:
@@ -740,11 +740,11 @@ class plotter2D(object):
                             #print("OBJ: ", obj)
                             #obj.set_data(objdata['data'])
 
-        self._updateTraj(figure, layer)
+        self._update_traj(figure, layer)
 
 
 
-    def _updateTraj(self, figure_name, layer_name, traj= None):
+    def _update_traj(self, figure_name, layer_name, traj= None):
         """
         Create an interpolated trajectory from the data in the layer
         This may no longer be necessary (it's not general purpose for fovea)
@@ -777,7 +777,7 @@ class plotter2D(object):
                     pass
 
 
-    def toggleDisplay(self, names=None, layer=None, figure=None, log=None):
+    def toggle_display(self, names=None, layer=None, figure=None, log=None):
         """
         Toggle the display attribute of an object or list of objects, a whole
         layer, or a whole figure, depending on which optional arguments are
@@ -789,30 +789,30 @@ class plotter2D(object):
         same layer. If these names are provided, layer can be left None to
         select default layer.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
 
         if names is None:
             if layer is None:
                 # toggle whole figure display
                 fig_struct.display = not fig_struct.display
             else:
-                layer_struct = self._resolveLayer(figure, layer)
+                layer_struct = self._resolve_layer(figure, layer)
                 # toggle whole layer display
                 layer_struct.display = not layer_struct.display
         else:
-            layer_struct = self._resolveLayer(figure, layer)
+            layer_struct = self._resolve_layer(figure, layer)
             if isinstance(names, str):
                 names = [name]
             for name in names:
                 disp = lay.data[name]['display']
                 lay.data[name]['display'] = not disp
 
-    def setDisplay(self, names, display, layer, figure=None):
+    def set_display(self, names, display, layer, figure=None):
         """
         *names* can be a singleton string or a list of strings in the same
         layer.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         try:
             lay = fig_struct.layers[layer]
         except KeyError:
@@ -824,14 +824,14 @@ class plotter2D(object):
         for name in names:
             lay.data[name]['display'] = display
 
-    def appendData(self, data, layer, name, figure=None, log=None):
+    def append_data(self, data, layer, name, figure=None, log=None):
         """
         Append data to the given named data in the given layer.
 
         display attribute of existing data will continue to apply.
         ISSUE: Doc string?
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         try:
             lay = fig_struct.layers[layer]
         except KeyError:
@@ -860,10 +860,10 @@ class plotter2D(object):
             log.msg("Appended plot data", figure=figure, layer=layer,
                         name=name)
 
-        self._updateTraj(layer, figure)
+        self._update_traj(layer, figure)
 
 
-    def addLineByPoints(self, pts, figure=None, layer=None, style=None,
+    def add_line_by_points(self, pts, figure=None, layer=None, style=None,
                         name=None, display=True, log=None):
         """
         Add line based on two given Point2D points
@@ -876,7 +876,7 @@ class plotter2D(object):
             raise ValueError("First argument must be [Point2D, Point2D]")
 
 
-    def addPoint(self, pt, figure=None, layer=None, style=None, name=None,
+    def add_point(self, pt, figure=None, layer=None, style=None, name=None,
                  display=True, log=None):
         """
         Add single Point2D point. style argument should include specification of
@@ -886,13 +886,13 @@ class plotter2D(object):
                      name=name, display=display, log=log)
 
 
-    def addVLine(self, x, figure=None, layer=None, subplot=None, style=None, name='vline',
+    def add_vline(self, x, figure=None, layer=None, subplot=None, style=None, name='vline',
                  log=None):
         """
         Add vertical line.
         """
-        # ISSUE: Same issue as addHLine -- see below
-        fig_struct, figure = self._resolveFig(figure)
+        # ISSUE: Same issue as add_hline -- see below
+        fig_struct, figure = self._resolve_fig(figure)
         layer_struct = fig_struct.layers[layer]
         sc = layer_struct.scale
         if sc is None:
@@ -906,14 +906,14 @@ class plotter2D(object):
                          style=style, name=name, log=log)
 
 
-    def addHLine(self, y, figure=None, layer=None, style=None, name='hline',
+    def add_hline(self, y, figure=None, layer=None, style=None, name='hline',
                  log=None):
         """
         Add horizontal line.
         """
         # ISSUE: This should be changed to use ax.axhline, which automatically
         # always spans the x axis with the default coords settings.
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         layer_struct = fig_struct.layers[layer]
         sc = layer_struct.scale
         if sc is None:
@@ -927,18 +927,18 @@ class plotter2D(object):
                      style=style, name=name, log=log)
 
 
-    def addText(self, x, y, text, use_axis_coords=False, name=None, layer=None, subplot=None,
+    def add_text(self, x, y, text, use_axis_coords=False, name=None, layer=None, subplot=None,
                 figure=None, display=True, style=None, force=False, log=None):
         """
         Use style to select color (defaults to black).
         """
         # ISSUE: Cannot set font size or weight
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         if layer is None:
             layer = self.active_layer[1]
             layer_struct = self.active_layer_structs[1]
         else:
-            layer_struct = self._resolveLayer(figure, layer)
+            layer_struct = self._resolve_layer(figure, layer)
 
         if not layer_struct.kind == 'text':
             raise ValueError("Incompatible layer type (should be `text`)")
@@ -961,11 +961,11 @@ class plotter2D(object):
             log.msg("Added text data", figure=figure, layer=layer, name=name)
 
 
-    def setText(self, name, text, layer, pos=None, figure=None):
+    def set_text(self, name, text, layer, pos=None, figure=None):
         """
         Use optional `pos` argument to set new position (coord value pair).
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         lay = fig_struct.layers[layer]
         text_struct = lay.data[name]
         text_struct['text'] = text
@@ -1058,7 +1058,7 @@ class plotter2D(object):
                     except TypeError:
                         pass
 
-                self.buildLayers(layer_info, ax, rebuild=rebuild)
+                self.build_layers(layer_info, ax, rebuild=rebuild)
 
 
     def show(self, update='current', rebuild=False, force_wait=None, ignore_wait= False):
@@ -1079,7 +1079,7 @@ class plotter2D(object):
         while the wait status of a different call is set to True.
         """
         if update == 'current':
-            fig_struct, fig_name = self._resolveFig(None)
+            fig_struct, fig_name = self._resolve_fig(None)
             layers = {fig_name: fig_struct.layers.keys()}
             figures = [fig_name]
         elif update == 'all':
@@ -1092,7 +1092,7 @@ class plotter2D(object):
             for fig_name in figures:
                 self._subplots(layers[fig_name], fig_name, rebuild)
         # ISSUE: should consolidate this with layer.scale attribute
-        # and move all to buildLayer method?
+        # and move all to build_layer method?
         for figName, fig in self.figs.items():
             f = plt.figure(fig.fignum)
             for pos in fig.arrange.keys():
@@ -1142,7 +1142,7 @@ class plotter2D(object):
                       #format='png')
 
 
-    def buildLayers(self, layer_list, ax, rescale=None, figure=None, rebuild=False):
+    def build_layers(self, layer_list, ax, rescale=None, figure=None, rebuild=False):
         """
         Convenience function to group layer refresh/build calls. Current figure for
         given list of layer names is assumed unless optionally specified.
@@ -1150,16 +1150,16 @@ class plotter2D(object):
         Optional rebuild = True argument will rebuild all plots, overwriting any
         previous object handles.
         """
-        fig_struct, figure = self._resolveFig(figure)
+        fig_struct, figure = self._resolve_fig(figure)
         if not fig_struct.display:
             return
 
         for layer_name in layer_list:
-            self.buildLayer(figure, layer_name, ax, rescale, force=(rebuild or
+            self.build_layer(figure, layer_name, ax, rescale, force=(rebuild or
                                                                     fig_struct['layers'][layer_name].force))
 
 
-    def updateDynamic(self, time, dynamicFns, hard_reset=False):
+    def update_dynamic(self, time, dynamicFns, hard_reset=False):
         """
         Dynamic callback functions always accept time as first argument.
         Optional second argument is hard_reset Boolean.
@@ -1175,11 +1175,11 @@ class plotter2D(object):
                            "Dynamic functions must be a dictionary of layer-function pairs"
 
                     if layer in dynamicFns:
-                        #print("updateDynamic calling function: %s" % str(dynamicFns[layer]))
+                        #print("update_dynamic calling function: %s" % str(dynamicFns[layer]))
                         dynamicFns[layer](time, hard_reset)
 
 
-    def _resolveFig(self, figure):
+    def _resolve_fig(self, figure):
         """
         Internal utility to return a figure structure and figure name,
         given that the figure argument may be None (selecting the current figure)
@@ -1197,7 +1197,7 @@ class plotter2D(object):
         return fig_struct, figure
 
 
-    def _resolveLayer(self, figure, layer):
+    def _resolve_layer(self, figure, layer):
         """
         Internal utility to find the named layer in the given figure, and return its
         struct.
@@ -1211,7 +1211,7 @@ class plotter2D(object):
         except KeyError:
             raise KeyError("Invalid layer name: %s in figure %s" % (layer, figure))
 
-    def _retrieveSubplots(self, layer):
+    def _retrive_subplots(self, layer):
         """
         Internal utility to find all subplots a given layer has been assigned to through arrange_fig.
         """
@@ -1227,7 +1227,7 @@ class plotter2D(object):
         return subplots
 
 
-    def buildLayer(self, figure_name, layer_name, ax, rescale=None, force=False):
+    def build_layer(self, figure_name, layer_name, ax, rescale=None, force=False):
         """
         Consolidates layer information into matplotlib.artist objects
         rescale (pair of pairs) may be set if the axes' current scalings
@@ -1285,7 +1285,7 @@ class plotter2D(object):
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
-                dstruct['subplot'] = self._retrieveSubplots(layer_name)[0]
+                dstruct['subplot'] = self._retrive_subplots(layer_name)[0]
 
             #Use subplot string for current data to retrieve the axes object.
             ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
@@ -1447,7 +1447,7 @@ class diagnosticGUI(object):
         self.verbose = verbose_level
 
         if points is not None:
-            self.addPoints(points)
+            self.add_points(points)
 
         # ---------------
         # Rocket stuff
@@ -1527,7 +1527,7 @@ class diagnosticGUI(object):
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.key_on)
         evKeyOff = self.fig.canvas.mpl_connect('key_release_event', self.key_off)
 
-    def add_dataTraj(self, traj, points=None):
+    def add_data_traj(self, traj, points=None):
         """
         Provide the trajectory (or other curve object) for the
         data to be investigated. In case trajectory is not defined by
@@ -1547,17 +1547,17 @@ class diagnosticGUI(object):
             # trajectory is not parameterized by 't'
             self.times = None
 
-    def add_dataPoints(self, data, figure=None, layer=None, subplot=None,
+    def add_data_points(self, data, figure=None, layer=None, subplot=None,
                            style=None, linewidth = 1, name=None, display=True,
                            force=False, log=None, coorddict=None):
         maxspeed = 2.2 #ISSUE: This should be replaced with something general purpose. Borrowed from Bombardier.
 
         try:
-            fig_struct, figure = self.plotter._resolveFig(None)
+            fig_struct, figure = self.plotter._resolve_fig(None)
         except ValueError:
             self.plotter.clean()
             self.plotter.add_fig('Master', domain= [(0,1), (0,1)])
-            fig_struct, figure = self.plotter._resolveFig(None)
+            fig_struct, figure = self.plotter._resolve_fig(None)
 
         if isinstance(data, numpy.ndarray) or isinstance(data, list):
             self.plotter.add_data(data, figure=figure, layer=layer, subplot=subplot,
@@ -1673,7 +1673,7 @@ class diagnosticGUI(object):
                         pass
 
                     try:
-                        tra = self._reducePointset(data, coorddict, list(addingDict.keys())[0])
+                        tra = self._reduce_pointset(data, coorddict, list(addingDict.keys())[0])
                     except (KeyError, ValueError) as e:
                         tra = None
 
@@ -1704,10 +1704,10 @@ class diagnosticGUI(object):
                                         linewidth = linewidth, ##ISSUE: Should do this through coorddict as well.
                                         force = True)
         else:
-            warnings.warn("add_dataPoints received an unsupported type for parameter data")
+            warnings.warn("add_data_points received an unsupported type for parameter data")
             return
 
-    def _reducePointset(self, ptset, coorddict, key):
+    def _reduce_pointset(self, ptset, coorddict, key):
         """
         Convenience function for extracting two desired points from a pointset
         with many variables.
@@ -1733,7 +1733,7 @@ class diagnosticGUI(object):
         return new_pts
 
 
-    def addWidget(self, widg, axlims, callback=None, **kwargs):
+    def add_widget(self, widg, axlims, callback=None, **kwargs):
         """
         Create a matplotlib widget
         """
@@ -1752,7 +1752,7 @@ class diagnosticGUI(object):
             self.widgets[kwargs['label']].on_clicked(callback)
 
 
-    def addTimeFromPoints(self, points):
+    def add_time_from_points(self, points):
         self.traj = None
         self.points = points
         try:
@@ -1763,7 +1763,7 @@ class diagnosticGUI(object):
             pass
 
 
-    def buildPlotter2D(self, figsize=None, with_times=True, basic_widgets=True, callbacks_on= True):
+    def build_plotter(self, figsize=None, with_times=True, basic_widgets=True, callbacks_on= True):
         """
         Create time bar widget.
         Create capture points widget.
@@ -1820,7 +1820,7 @@ class diagnosticGUI(object):
             if basic_widgets:
                 # Capture point button in lower left
                 captureButton = Button(plt.axes([0.055, 0.02, 0.08, 0.03]), 'Capture Point')
-                self.widgets['capturePoint'] = captureButton
+                self.widgets['capture_point'] = captureButton
 
                 # Refresh button
                 refreshButton = Button(plt.axes([0.005, 0.02, 0.045, 0.03]), 'Refresh')
@@ -1828,7 +1828,7 @@ class diagnosticGUI(object):
 
                 # Go back to last point button
                 backButton = Button(plt.axes([0.005, 0.06, 0.045, 0.03]), 'Back')
-                self.widgets['goBack'] = backButton
+                self.widgets['go_back'] = backButton
 
                 # Go back to last point button
                 saveButton = Button(plt.axes([0.055, 0.06, 0.08, 0.03]), 'Save')
@@ -1838,9 +1838,9 @@ class diagnosticGUI(object):
                 showTreeButton = Button(plt.axes([0.86, 0.02, 0.12, 0.03]), 'Show Tree')
                 self.widgets['showTree'] = showTreeButton
 
-                self.widgets['capturePoint'].on_clicked(self.capturePoint)
+                self.widgets['capture_point'].on_clicked(self.capture_point)
                 self.widgets['refresh'].on_clicked(self.refresh)
-                self.widgets['goBack'].on_clicked(self.goBack)
+                self.widgets['go_back'].on_clicked(self.go_back)
                 self.widgets['save'].on_clicked(self.save)
                 self.widgets['showTree'].on_clicked(self.show_tree)
 
@@ -1883,43 +1883,43 @@ class diagnosticGUI(object):
             print("3D Axes can be rotated by clicking and dragging.")
 
         # Activate button & slider callbacks
-        #self.widgets['capturePoint'].on_clicked(self.capturePoint)
+        #self.widgets['capture_point'].on_clicked(self.capture_point)
         #self.widgets['refresh'].on_clicked(self.refresh)
-        #self.widgets['goBack'].on_clicked(self.goBack)
+        #self.widgets['go_back'].on_clicked(self.go_back)
         #self.widgets['save'].on_clicked(self.save)
         if with_times:
-            self.widgets['timeBar'].on_changed(self.updatePlots)
+            self.widgets['timeBar'].on_changed(self.update_plots)
             self.widgets['minus_dt'].on_clicked(self.minus_dt)
             self.widgets['plus_dt'].on_clicked(self.plus_dt)
 
         # Activate general mouse click callbacks
-        evMouseDown = fig_handle.canvas.mpl_connect('button_press_event', self.mouseDownFn)
-        evMouseUp = fig_handle.canvas.mpl_connect('button_release_event', self.mouseUpFn)
-        evMouseMove = fig_handle.canvas.mpl_connect('motion_notify_event', self.mouseMoveFn)
+        evMouseDown = fig_handle.canvas.mpl_connect('button_press_event', self.mouse_down)
+        evMouseUp = fig_handle.canvas.mpl_connect('button_release_event', self.mouse_up)
+        evMouseMove = fig_handle.canvas.mpl_connect('motion_notify_event', self.mouse_move)
         evKeyOn = fig_handle.canvas.mpl_connect('key_press_event', self.modifier_key_on)
         evKeyOff = fig_handle.canvas.mpl_connect('key_release_event', self.modifier_key_off)
 
-    def clearData(self, layer, data_name=None):
+    def clear_data(self, layer, data_name=None):
         """
         Delete data in a given layer. If no name for data is given, all data in that layer are deleted.
 
-        ISSUE: Consider merging with clearAxes.
+        ISSUE: Consider merging with clear_axes.
         """
-        fig_struct, figure = self.plotter._resolveFig(None)
-        layer_struct = self.plotter._resolveLayer(figure, layer)
+        fig_struct, figure = self.plotter._resolve_fig(None)
+        layer_struct = self.plotter._resolve_layer(figure, layer)
 
         if data_name is not None:
             del layer_struct.data[data_name]
         else:
             layer_struct.data = {}
 
-    def clearAxes(self, subplot, figure=None):
+    def clear_axes(self, subplot, figure=None):
         """
         Clears lines and points in sub-plot axes (given as an axis
         object or sub-plot string name) without removing
         other items such as title, labels.
         """
-        fig_struct, figure = self.plotter._resolveFig(figure)
+        fig_struct, figure = self.plotter._resolve_fig(figure)
         arrPlots = fig_struct.arrange
         subplot_struct = None
         if isinstance(subplot, str):
@@ -1953,15 +1953,15 @@ class diagnosticGUI(object):
 
     # ======== Standard callback functions for the GUI display
 
-    def mouseDownFn(self, ev):
+    def mouse_down(self, ev):
         self._mouseUp = False
-        #print("mouseDownFn", self._mouseUp)
+        #print("mouse_down", self._mouseUp)
 
-    def mouseUpFn(self, ev):
+    def mouse_up(self, ev):
         # NOTE: zoom dragging will not get completed before this callback
         # so trying to refresh as a result of zoom here will fail
         self._mouseUp = True
-        #print("mouseUpFn", self._mouseUp)
+        #print("mouse_up", self._mouseUp)
         # if in a time-based sub-plot and not dragging
         do_get = False
         if not self._mouseDrag:
@@ -1974,25 +1974,25 @@ class diagnosticGUI(object):
             # resolve whether up happens in time-based plot
             # or a dynamic plot
             if ev.inaxes in self.dynamicPlots.values():
-                self.getDynamicPoint(ev)
+                self.get_dynamic_point(ev)
             else:
-                self.getPoint(ev)
+                self.get_point(ev)
         self._mouseDrag = False
 
 
-    def mouseMoveFn(self, ev):
+    def mouse_move(self, ev):
         if self._mouseUp:
             self._mouseDrag = False
         else:
             self._mouseDrag = True
 
-    def addLegend(self, colors, labels, subplot):
+    def add_legend(self, colors, labels, subplot):
         """
         Creates a matplotlib legend associated with a given subplot.
 
         May not be compatible with versions earlier than python 2.7 and matplotlib 1.2.
         """
-        fig_struct, fig = self.plotter._resolveFig(None)
+        fig_struct, fig = self.plotter._resolve_fig(None)
 
         if not isinstance(colors, list) or not isinstance(labels, list):
             raise TypeError("colors and labels must be lists.")
@@ -2007,7 +2007,7 @@ class diagnosticGUI(object):
         fig_struct.arrange[subplot]['legend'] = handles
 
 
-    def getPoint(self, ev):
+    def get_point(self, ev):
         """
         If mouse click is released inside a time-based plot, change current time
         on time bar to that selected.
@@ -2052,15 +2052,15 @@ class diagnosticGUI(object):
         """
         self.plotter.clean()
 
-    def buildLayers(self, layer_list, ax, rescale=None, figure=None,
+    def build_layers(self, layer_list, ax, rescale=None, figure=None,
                     rebuild=False):
         """
-        Wrapper method for plotter.buildLayers
+        Wrapper method for plotter.build_layers
         """
-        self.plotter.buildLayers(layer_list, ax, rescale=rescale, figure=figure,
+        self.plotter.build_layers(layer_list, ax, rescale=rescale, figure=figure,
                                 rebuild=rebuild)
 
-    def getDynamicPoint(self, ev):
+    def get_dynamic_point(self, ev):
         """
         If mouse clicks inside a user-specified 'dynamic' sub-plot axis,
         put the (x,y) coords of the click as a point onto the clipboard.
@@ -2075,13 +2075,13 @@ class diagnosticGUI(object):
         print("Clipboard now contains: %s" % str(self.clipboardPt))
 
 
-    def capturePoint(self, ev):
+    def capture_point(self, ev):
         """
         Create a dict of Point objects from the current time point in all sub-plots
         of all figures. Keys of the dict are the figure names
         Stored in the attribute capturedPts
 
-        For non time-based data, capturePoint creates a dictionary of related data_GUI objects.
+        For non time-based data, capture_point creates a dictionary of related data_GUI objects.
         Data are considered related if they share the same name (despite being in different layers).
         """
         pts_dict = {}
@@ -2182,20 +2182,20 @@ class diagnosticGUI(object):
         if do_draw:
             plt.draw()
 
-    def goBack(self, ev):
+    def go_back(self, ev):
         if self._last_ix is not None:
-            self.updatePlots(self.times[self._last_ix])
+            self.update_plots(self.times[self._last_ix])
 
-    def updatePlots(self, new_time):
+    def update_plots(self, new_time):
         self.set_time(new_time)
-        self.plotter.updateDynamic(self.t, self.dynamicPlotFns)
+        self.plotter.update_dynamic(self.t, self.dynamicPlotFns)
 
     def refresh(self, ev):
         """
         For refresh button, e.g. use after zoom in dynamic plot
         """
         hard_reset = self._key_mod == 'shift'
-        self.plotter.updateDynamic(self.t, self.dynamicPlotFns,
+        self.plotter.update_dynamic(self.t, self.dynamicPlotFns,
                                    hard_reset)
 
     def save(self, ev):
@@ -2203,7 +2203,7 @@ class diagnosticGUI(object):
         For save button. Saves current figure as a .png
         in working directory or dm directory if provided.
         """
-        fig_struct, fig_name = self.plotter._resolveFig(self.plotter.currFig)
+        fig_struct, fig_name = self.plotter._resolve_fig(self.plotter.currFig)
         f = plt.figure(fig_struct.fignum)
 
         if self.plotter.dm is not None:
@@ -2246,7 +2246,7 @@ class diagnosticGUI(object):
         """
         ##ISSUE: If click is within range of multiple artist, pick_on is called many times in succession,
         ##and picks all those artists as selected objects in sequence.
-        fig_struct, fig = self.plotter._resolveFig(None)
+        fig_struct, fig = self.plotter._resolve_fig(None)
         is_con_obj = False
 
         if isinstance(event.artist, mpl.lines.Line2D):
@@ -2277,7 +2277,7 @@ class diagnosticGUI(object):
             for subplot, subplot_struct in fig_struct.arrange.items():
                 if event.mouseevent.inaxes is subplot_struct['axes_obj']:
                     for lay in subplot_struct['layers']:
-                        layer_struct = self.plotter._resolveLayer(fig, lay)
+                        layer_struct = self.plotter._resolve_layer(fig, lay)
                         for name, artist in layer_struct.handles.items():
                             if artist is event.artist:
                                 self.set_selected_object(data_GUI(name, artist, lay, self))
@@ -2302,8 +2302,8 @@ class diagnosticGUI(object):
         Key presses used to manipulate the currently selected object.
         """
         so = self.selected_object
-        fig_struct, figure = self.plotter._resolveFig(None)
-        layer_struct = self.plotter._resolveLayer(self.plotter.currFig, so.layer)
+        fig_struct, figure = self.plotter._resolve_fig(None)
+        layer_struct = self.plotter._resolve_layer(self.plotter.currFig, so.layer)
 
         #If context object.
         if isinstance(so, line_GUI) or isinstance(so, box_GUI):
@@ -2376,7 +2376,7 @@ class diagnosticGUI(object):
             #Retrieve the layer_struct holding this handle.
             #for subplot, subplot_struct in fig_struct.arrange.items():
                 #for layer in subplot_struct['layers']:
-                    #ls = self.plotter._resolveLayer(figure, layer)
+                    #ls = self.plotter._resolve_layer(figure, layer)
                     #for hname, handle in ls.handles.items():
                         #if self.selected_object == handle:
                             #layer_struct = ls
@@ -2493,7 +2493,7 @@ class diagnosticGUI(object):
         if ev.inaxes not in self.cb_axes:
             return
 
-        fig_struct, figs = self.plotter._resolveFig(None)
+        fig_struct, figs = self.plotter._resolve_fig(None)
         trajs = []
         for layer_name in fig_struct['layers'].keys():
             try:
@@ -2583,7 +2583,7 @@ class diagnosticGUI(object):
             shape = [numrows, numcols]
 
         self.plotter.arrange_fig(shape, arrPlots)
-        self.buildPlotter2D(figsize=size, with_times=with_times, basic_widgets=basic_widgets)
+        self.build_plotter(figsize=size, with_times=with_times, basic_widgets=basic_widgets)
 
     def declare_in_context(self, con_obj):
         # context_changed flag set when new objects created and unset when Generator is
@@ -2614,10 +2614,10 @@ class diagnosticGUI(object):
         except AttributeError:
             selected_handle = selected_object
 
-        fig_struct, figure = self.plotter._resolveFig(figure)
+        fig_struct, figure = self.plotter._resolve_fig(figure)
         for subplot, subplot_struct in fig_struct.arrange.items():
             for layer in subplot_struct['layers']:
-                layer_struct = self.plotter._resolveLayer(figure, layer)
+                layer_struct = self.plotter._resolve_layer(figure, layer)
 
                 ##ISSUE: box_GUI should not have markersize field. Never gets used.
                 for hname, handle in layer_struct.handles.items():
@@ -2672,7 +2672,7 @@ class data_GUI(object):
     of data in dstruct, given a matplotlib object (returned by on_pick).
 
     Right now data_GUIs are created on the spot when the selected_object changes and never referred to again.
-    In the future, data_GUIs should be persistent, created when data is added to the plotter, and finally drawn in .buildLayer
+    In the future, data_GUIs should be persistent, created when data is added to the plotter, and finally drawn in .build_layer
     using attributes stored here (not the other way around), much like how shape_GUIs are created.
 
     May want to make this a subclass of context_object as well.
@@ -2689,7 +2689,7 @@ class data_GUI(object):
         """
         Recovers data associated with this data_GUI from the fig_struct.
         """
-        fig_struct, fig = self.gui.plotter._resolveFig(None)
+        fig_struct, fig = self.gui.plotter._resolve_fig(None)
 
         data = fig_struct.layers[self.layer].data[self.name]['data']
 
@@ -2730,9 +2730,9 @@ class shape_GUI(context_object):
         x1, y1 = pt1.coordarray
         x2, y2 = pt2.coordarray
 
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
         try:
-            self.gui.plotter._resolveLayer(figure, layer)
+            self.gui.plotter._resolve_layer(figure, layer)
         except KeyError:
             if subplot is None:
                 raise ValueError("Must specify a subplot if layer %s doesn't already exist."%layer)
@@ -2770,7 +2770,7 @@ class shape_GUI(context_object):
         self.gui.declare_in_context(self)
 
     def show(self, draw= True):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         self.gui.plotter.set_data(self.layer, data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
                                                                'style':dstruct['style'], 'subplot':dstruct['subplot'],
@@ -2780,7 +2780,7 @@ class shape_GUI(context_object):
             self.gui.plotter.show(ignore_wait = True)
 
     def unshow(self, draw= True):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
         dstruct = fig_struct.layers[self.layer]['data'][self.name]
         self.gui.plotter.set_data(self.layer,
                                  data={self.name: {'data': dstruct['data'], 'obj':dstruct['obj'],
@@ -2793,13 +2793,13 @@ class shape_GUI(context_object):
 
     def remove(self, draw= True):
         self.unshow(draw= draw)
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
         fig_struct.layers[self.layer]['handles'].pop(self.name)
         self.gui.plotter.set_layer(self.layer, handles = fig_struct.layers[self.layer]['handles'])
         self.gui.context_objects.pop(self.name)
 
     def update(self, name= None, x1= None, y1= None, x2= None, y2= None):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
         show = False
 
         if name is not None:
@@ -2878,7 +2878,7 @@ class shape_GUI(context_object):
         make_event_def should probably also be called in .update, if an event already exists. Right now,
         if a line is created, then moved, the event will behave as though there were a line in the original spot.
         """
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
 
         #for field in ['handles', 'data', 'trajs']:
             #fig_struct.layers[self.layer][field][uniquename] = \
@@ -2953,7 +2953,7 @@ class box_GUI(shape_GUI):
     def pin_contents(self, traj, coorddict):
         """
         Determine if a trajectory passes through the box object and add that segment of the trajectory
-        to a layer. Uses coorddict format of add_dataPoints.
+        to a layer. Uses coorddict format of add_data_points.
 
         Current version only takes horizontal slices of the trajectory, preserving all change in the y-direction.
         Should be adapted to 2D. It would be preferable if traj was not required as a param, and found with

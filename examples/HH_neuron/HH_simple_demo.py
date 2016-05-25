@@ -125,12 +125,12 @@ class PPcallback_m(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        gui.add_dataPoints([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
+        gui.add_data_points([[pt['Na.m'], pt['Na.m']+dm_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
                         layer='state_vel_mV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            gui.add_dataPoints([gui.points['Na.m'], gui.points['V']],
+            gui.add_data_points([gui.points['Na.m'], gui.points['V']],
                             layer='vfp_mV', name='traj', style='y')
 
         # Virtual fixed point and linearized nullclines
@@ -148,9 +148,9 @@ class PPcallback_m(PPcallback):
             gui.set_point('state_pt', Point2D(pt['Na.m'], pt['V']), 'points_mV')
             gui.set_point('vinf_pt', Point2D(pt['Na.m'], pt['vinf']), 'points_mV')
         except KeyError:
-            gui.add_dataPoints(Point2D(pt['Na.m'], pt['V']), coorddict = {'x':
+            gui.add_data_points(Point2D(pt['Na.m'], pt['V']), coorddict = {'x':
                          {'y':'y', 'style':'ko', 'layer':'points_mV', 'name':'state_pt'}})
-            gui.add_dataPoints(Point2D(pt['Na.m'], pt['vinf']),coorddict = {'x':
+            gui.add_data_points(Point2D(pt['Na.m'], pt['vinf']),coorddict = {'x':
                          {'y':'y', 'style':'bx', 'layer':'points_mV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_mV'].data
@@ -184,18 +184,18 @@ class PPcallback_m(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            gui.add_dataPoints(self.nully, layer='nullclines_mV', style=self.nullcY_style,
+            gui.add_data_points(self.nully, layer='nullclines_mV', style=self.nullcY_style,
                             name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
             ax.texts = []
             #ax.clear()
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
 
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                gui.add_dataPoints(self.nullx, layer='nullclines_mV',
+                gui.add_data_points(self.nullx, layer='nullclines_mV',
                                 style=self.nullcX_style,
                                 name='xNull', force=force)
 
@@ -203,7 +203,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.build_layers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
 
@@ -211,12 +211,12 @@ class PPcallback_m(PPcallback):
 ##            print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.build_layers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
@@ -274,14 +274,14 @@ class PPcallback_n(PPcallback):
         dV_dt = (pt['vinf']-pt['V'])/pt['tauv']
         dm_dt = (pt['Na.minf']-pt['Na.m'])/pt['Na.taum']
         dn_dt = (pt['K.ninf']-pt['K.n'])/pt['K.taun']
-        gui.add_dataPoints([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
+        gui.add_data_points([[pt['K.n'], pt['K.n']+dn_dt*self.vel_arrow_scale],
                          [pt['V'], pt['V']+dV_dt*self.vel_arrow_scale]],
                         layer='state_vel_nV', name='state', style=vel_vec_style, force=True)
 
         if self.first_call:
-            gui.add_dataPoints([gui.points['K.n'], gui.points['V']],
+            gui.add_data_points([gui.points['K.n'], gui.points['V']],
                             layer='vfp_nV', name='traj', style='y')
-            gui.add_dataPoints([gui.points['K.n'], gui.points['vinf']],
+            gui.add_data_points([gui.points['K.n'], gui.points['vinf']],
                             layer='vfp_nV', name='quasiVnull', style='m--')
 ##            vs = np.linspace(sc[1][0], sc[1][1], 50)
 ##            x = dict(pt).copy()
@@ -311,9 +311,9 @@ class PPcallback_n(PPcallback):
             gui.set_point('state_pt', Point2D(pt['K.n'], pt['V']), 'points_nV')
             gui.set_point('vinf_pt', Point2D(pt['K.n'], pt['vinf']), 'points_nV')
         except KeyError:
-            gui.add_dataPoints(Point2D(pt['K.n'], pt['V']),coorddict = {'x':
+            gui.add_data_points(Point2D(pt['K.n'], pt['V']),coorddict = {'x':
                 {'y':'y', 'style':'ko', 'layer':'points_nV', 'name':'state_pt'}})
-            gui.add_dataPoints(Point2D(pt['K.n'], pt['vinf']), coorddict = {'x':
+            gui.add_data_points(Point2D(pt['K.n'], pt['vinf']), coorddict = {'x':
                 {'y':'y', 'style':'bx', 'layer':'points_nV', 'name':'vinf_pt'}})
 
         d = fig_struct.layers['nullclines_nV'].data
@@ -347,37 +347,37 @@ class PPcallback_n(PPcallback):
             #self.nullx = [[-130, -80, 50], [0.2, 0.3, 0.4]]
 
             self.nully = castNullArray(nulls['nullcY'])
-            gui.add_dataPoints(self.nully, layer='nullclines_nV', style=self.nullcY_style,
+            gui.add_data_points(self.nully, layer='nullclines_nV', style=self.nullcY_style,
                               name='yNull_'+str(time), force=force)
 
             # delete update 'wait' notice
             ax.texts = []
             #ax.clear()
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
 
             if only_var is None:
                 # nullx is added second so will be the second line
                 self.nullx = castNullArray(nulls['nullcX'])
-                gui.add_dataPoints(self.nullx, layer='nullclines_nV',
+                gui.add_data_points(self.nullx, layer='nullclines_nV',
                                   style=self.nullcX_style, name='xNull', force=force)
 
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.build_layers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
 ##            print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.build_layers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
 
@@ -437,7 +437,7 @@ else:
 # re-sample traj at constant dt and declare to GUI
 #trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
 trajPts = ref_traj.sample(dt=0.01)[:len(ref_traj.sample(dt=0.01))-40] #[:-40] syntax not working in python 3
-gui.addTimeFromPoints(trajPts)
+gui.add_time_from_points(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -466,7 +466,7 @@ coorddict = {'V':
              'K.taun':
              {'x':'t', 'layer':'activs','name':'taun', 'style':'r:'}
              }
-gui.add_dataPoints(trajPts, coorddict = coorddict)
+gui.add_data_points(trajPts, coorddict = coorddict)
 
 print("Key for activations / time scales window")
 print("  Activations: line=activation, dashed=asymptotic")

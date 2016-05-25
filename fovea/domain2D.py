@@ -306,11 +306,11 @@ class GUI_domain_handler(object):
             return
 
     def show_domain(self, ev):
-        fig_struct, figure = self.gui.plotter._resolveFig(None)
+        fig_struct, figure = self.gui.plotter._resolve_fig(None)
 
         ##ISSUE: This try/except should probably be moved to domain_GUI.
         try:
-            self.gui.plotter._resolveLayer(figure, 'gx_objects')
+            self.gui.plotter._resolve_layer(figure, 'gx_objects')
         except KeyError:
             self.gui.plotter.add_layer('gx_objects', subplot=ev.inaxes, kind = 'obj')
             print("Created layer gx_objects to support domain polygon")

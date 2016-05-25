@@ -146,7 +146,7 @@ def plot_PP_fp(fp, plotter_layer, coords=None, do_evecs=True, markersize=10):
     # Add point and eigenvectors
     name = 'fp'
     dm.log.msg('Plot FP', name=name, layer=plotter_layer)
-    plotter.addPoint(pp.Point2D(saddle.point[x], saddle.point[y]),
+    plotter.add_point(pp.Point2D(saddle.point[x], saddle.point[y]),
                      style=style, layer=plotter_layer, name=name)
 
     if do_evecs:
@@ -321,7 +321,7 @@ saddle = fps[1]
 plotter.set_active_layer('fp_data')
 plot_PP_fp(saddle, 'fp_data', do_evecs=True, markersize=7)
 
-gui.buildPlotter2D((8,8), with_times=False)
+gui.build_plotter((8,8), with_times=False)
 
 # magBound change ensures quicker determination of divergence during
 # manifold computations. max_pts must be larger when we are further

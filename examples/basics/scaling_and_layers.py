@@ -34,4 +34,4 @@ plotter.set_active_layer('fn_data')
 print(plotter.active_layer)
 # ('Master', 'fn_data')
 
-gui.buildPlotter2D((20, 20), with_times=False)
+gui.build_plotter((20, 20), with_times=False)

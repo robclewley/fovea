@@ -21,4 +21,4 @@ plotter.arrange_fig([1,1], {'11':
                             'axes_vars': ['x', 'y'],
                            }})
 
-gui.buildPlotter2D((14, 6), with_times=False)
+gui.build_plotter((14, 6), with_times=False)
