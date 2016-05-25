@@ -312,7 +312,7 @@ class GUI_domain_handler(object):
         try:
             self.gui.plotter._resolveLayer(figure, 'gx_objects')
         except KeyError:
-            self.gui.plotter.addLayer('gx_objects', subplot=ev.inaxes, kind = 'obj')
+            self.gui.plotter.add_layer('gx_objects', subplot=ev.inaxes, kind = 'obj')
             print("Created layer gx_objects to support domain polygon")
 
         xs, ys = self.polygon_domain_obj.polygon.exterior.xy
