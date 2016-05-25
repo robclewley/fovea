@@ -198,7 +198,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
         if verboselevel>1:
             pts=test.sample(coords=x.coordnames)
             # only show first 25 points unless Gamma bd not met
-            plotter.add_data((pts[xname][:25],pts[yname][:25]), style='b-',
+            plotter.addData((pts[xname][:25],pts[yname][:25]), style='b-',
                             layer=layer_name,
                             name=dm.get_unique_name('test_traj_first25_'))
 
@@ -209,7 +209,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                     dm.log.msg("Error", err_msg="Did not reach Gamma surfaces",
                                status="fail", last_computed_point=pts[-1],
                                last_computed_time=pts['t'][-1])
-                    plotter.add_data((pts[xname],pts[yname]), style='b-',
+                    plotter.addData((pts[xname],pts[yname]), style='b-',
                                     layer=layer_name,
                                     name=dm.get_unique_name('test_traj_full'),
                                     log=dm.log)
@@ -236,7 +236,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                     dm.log.msg("Error", err_msg="Both Gamma surfaces reached",
                                status="fail", last_computed_point=pts[-1],
                                last_computed_time=pts['t'][-1])
-                    plotter.add_data((pts[xname],pts[yname]), style='b-',
+                    plotter.addData((pts[xname],pts[yname]), style='b-',
                                     layer=layer_name,
                                     name=dm.get_unique_name('universe_fail'),
                                     log=dm.log)
@@ -254,10 +254,10 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                 xm = x_ic-dn*normal_dir
                 dm.log.msg("Error", err_msg="onto_manifold bisection fail",
                            status="fail", point_p=xp, point_m=xm)
-                plotter.add_data([xp[xname],xp[yname]], style='gx',
+                plotter.addData([xp[xname],xp[yname]], style='gx',
                                  layer=layer_name,
                                  name=dm.get_unique_name('xp'), log=dm.log)
-                plotter.add_data([xm[xname],xm[yname]], style='gx',
+                plotter.addData([xm[xname],xm[yname]], style='gx',
                                  layer=layer_name,
                                  name=dm.get_unique_name('xm'), log=dm.log)
                 plotter.show()
@@ -268,10 +268,10 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
                 xm = x_ic-dn*normal_dir
                 dm.log.msg("Error", err_msg="onto_manifold bisection fail",
                            status="fail", point_p=xp, point_m=xm)
-                plotter.add_data([xp[xname],xp[yname]], style='gx',
+                plotter.addData([xp[xname],xp[yname]], style='gx',
                                  layer=layer_struct.name,
                                  name=dm.get_unique_name('xp'), log=dm.log)
-                plotter.add_data([xm[xname],xm[yname]], style='gx',
+                plotter.addData([xm[xname],xm[yname]], style='gx',
                                  layer=layer_struct.name,
                                  name=dm.get_unique_name('xm'), log=dm.log)
                 plotter.show()
@@ -324,7 +324,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             else:
                 figure(fignum)
             # plot event surfaces for gamma plus and minus exit events
-            # ISSUE: Convert to plotter.add_data
+            # ISSUE: Convert to plotter.addData
             plot([p0_plus[xname]-dsscaled*evec_perp[xname],p0_plus[xname]+dsscaled*evec_perp[xname]],
                  [p0_plus[yname]-dsscaled*evec_perp[yname],p0_plus[yname]+dsscaled*evec_perp[yname]], 'k-', linewidth=2)
             plot([p0_minus[xname]-dsscaled*evec_perp[xname],p0_minus[xname]+dsscaled*evec_perp[xname]],
@@ -386,7 +386,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             if verboselevel>1:
                 figure(fignum)
                 # show starting point (initial estimate) as green circle
-                # ISSUE: Convert to plotter.add_data
+                # ISSUE: Convert to plotter.addData
                 plot(x0_ic[xname], x0_ic[yname], 'go', linewidth=1)
             # put x0 initial estimate onto stable manifold
             f_alpha = dirn_fix * gen.Rhs(0, x0_ic, gen.pars)  # array in alpha order
@@ -395,11 +395,11 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             norm_to_flow = get_perp(f/normf)
             if verboselevel>1:
                 # show flow direction from IC as solid red line
-                plotter.add_data(([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
+                plotter.addData(([x0_ic[xname], x0_ic[xname]+dsscaled*f[xname]/normf],
                      [x0_ic[yname], x0_ic[yname]+dsscaled*f[yname]/normf]),
                      style='r-', name=dm.get_unique_name('flow_fwd'), log=dm.log)
                 # show normal to flow direction from IC as dotted red line
-                plotter.add_data(([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
+                plotter.addData(([x0_ic[xname], x0_ic[xname]+dsscaled*norm_to_flow[xname]],
                      [x0_ic[yname], x0_ic[yname]+dsscaled*norm_to_flow[yname]]),
                      style='r:', name=dm.get_unique_name('flow_perp'), log=dm.log)
             ds_perp_default = ds_perp
@@ -431,7 +431,7 @@ def find_saddle_manifolds(fp, xname, ds=None, ds_gamma=None, ds_perp=None, tmax=
             # position on manifold
             while curve_len < max_arclen and num_pts < max_pts:
                 if verboselevel>0:
-                    # ISSUE: Convert to plotter.add_data
+                    # ISSUE: Convert to plotter.addData
                     figure(fignum)
                     plot(last_x[xname], last_x[yname], col+'.', linewidth=1)
                 if check_other_pts and sometrue([norm(last_x - pt, normord) < ds \

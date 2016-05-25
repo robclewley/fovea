@@ -9,7 +9,7 @@ from test_funcs import f1
 DOI = ([0,2.1],[-2.5,2])
 
 plotter.clean() # in case rerun in same session
-plotter.add_fig('Master',
+plotter.addFig('Master',
                title='Root Finding Diagnostic',
                xlabel='x', ylabel='y',
                domain=DOI)
@@ -22,10 +22,10 @@ plotter.dm = dm
 # default to wait for user input on each iteration
 plotter.wait_status = True
 
-plotter.add_layer('fn_data')
-plotter.add_layer('meta_data', kind='text')
+plotter.addLayer('fn_data')
+plotter.addLayer('meta_data', kind='text')
 
-plotter.arrange_fig([1,1], {'11':
+plotter.arrangeFig([1,1], {'11':
                            {'name': 'Bisection method',
                             'scale': DOI,
                             #'layers': '*',  # all layers will be selected
@@ -43,7 +43,7 @@ plotter.addVLine(0, style='k:', layer='fn_data')
 # plot the function
 xs = npy.linspace(DOI[0][0], DOI[0][1], 500)
 ys = f1(xs)
-plotter.add_data([xs, ys], layer='fn_data', style='k-')
+plotter.addData([xs, ys], layer='fn_data', style='k-')
 
 root = bisection(f1, 0.1, 2)
 print("Root is x=%.4f"%root)

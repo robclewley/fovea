@@ -93,17 +93,17 @@ class spikesorter(graphics.diagnosticGUI):
         #Setup code
         DOI = [(0,self.N),(-30,30)]
         self.plotter.clean() # in case rerun in same session
-        self.plotter.add_fig('master',
+        self.plotter.addFig('master',
                        title='spikesort',
                        xlabel='time', ylabel='mV',
                        domain=DOI)
 
         #Setup all layers
-        self.plotter.add_layer('spikes')
-        self.plotter.add_layer('thresh_crosses')
-        self.plotter.add_layer('detected')
-        self.plotter.add_layer('pcs')
-        self.plotter.add_layer('scores')
+        self.plotter.addLayer('spikes')
+        self.plotter.addLayer('thresh_crosses')
+        self.plotter.addLayer('detected')
+        self.plotter.addLayer('pcs')
+        self.plotter.addLayer('scores')
 
         self.setup({'11':
                    {'name': 'Waveform',
@@ -146,7 +146,7 @@ class spikesorter(graphics.diagnosticGUI):
         coorddict = {'x':
                      {'x':'t', 'layer':'spikes', 'style':'b-'}
                      }
-        self.add_dataPoints(self.traj.sample(), coorddict = coorddict)
+        self.addDataPoints(self.traj.sample(), coorddict = coorddict)
 
         evKeyOn = self.fig.canvas.mpl_connect('key_press_event', self.ssort_key_on)
 
@@ -166,10 +166,10 @@ class spikesorter(graphics.diagnosticGUI):
     def user_pick_func(self, ev):
         if self.selected_object.layer == 'detected' or self.selected_object.layer == 'scores':
             if hasattr(self, 'last_name'):
-                self.plotter.set_data_2(self.last_name, layer='scores', markersize= 6, zorder= 1, style=self.default_colors[self.last_name])
-                self.plotter.set_data_2(self.last_name, layer='detected', linewidth= 1, zorder= 1, style=self.default_colors[self.last_name])
-            self.plotter.set_data_2(self.selected_object.name, layer='scores', markersize= 12, zorder= 10, style='y*')
-            self.plotter.set_data_2(self.selected_object.name, layer='detected', linewidth= 2.5, zorder= 10, style='y-')
+                self.plotter.setData2(self.last_name, layer='scores', markersize= 6, zorder= 1, style=self.default_colors[self.last_name])
+                self.plotter.setData2(self.last_name, layer='detected', linewidth= 1, zorder= 1, style=self.default_colors[self.last_name])
+            self.plotter.setData2(self.selected_object.name, layer='scores', markersize= 12, zorder= 10, style='y*')
+            self.plotter.setData2(self.selected_object.name, layer='detected', linewidth= 2.5, zorder= 10, style='y-')
 
             self.last_name = self.selected_object.name
 
@@ -179,10 +179,10 @@ class spikesorter(graphics.diagnosticGUI):
 
             for name in fig_struct['layers']['pcs']['data'].keys():
                 if name not in self.proj_PCs:
-                    self.plotter.set_data_2(name, layer='pcs', style= fig_struct['layers']['pcs']['data'][name]['style'][0]+'--')
+                    self.plotter.setData2(name, layer='pcs', style= fig_struct['layers']['pcs']['data'][name]['style'][0]+'--')
 
             for pc in self.proj_PCs:
-                self.plotter.set_data_2(pc, layer='pcs', style= fig_struct['layers']['pcs']['data'][pc]['style'][0]+'-')
+                self.plotter.setData2(pc, layer='pcs', style= fig_struct['layers']['pcs']['data'][pc]['style'][0]+'-')
 
             self.proj_vec1 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[0]].get_ydata()
             self.proj_vec2 = fig_struct['layers']['pcs']['handles'][self.proj_PCs[1]].get_ydata()
@@ -234,7 +234,7 @@ class spikesorter(graphics.diagnosticGUI):
             self.crosses = crosses
             self.spikes = spikes
 
-            self.plotter.add_data([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
+            self.plotter.addData([self.crosses, [cutoff]*len(self.crosses)], layer='thresh_crosses', style='r*', name='crossovers', force= True)
 
             self.show()
 
@@ -289,7 +289,7 @@ class spikesorter(graphics.diagnosticGUI):
         for spike in Y:
             name = 'spike'+str(c)
             self.default_colors[name] = 'k'
-            self.add_dataPoints([spike[0], spike[1]], layer='scores', style=self.default_colors[name]+'*', name= name)
+            self.addDataPoints([spike[0], spike[1]], layer='scores', style=self.default_colors[name]+'*', name= name)
             c += 1
 
         self.plotter.auto_scale_domain(subplot = '22')
@@ -309,22 +309,22 @@ class spikesorter(graphics.diagnosticGUI):
                     self.selected_object.y1 < dstruct['data'][1] < self.selected_object.y2:
                         if k == '1':
                             self.default_colors[dname] = 'r'
-                            self.plotter.set_data_2(dname, layer='detected', style= 'r-')
-                            self.plotter.set_data_2(dname, layer='scores', style= 'r*')
+                            self.plotter.setData2(dname, layer='detected', style= 'r-')
+                            self.plotter.setData2(dname, layer='scores', style= 'r*')
                         if k == '2':
                             self.default_colors[dname] = 'g'
-                            self.plotter.set_data_2(dname, layer='detected', style= 'g-')
-                            self.plotter.set_data_2(dname, layer='scores', style= 'g*')
+                            self.plotter.setData2(dname, layer='detected', style= 'g-')
+                            self.plotter.setData2(dname, layer='scores', style= 'g*')
 
                         if k == '3':
                             self.default_colors[dname] = 'b'
-                            self.plotter.set_data_2(dname, layer='detected', style= 'b-')
-                            self.plotter.set_data_2(dname, layer='scores', style= 'b*')
+                            self.plotter.setData2(dname, layer='detected', style= 'b-')
+                            self.plotter.setData2(dname, layer='scores', style= 'b*')
 
                         if k == '0':
                             self.default_colors[dname] = 'k'
-                            self.plotter.set_data_2(dname, layer='detected', style= 'k-')
-                            self.plotter.set_data_2(dname, layer='scores', style= 'k*')
+                            self.plotter.setData2(dname, layer='detected', style= 'k-')
+                            self.plotter.setData2(dname, layer='scores', style= 'k*')
 
             self.plotter.show()
 
@@ -341,14 +341,14 @@ class spikesorter(graphics.diagnosticGUI):
 
             if len(self.X.shape) == 1:
                 self.default_colors['spike0'] = 'k'
-                self.add_dataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= self.default_colors['spike0']+'-', name= 'spike0', force= True)
+                self.addDataPoints([list(range(0, len(self.X))), self.X], layer= 'detected', style= self.default_colors['spike0']+'-', name= 'spike0', force= True)
 
             else:
                 c= 0
                 for spike in self.X:
                     name = 'spike'+str(c)
                     self.default_colors[name] = 'k'
-                    self.add_dataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= self.default_colors[name]+'-', name= name, force= True)
+                    self.addDataPoints([list(range(0, len(spike))), spike], layer= 'detected', style= self.default_colors[name]+'-', name= name, force= True)
                     c += 1
 
             self.plotter.auto_scale_domain(xcushion = 0, subplot = '12')
@@ -375,14 +375,14 @@ class spikesorter(graphics.diagnosticGUI):
             self.proj_vec1 = self.p.get_projmatrix()[:, 0]
             self.proj_vec2 = self.p.get_projmatrix()[:, 1]
 
-            self.add_dataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', name= 'firstPC', force= True)
-            self.add_dataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', name= 'secondPC', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec1))) , self.proj_vec1], style= 'r-', layer= 'pcs', name= 'firstPC', force= True)
+            self.addDataPoints([list(range(0, len(self.proj_vec2))) , self.proj_vec2], style= 'g-', layer= 'pcs', name= 'secondPC', force= True)
 
             self.plotter.show()
             self.proj_PCs = ['firstPC', 'secondPC']
 
             try:
-                self.add_dataPoints([list(range(0, len(self.p.get_projmatrix()))) ,self.p.get_projmatrix()[:,2]],
+                self.addDataPoints([list(range(0, len(self.p.get_projmatrix()))) ,self.p.get_projmatrix()[:,2]],
                                    style= 'y--', layer= 'pcs', name= 'thirdPC', force= True)
             except IndexError:
                 pass
