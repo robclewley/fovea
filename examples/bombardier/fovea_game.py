@@ -102,7 +102,7 @@ def body4_dominant_at_point(pt_array, fsign=None):
 game1.assign_user_func(game1.get_forces)
 game1.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
 
-fig_struct, figure = game1.plotter._resolveFig(None)
+fig_struct, figure = game1.plotter._resolve_fig(None)
 
 #class snap_point():
     #def __init__(self, x, y):

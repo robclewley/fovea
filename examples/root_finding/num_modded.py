@@ -38,7 +38,7 @@ def plot_pt(x, f, n, name, col, layer_root, marker='o'):
     """
     new_layer = layer_root+'_data_%d'%n
     pt = pp.Point2D(x, f(x))
-    plotter.addPoint(pt, style=col+marker, name=name+'_%d'%n,
+    plotter.add_point(pt, style=col+marker, name=name+'_%d'%n,
                      layer=new_layer, log=dm.log)
     fs = plotter.figs['Master']
     ax = fs.arrange['11']['axes_obj']
@@ -48,7 +48,7 @@ def plot_pt(x, f, n, name, col, layer_root, marker='o'):
     y_ext = ylim[1]-ylim[0]
     # add marker text at a distance proportional to size of
     # current axis extent
-    plotter.addText(pt[0]-0.05*x_ext, pt[1]+0.02*y_ext, name,
+    plotter.add_text(pt[0]-0.05*x_ext, pt[1]+0.02*y_ext, name,
                     use_axis_coords=False, name=name+'_%d'%n,
                     layer=layer_root+'_text_%d'%n, style=col)
 
@@ -63,16 +63,16 @@ def bisection(f, a, b, TOL=0.001, NMAX=100):
     """
     n=1
     dm.log.msg('Call args', a=a, b=b, TOL=TOL, NMAX=NMAX)
-    plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
+    plotter.add_text(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
                     name='n_value', layer='meta_data', style='k')
     while n<=NMAX:
         dm.log = dm.log.bind(n=n)
-        plotter.setText('n_value', 'n=%d'%n, 'meta_data')
+        plotter.set_text('n_value', 'n=%d'%n, 'meta_data')
         if n == 1:
             rebuild = True
         else:
-            plotter.toggleDisplay(layer='bisect_text_%d'%(n-1))
-            plotter.toggleDisplay(layer='bisect_data_%d'%(n-1))
+            plotter.toggle_display(layer='bisect_text_%d'%(n-1))
+            plotter.toggle_display(layer='bisect_data_%d'%(n-1))
             rebuild = False
         ##ISSUE: Must include subplot arg to ensure layer ends up in fig_struct.arrange. This is unexpected and inconvenient.
         plotter.add_layer('bisect_data_%d'%n, subplot= '11')
@@ -111,17 +111,17 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
     """
     n=1
     dm.log.msg('Call args', x0=x0, x1=x1, TOL=TOL, NMAX=NMAX)
-    plotter.addText(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
+    plotter.add_text(0.1, 0.95, 'n=%d'%n, use_axis_coords=True,
                     name='n_value', layer='meta_data', style='k')
 
     while n<=NMAX:
         dm.log = dm.log.bind(n=n)
-        plotter.setText('n_value', 'n=%d'%n, 'meta_data')
+        plotter.set_text('n_value', 'n=%d'%n, 'meta_data')
         if n == 1:
             rebuild = True
         else:
-            plotter.toggleDisplay(layer='secant_text_%d'%(n-1))
-            plotter.toggleDisplay(layer='secant_data_%d'%(n-1))
+            plotter.toggle_display(layer='secant_text_%d'%(n-1))
+            plotter.toggle_display(layer='secant_data_%d'%(n-1))
             rebuild = False
         plotter.add_layer('secant_data_%d'%n, subplot= '11')
         plotter.add_layer('secant_text_%d'%n, kind='text', subplot= '11')
@@ -136,11 +136,11 @@ def secant(f,x0,x1, TOL=0.001, NMAX=100):
         gradient = (x1_pt[1]-x0_pt[1])/(x1_pt[0]-x0_pt[0])
         yleft = gradient*(xleft-x1_pt[0]) + x1_pt[1]
         yright = gradient*(xright-x1_pt[0]) + x1_pt[1]
-        plotter.addLineByPoints((pp.Point2D(xleft, yleft),
+        plotter.add_line_by_points((pp.Point2D(xleft, yleft),
                                  pp.Point2D(xright, yright)),
                                 layer='secant_data_%d'%n,
                                 name='secantline_%d'%n, style='b-', log=dm.log)
-        plotter.addLineByPoints((pp.Point2D(x2, 0),
+        plotter.add_line_by_points((pp.Point2D(x2, 0),
                                  pp.Point2D(x2, fx2)),
                                 layer='secant_data_%d'%n,
                                 name='vertline_%d'%n, style='r-', log=dm.log)

@@ -94,18 +94,18 @@ def compute(X, new_dim, layer, style, proj_vecsLO = None, proj_vecsHI = None):
         data_dict['Y_projected'] = Y
 
     #Create line plot for variance explained by each component.
-    gui.add_dataPoints([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
+    gui.add_data_points([range(1, len(p.d)+1), p.d/sum(p.d)], layer=layer, style=style+"-o", subplot= '13')
 
     #Create plot of high-dimensional data and its PC's.
-    gui.add_dataPoints([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
+    gui.add_data_points([X[:,0], X[:,1], X[:,2]], layer= layer, style=style+'.', subplot= '11')
 
     for j in range(0, len(pcPts), 2):
-        gui.add_dataPoints([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
-        gui.add_dataPoints([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
+        gui.add_data_points([pcPts[j+0:j+2,0], pcPts[j+0:j+2,1], pcPts[j+0:j+2,2]], layer= layer, style= style, subplot= '11')
+        gui.add_data_points([pcPts[j+2:j+4,0], pcPts[j+2:j+4,1], pcPts[j+2:j+4,2]], layer= layer, style= style, subplot= '11')
 
     #Create plot of low-dimensional data.
 
-    gui.add_dataPoints([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
+    gui.add_data_points([Y[:,0], Y[:,1]], layer=layer, style=style+'.', subplot= '12')
 
     print("Variance Explained in", layer,"with first",new_dim,"components:")
     print(sum(p.d[0:new_dim])/sum(p.d))
@@ -150,7 +150,7 @@ def setupDisplay(clus_layers, clus_styles, DOI):
                                 'axes_vars': ['x', 'y']},
                                })
 
-    gui.buildPlotter2D((14,6), with_times=False)
+    gui.build_plotter((14,6), with_times=False)
 
 
 proj_thresh = 20
@@ -186,7 +186,7 @@ class ControlSys:
     def highlight_eigens(self):
         for i in range(len(self.clus_layers)):
             for j in range(1, self.d+1):
-                plotter.addVLine(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
+                plotter.add_vline(j, figure=None, layer=self.clus_layers[i], subplot='13', style=self.clus_styles[i], name='vline_'+self.clus_layers[i]+str(self.d)+str(j))
 
     def get_projection_distance(self, pt_array, fsign=None):
         """
@@ -234,7 +234,7 @@ class ControlSys:
             for clus in self.clus_layers:
                     plotter.set_layer(clus, display= False)
 
-            plotter.toggleDisplay(layer=self.clus_layers[self.c%len(self.clus_layers)]) #figure='Master',
+            plotter.toggle_display(layer=self.clus_layers[self.c%len(self.clus_layers)]) #figure='Master',
 
         if event.key == 'm':
             self.m = not self.m
@@ -242,7 +242,7 @@ class ControlSys:
                     plotter.set_layer(clus, figure='Master', display=self.m)
 
         if event.key == 'h':
-            plotter.toggleDisplay(layer='orig_data', figure='Master')
+            plotter.toggle_display(layer='orig_data', figure='Master')
 
         if self.proj_vecsHI is not None:
             if (event.key == 'up' and self.d is not len(self.proj_vecsHI)) or (event.key == 'down' and self.d is not 2):

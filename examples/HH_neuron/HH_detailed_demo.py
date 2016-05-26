@@ -179,12 +179,12 @@ class PPcallback_m(PPcallback):
             if vfp:
                 plotter.set_point('vfp_pt', Point2D(vfp['m'], vfp['v']), 'points_mV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['Na.m'], pt['V']),
+            plotter.add_point(Point2D(pt['Na.m'], pt['V']),
                          layer='points_mV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['Na.m'], pt['vinf']),
+            plotter.add_point(Point2D(pt['Na.m'], pt['vinf']),
                          layer='points_mV', style='bx', name='vinf_pt')
             if vfp:
-                plotter.addPoint(Point2D(vfp['m'], vfp['v']), layer='points_mV',
+                plotter.add_point(Point2D(vfp['m'], vfp['v']), layer='points_mV',
                              name='vfp_pt', style={'color': 'y', 'marker': 'o',
                                                    'markersize': 5})
 
@@ -234,7 +234,7 @@ class PPcallback_m(PPcallback):
             # delete update 'wait' notice
             ax.texts = []
             #ax.clear()
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
 
             if only_var is None:
                 # nullx is added second so will be the second line
@@ -247,7 +247,7 @@ class PPcallback_m(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.build_layers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
 
@@ -255,12 +255,12 @@ class PPcallback_m(PPcallback):
             print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_mV', 'horiz_PP',  'points_mV',
+            gui.build_layers(['nullclines_mV', 'horiz_PP',  'points_mV',
                              'state_vel_mV', 'vfp_mV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
@@ -378,12 +378,12 @@ class PPcallback_n(PPcallback):
             if vfp:
                 plotter.set_point('vfp_pt', Point2D(vfp['n'], vfp['v']), 'points_nV')
         except KeyError:
-            plotter.addPoint(Point2D(pt['K.n'], pt['V']),
+            plotter.add_point(Point2D(pt['K.n'], pt['V']),
                          layer='points_nV', style='ko', name='state_pt')
-            plotter.addPoint(Point2D(pt['K.n'], pt['vinf']),
+            plotter.add_point(Point2D(pt['K.n'], pt['vinf']),
                          layer='points_nV', style='bx', name='vinf_pt')
             if vfp:
-                plotter.addPoint(Point2D(vfp['n'], vfp['v']), layer='points_nV',
+                plotter.add_point(Point2D(vfp['n'], vfp['v']), layer='points_nV',
                              name='vfp_pt', style={'color': 'y', 'marker': 'o',
                                                    'markersize': 5})
 
@@ -424,7 +424,7 @@ class PPcallback_n(PPcallback):
             # delete update 'wait' notice
             ax.texts = []
             #ax.clear()
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
 
             if only_var is None:
                 # nullx is added second so will be the second line
@@ -437,19 +437,19 @@ class PPcallback_n(PPcallback):
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.build_layers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
 
             self.last_scale = sc
             print("  Phase plane rebuild completed.\n")
         else:
             # just refresh display with the current selected data
-            gui.clearAxes(ax)
+            gui.clear_axes(ax)
             #if force:
             #    rescale = sc
             #else:
             #    rescale = None
-            gui.buildLayers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
+            gui.build_layers(['nullclines_nV', 'points_nV', 'state_vel_nV', 'vfp_nV'],
                             ax, rescale=sc, figure='Master')
             self.last_scale = sc
 
@@ -466,7 +466,7 @@ def add_epochs_to_layer(kind, to_layer, epochs, style, figure=None):
     kind          string e.g. 'Psi' or 'Omega'
     to_layer      e.g., 'A'
     """
-    fig_struct, figure = plotter._resolveFig(figure)
+    fig_struct, figure = plotter._resolve_fig(figure)
     ep_times = [ep.t0 for ep in epochs]
 
     if to_layer not in fig_struct.layers:
@@ -567,7 +567,7 @@ else:
 
 # re-sample traj at constant dt and declare to GUI
 trajPts = ref_traj.sample(dt=0.01)[:-40] #  cheap way to avoid overlap from pts not being periodic
-#gui.add_dataPoints(trajPts)
+#gui.add_data_points(trajPts)
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -641,7 +641,7 @@ plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Vdot']], layer='Vdot', style='b-',
                 name='Vdot')
 
 plotter.add_layer('A_hline')
-plotter.addHLine(0, layer='A_hline', style='k:', name='zero')
+plotter.add_hline(0, layer='A_hline', style='k:', name='zero')
 
 plotter.add_layer('rel times')
 plotter.add_data([ptsDSSRT['t'], ptsDSSRT['tleft']], layer='rel times',
@@ -649,7 +649,7 @@ plotter.add_data([ptsDSSRT['t'], ptsDSSRT['tleft']], layer='rel times',
 plotter.add_data([ptsDSSRT['t'], ptsDSSRT['horiz_t']], layer='rel times',
                 style='b-', name='horiz_t')
 plotter.add_layer('t_hline')
-plotter.addHLine(0, layer='t_hline', style='k:', name='zero')
+plotter.add_hline(0, layer='t_hline', style='k:', name='zero')
 
 
 ##plotter.add_layer('dom_m_to_n')
@@ -658,8 +658,8 @@ plotter.addHLine(0, layer='t_hline', style='k:', name='zero')
 ##plotter.add_data([ptsDSSRT['t'], ptsDSSRT['Omega_m']/ptsDSSRT['Omega_n']],
 ##                layer='dom_m_to_n', style='b-', name='omega_rat')
 ##plotter.add_layer('rat_hlines')
-##plotter.addHLine(1, layer='rat_hlines', style='k:', name='plus_one')
-##plotter.addHLine(-1, layer='rat_hlines', style='k:', name='minus_one')
+##plotter.add_hline(1, layer='rat_hlines', style='k:', name='plus_one')
+##plotter.add_hline(-1, layer='rat_hlines', style='k:', name='minus_one')
 
 
 ## ----- ----- ----- ----- ----- ----- ##
@@ -762,7 +762,7 @@ for ixstr, dP in dPlot_dict.items():
 
 plotter.arrange_fig([2,3], dPlot_dict)
 
-gui.buildPlotter2D((14,7))
+gui.build_plotter((14,7))
 
 
 ##import os

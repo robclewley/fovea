@@ -32,10 +32,10 @@ plotter.arrange_fig([1,1], {'11':
                             'axes_vars': ['x', 'y']}
                            })
 
-gui.buildPlotter2D((8,8), with_times=False)
+gui.build_plotter((8,8), with_times=False)
 
-plotter.addHLine(0, style='k:', layer='fn_data')
-plotter.addVLine(0, style='k:', layer='fn_data')
+plotter.add_hline(0, style='k:', layer='fn_data')
+plotter.add_vline(0, style='k:', layer='fn_data')
 xs = npy.linspace(DOI[0][0], DOI[0][1], 1000)
 ys = f2(xs)
 plotter.add_data([xs, ys], layer='fn_data', style='k-')

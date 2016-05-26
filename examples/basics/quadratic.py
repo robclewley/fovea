@@ -5,7 +5,7 @@ from matplotlib.pyplot import *
 x = linspace(-5, 5)
 y = x**2
 
-plotter = plotter2D()
+plotter = Plotter()
 gui = diagnosticGUI(plotter)
 
 plotter.add_fig('Master', title='quadratic', xlabel='x', ylabel='y', domain=[(-5, 5), (0,25)])
@@ -21,4 +21,4 @@ plotter.arrange_fig([1,1], {'11':
                             'axes_vars': ['x', 'y'],
                            }})
 
-gui.buildPlotter2D((14, 6), with_times=False)
+gui.build_plotter((14, 6), with_times=False)
