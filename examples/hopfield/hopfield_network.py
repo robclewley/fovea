@@ -35,7 +35,7 @@ class HopfieldNetwork:
 
     def reset(self):
         """
-        Reset's the network's weight matrix to the matrix which is identically zero.
+        Resets the network's weight matrix to the matrix which is identically zero.
 
         Useful for retraining the network from scratch after an initial round
         of training has already been completed.
@@ -85,11 +85,11 @@ class HopfieldNetwork:
         except KeyError:
             print(mode + " is not a valid learning mode.")
 
-    def _energy(self, neuron):
+    def energy(self, state):
         """
         Returns the energy for any input to the network.
         """
-        return -0.5 * np.sum(np.multiply(np.outer(neuron, neuron), self._weights))
+        return -0.5 * np.sum(np.multiply(np.outer(state, state), self._weights))
 
     def _synchronous(self, patterns, steps=10):
         """

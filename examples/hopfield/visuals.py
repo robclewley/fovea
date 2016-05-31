@@ -220,7 +220,7 @@ class VisualHopfield(HopfieldNetwork):
         meshpts = array([[x, y] for x, y in zip(np.ravel(X), np.ravel(Y))])
         mesh = pca.inverse_transform(meshpts)
         grid = vstack((mesh, vstack(paths)))
-        energies = array([self._energy(point) for point in grid])
+        energies = array([self.energy(point) for point in grid])
         grid = pca.transform(grid)
         gmin, gmax = grid.min(), grid.max()
         xi, yi = np.mgrid[gmin:gmax:100j, gmin:gmax:100j]
