@@ -40,16 +40,38 @@ This method calls on all the internally-defined helper methods to run a full vis
 
 Alternatively, to view the visualization as applied to an example in character recognition, run the ocr.py script.
 
+In this example, the network is trained on an alphabet of letters represented as a 5x5 binary configuration of X's
+and .'s. An X corresponds to a 1, and a . to a 0. This alphabet can be viewed in the alphabet.py file. Below the
+letters A-Z are defined two letters for which the network is to learn a correct representation. Ideally, the network
+should converge to one of A-Z when these "messy" letters are given to the network for learning. However, it is often
+the case that the network will view these letters as an amalgam of some two of A-Z and will converge to a spurious
+state accordingly.
+
 There are five subplots associated with the network visualization:
 
 1. The first of these is the main network diagram. This displays each neuron as a circle connected to every other
-neuron in the network as is the convention within the Hopfield paradigm. A green line between two neurons
-represents a connection of weight 0, a blue line a connection of weight 1, and a red line a connection of weight -1.
-During the training portion of the visualization, the connections that are in the process of being altered in response
-to training data are highlighted by way of a thicker linewidth and change in color in tandem with the changing of the
-network's weight matrix.
+   neuron in the network as is the convention within the Hopfield paradigm. A green line between two neurons
+   represents a connection of weight 0, a blue line a connection of weight 1, and a red line a connection of weight -1.
+   During the training portion of the visualization, the connections that are in the process of being altered in response
+   to training data are highlighted by way of a thicker linewidth and change in color in tandem with the changing of the
+   network's weight matrix.
 
-2. Second is the energy function diagram. This provides a plot of the network's energy landscape after it has been trained.
+2. Next is the energy function diagram. This provides a plot of the network's energy landscape after it has been trained.
    Since for nearly all cases the network state vectors are of dimension greater than three, the energy landscape is calculated
    by applying the network's energy function to the two-dimensional PCA axes of the network's training vectors. The energy
-   function provides a measure of the error in the  
+   function provides a measure of the error at each state of the network. Minima in the energy landscape correspond to system attractors,
+   and ideally the only attractors should be those states which the network was trained on. However, due to the complexity of
+   the network and the energy landscape, many extraneous local minima exist, called "spurious states," to which the network
+   might unwittingly converge. For this reason, sometimes the smaller the training dataset the better the results.
+
+3. Third is a contour plot of the energy landscape. This is self-explanatory.
+
+4. Fourth is a binary visualization of the current network state. When fed a state vector during learning, the network uses
+   the weight matrix acquired during training to manipulate it. Because the Hopfield Network is an RNN, it maintains a primitive
+   "memory" of those states which it has seen during training. The ideal behavior of the network is to modify each state vector
+   that it is presented with until it converges to the most similar state presented during training. Unfortunately, this behavior
+   is not always achieved as mentioned in the discussion of spurious states, above.
+
+5. Finally, the visualization displays a heatmap representation of the network's weight matrix at each stage in the training
+   process. The values of each entry in the weight matrix can be gleaned from comparing the corresponding coordinate's color
+   to the heatmap colorbar located to the right of the diagram.
