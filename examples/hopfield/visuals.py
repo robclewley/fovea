@@ -91,7 +91,7 @@ class VisualHopfield(HopfieldNetwork):
             self._set_mode("Training")
             self.train(training_data, inject=self._train_inject)
             self._normalize_network()
-            self._plot_energy()
+            self._plotenergy()
             print("Learning...")
             self._set_mode("Learning")
             for state in learning_data:
@@ -150,11 +150,11 @@ class VisualHopfield(HopfieldNetwork):
         """
         state = np.array(state)
         self.state_plot.set_data(state.reshape(5, 5))
-        current_energy = self._energy(state)
+        currentenergy = self.energy(state)
         current_state = self.pca.transform(state)
         if self.cs_plot:
             self.cs_plot.remove()
-        self.cs_plot = self.energy_diagram.scatter(current_state[:,0], current_state[:,1], current_energy,
+        self.cs_plot = self.energy_diagram.scatter(current_state[:,0], current_state[:,1], currentenergy,
                                                 s=80, c='b', marker='o')
         self._update_iter(iteration)
         pause(delay)
@@ -205,7 +205,7 @@ class VisualHopfield(HopfieldNetwork):
                     neuron.draw_connection(neuron_two, connection_color, self.main_network)
             self.main_network.autoscale(tight=False)
 
-    def _plot_energy(self, num_samples=25, path_length=20):
+    def _plotenergy(self, num_samples=25, path_length=20):
         """
         Plots the energy function of the network.
 
@@ -227,7 +227,7 @@ class VisualHopfield(HopfieldNetwork):
         meshpts = np.array([[x, y] for x, y in zip(np.ravel(X), np.ravel(Y))])
         mesh = self.pca.inverse_transform(meshpts)
         grid = np.vstack((mesh, np.vstack(paths)))
-        energies = np.array([self._energy(point) for point in grid])
+        energies = np.array([self.energy(point) for point in grid])
         grid = self.pca.transform(grid)
         gmin, gmax = grid.min(), grid.max()
         xi, yi = np.mgrid[gmin:gmax:100j, gmin:gmax:100j]
@@ -235,7 +235,7 @@ class VisualHopfield(HopfieldNetwork):
         self.energy_diagram.plot_wireframe(xi, yi, zi, colors=(0.5, 0.5, 0.5, 0.5), alpha=0.5)# , cmap=cm.coolwarm, linewidth=1)
         self.contour_diagram.contour(xi, yi, zi)
         grid = self.pca.transform(attractors)
-        z = np.array([self._energy(state) for state in attractors])
+        z = np.array([self.energy(state) for state in attractors])
         self.energy_diagram.scatter(grid[:,0], grid[:,1], z, s=80, c='g', marker='o')
 
     def _normalize_network(self):
