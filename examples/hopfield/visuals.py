@@ -89,7 +89,7 @@ class VisualHopfield(HopfieldNetwork):
             self._plot_weights()
             print("Training...")
             self._set_mode("Training")
-            self.train(training_data)
+            self.train(training_data, inject=self._train_inject)
             self._normalize_network()
             self._plot_energy()
             print("Learning...")
