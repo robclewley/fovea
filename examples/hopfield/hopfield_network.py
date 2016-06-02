@@ -42,7 +42,7 @@ class HopfieldNetwork:
         """
         self._weights = np.zeros((self.num_neurons, self.num_neurons), dtype=np.int_)
 
-    def train(self, patterns, method="hebbian", threshold=0, inject = lambda x: None):
+    def train(self, patterns, method="hebbian", threshold=0, inject = lambda x, y: None):
         """
         The wrapper method for the network's various training algorithms stored in
         self._trainers.
@@ -157,7 +157,7 @@ class HopfieldNetwork:
             return -1
         return 1
 
-    def _hebbian(self, patterns, threshold=0, inject= lambda x: None):
+    def _hebbian(self, patterns, threshold=0, inject= lambda x, y: None):
         """
         Implements Hebbian learning.
         """
