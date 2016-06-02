@@ -1058,7 +1058,7 @@ class Plotter(object):
                     except TypeError:
                         pass
 
-                self.build_layers(layer_info, ax, rebuild=rebuild)
+                self.build_layers(layer_info, ax, rebuild=rebuild, figure=fig_name)
 
 
     def show(self, update='current', rebuild=False, force_wait=None, ignore_wait= False):
@@ -1211,14 +1211,16 @@ class Plotter(object):
         except KeyError:
             raise KeyError("Invalid layer name: %s in figure %s" % (layer, figure))
 
-    def _retrive_subplots(self, layer):
+    def _retrieve_subplots(self, layer, figure=None):
         """
         Internal utility to find all subplots a given layer has been assigned to through arrange_fig.
         """
         subplots = []
-        for sp, dic in self.figs[self.currFig]['arrange'].items():
+        if not figure:
+            figure = self.currFig
+        for sp, dic in self.figs[figure]['arrange'].items():
             if dic['layers'] is '*':
-                subplots = list(self.figs[self.currFig]['arrange'].keys())
+                subplots = list(self.figs[figure]['arrange'].keys())
                 break
 
             if layer in dic['layers']:
@@ -1285,10 +1287,10 @@ class Plotter(object):
 
             # For now, default to first subplot with 0 indexing if multiple exist
             if dstruct['subplot'] == None:
-                dstruct['subplot'] = self._retrive_subplots(layer_name)[0]
+                dstruct['subplot'] = self._retrieve_subplots(layer_name, figure=figure_name)[0]
 
             #Use subplot string for current data to retrieve the axes object.
-            ax = self.figs[self.currFig].arrange[dstruct['subplot']]['axes_obj']
+            ax = self.figs[figure_name].arrange[dstruct['subplot']]['axes_obj']
 
             try:
                 # process user-defined style
