@@ -1,5 +1,5 @@
 from hopfield_network import *
-from fovea.graphics import *
+from mpl_toolkits.mplot3d.axes3d import Axes3D
 import numpy as np
 from matplotlib.pyplot import *
 from matplotlib import gridspec
@@ -71,6 +71,7 @@ class VisualHopfield(HopfieldNetwork):
         super().__init__(num_neurons)
         d_theta = (2 * np.pi) / num_neurons
         self.neurons = [VisualNeuron(i * d_theta, num_neurons) for i in range(num_neurons)]
+        self.cs_plot = None
 
     def run_visualization(self, training_data, learning_data=None):
         """
@@ -90,7 +91,7 @@ class VisualHopfield(HopfieldNetwork):
             self._set_mode("Training")
             self.train(training_data, inject=self._train_inject)
             self._normalize_network()
-            self._plot_energy()
+            self._plotenergy()
             print("Learning...")
             self._set_mode("Learning")
             for state in learning_data:
@@ -149,6 +150,12 @@ class VisualHopfield(HopfieldNetwork):
         """
         state = np.array(state)
         self.state_plot.set_data(state.reshape(5, 5))
+        currentenergy = self.energy(state)
+        current_state = self.pca.transform(state)
+        if self.cs_plot:
+            self.cs_plot.remove()
+        self.cs_plot = self.energy_diagram.scatter(current_state[:,0], current_state[:,1], currentenergy,
+                                                s=80, c='b', marker='o')
         self._update_iter(iteration)
         pause(delay)
 
@@ -198,7 +205,7 @@ class VisualHopfield(HopfieldNetwork):
                     neuron.draw_connection(neuron_two, connection_color, self.main_network)
             self.main_network.autoscale(tight=False)
 
-    def _plot_energy(self, num_samples=25, path_length=20):
+    def _plotenergy(self, num_samples=25, path_length=20):
         """
         Plots the energy function of the network.
 
@@ -209,24 +216,27 @@ class VisualHopfield(HopfieldNetwork):
         """
         attractors = self.training_data
         states = [[np.random.choice([-1, 1]) for i in range(self.num_neurons)] for j in range(num_samples)]
-        pca = PCA(n_components=2)
-        pca.fit(attractors)
+        self.pca = PCA(n_components=2)
+        self.pca.fit(attractors)
         paths = [attractors]
         for i in range(path_length):
             states = self.learn(states, steps=1)
             paths.append(states)
-        x = y = linspace(-1, 1, 100)
-        X,Y = meshgrid(x, y)
-        meshpts = array([[x, y] for x, y in zip(np.ravel(X), np.ravel(Y))])
-        mesh = pca.inverse_transform(meshpts)
-        grid = vstack((mesh, vstack(paths)))
-        energies = array([self.energy(point) for point in grid])
-        grid = pca.transform(grid)
+        x = y = np.linspace(-1, 1, 100)
+        X,Y = np.meshgrid(x, y)
+        meshpts = np.array([[x, y] for x, y in zip(np.ravel(X), np.ravel(Y))])
+        mesh = self.pca.inverse_transform(meshpts)
+        grid = np.vstack((mesh, np.vstack(paths)))
+        energies = np.array([self.energy(point) for point in grid])
+        grid = self.pca.transform(grid)
         gmin, gmax = grid.min(), grid.max()
         xi, yi = np.mgrid[gmin:gmax:100j, gmin:gmax:100j]
         zi = gd(grid, energies, (xi, yi), method='nearest')
-        self.energy_diagram.plot_surface(xi, yi, zi, cmap=cm.coolwarm, linewidth=1)
+        self.energy_diagram.plot_wireframe(xi, yi, zi, colors=(0.5, 0.5, 0.5, 0.5), alpha=0.5)# , cmap=cm.coolwarm, linewidth=1)
         self.contour_diagram.contour(xi, yi, zi)
+        grid = self.pca.transform(attractors)
+        z = np.array([self.energy(state) for state in attractors])
+        self.energy_diagram.scatter(grid[:,0], grid[:,1], z, s=80, c='g', marker='o')
 
     def _normalize_network(self):
         """

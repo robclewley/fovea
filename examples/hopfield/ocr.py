@@ -12,12 +12,9 @@ def show_state(state):
     imshow(state, cmap=cm.binary, interpolation='nearest')
     show()
 
-def main():
-    myNet = VisualHopfield(25)
-    alphabet = [A, B, C, D, E, F, G, H, I, J, K, L, M, 
-                N, O, P, Q, R, S, T, U, V, W, X, Y, Z]
-    training_data = [to_state(letter) for letter in alphabet]
-    learning_data = [to_state(l1)]
-    myNet.run_visualization(training_data, learning_data)
-
-main()
+myNet = VisualHopfield(25)
+alphabet = [A, B, C, D, E, F, G, H, I, J, K, L, M, 
+        N, O, P, Q, R, S, T, U, V, W, X, Y, Z]
+training_data = [to_state(letter) for letter in alphabet]
+learning_data = [to_state(l1)]
+myNet.run_visualization(training_data, learning_data)
