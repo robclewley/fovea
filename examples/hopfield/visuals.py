@@ -68,7 +68,7 @@ class VisualHopfield(HopfieldNetwork):
         """
         Initializes a VisualHopfield network of num_neurons.
         """
-        super().__init__(num_neurons)
+        HopfieldNetwork.__init__(self, num_neurons)
         d_theta = (2 * np.pi) / num_neurons
         self.neurons = [VisualNeuron(i * d_theta, num_neurons) for i in range(num_neurons)]
         self.cs_plot = None
