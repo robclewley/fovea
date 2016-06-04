@@ -1705,7 +1705,7 @@ class diagnosticGUI(object):
                                         traj = tra,
                                         linewidth = linewidth, ##ISSUE: Should do this through coorddict as well.
                                         force = True)
-        else:
+        elif data is not None:
             warnings.warn("add_data_points received an unsupported type for parameter data")
             return
 
