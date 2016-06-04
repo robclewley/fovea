@@ -145,7 +145,7 @@ class Plotter(object):
                 out = x
             return out
 
-        if not figure: 
+        if not figure:
             figure = self.currFig
 
         found_fig = False
@@ -2663,6 +2663,34 @@ class diagnosticGUI(object):
 
         """
         raise NotImplementedError
+
+    # Temporary placeholder methods for pickling protocol
+    # (don't work yet)
+    def __getstate__(self):
+        d = copy(self.__dict__)
+        for fname, finfo in self._funcreg.items():
+            try:
+                del d[fname]
+            except KeyError:
+                pass
+        # delete MPL objects
+        for obj in some_list:
+            try:
+                del d['']
+            except KeyError:
+                pass
+        return d
+
+    def __setstate__(self, state):
+        # INCOMPLETE!
+        self.__dict__.update(state)
+        self._stuff = None
+        if something != {}:
+            self._recreate() # or re-call __init__
+
+    def _recreate(self):
+        raise NotImplementedError
+
 
 class context_object(object):
     # Abstract base class

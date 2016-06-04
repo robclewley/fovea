@@ -230,32 +230,6 @@ class GUIrocket(gx.diagnosticGUI):
 
         self.plotter.show(rebuild=False)
 
-    # Methods for pickling protocol
-    def __getstate__(self):
-        d = copy(self.__dict__)
-        for fname, finfo in self._funcreg.items():
-            try:
-                del d[fname]
-            except KeyError:
-                pass
-        # delete MPL objects
-        for obj in some_list:
-            try:
-                del d['']
-            except KeyError:
-                pass
-        return d
-
-    def __setstate__(self, state):
-        # INCOMPLETE!
-        self.__dict__.update(state)
-        self._stuff = None
-        if something != {}:
-            self._recreate() # or re-call __init__
-
-    def _recreate(self):
-        raise NotImplementedError
-
     #def declare_in_context(self, con_obj):
         ## context_changed flag set when new objects created and unset when Generator is
         ## created with the new context code included
