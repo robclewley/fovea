@@ -228,7 +228,7 @@ class GUIrocket(gx.diagnosticGUI):
         for i in range(len(pos[0])):
             self.plotter.add_text(pos[0][i], pos[1][i], i, style='k', layer='text')
 
-        self.plotter.show(rebuild=False)
+        self.show(rebuild=False)
 
     #def declare_in_context(self, con_obj):
         ## context_changed flag set when new objects created and unset when Generator is
