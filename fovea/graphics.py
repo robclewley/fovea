@@ -1293,21 +1293,14 @@ class Plotter(object):
             ax = self.figs[figure_name].arrange[dstruct['subplot']]['axes_obj']
 
             try:
-                # process user-defined style
-                s = dstruct['style']
-
-                if isinstance(s, str):
-                    style_as_string = True
-                elif isinstance(s, dict):
-                    style_as_string = False
-                else:
-                    style_as_string = False
-
-                if s == "" or s is None:
-                    # default to black lines
-                    s = 'k-'
+                # process user-defined style, which can be a string, a dict, or an array
+                # in the case of a continuous colormap
+                style = dstruct['style']
             except KeyError:
-                pass
+                style = None
+            if style is None or (isinstance(style, str) and style == ""):
+                # default to black lines
+                style = 'k-'
 
             # in case in future we wish to have option to reverse axes
             ix0, ix1, ix2 = 0, 1, 2
@@ -1330,10 +1323,11 @@ class Plotter(object):
                              transform=ax.transAxes,
                              fontsize=20, color=s[0])
                     else:
+                        # ISSUE: ASSUME style string is color character first, then symbol character
                         lay.handles[dname] = ax.text(dstruct['data'][ix0],
                              dstruct['data'][ix1],
                              dstruct['text'],
-                             fontsize=20, color=s[0])
+                             fontsize=20, color=style[0])
 
             elif lay.kind == 'patch':
                 pos = dstruct['data']
@@ -1345,27 +1339,29 @@ class Plotter(object):
                                   visible = dstruct['display']))
 
             elif lay.kind == 'obj':
-
                 coords = dstruct['data']
                 try: #Line
-                    l = dstruct['obj'](coords[0], coords[1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'])
+                    l = dstruct['obj'](coords[0], coords[1], linewidth=dstruct['linewidth'],
+                                       color='y', visible=dstruct['display'])
                 except TypeError: #Rectangle
-                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1], linewidth=dstruct['linewidth'], color='y', visible= dstruct['display'], fill= False)
-
+                    l = dstruct['obj'](coords[0], coords[1][0], coords[1][1],
+                                       linewidth=dstruct['linewidth'], color='y',
+                                       visible=dstruct['display'], fill=False)
                 ##ISSUE: try/except not needed here.
                 try:
                     self.gui.context_objects[dname].handle = l
                     lay.handles[dname] = ax.add_artist(l)
-                    lay.handles[dname].set_picker(2.5)
+                    lay.handles[dname].set_picker(2.5)  # ISSUE: Why?
                 except KeyError:
                     pass
 
             elif lay.kind == 'data':
                 if dname not in lay.handles or force:
                     try:
+                        # if this works, style is never used
                         lay.handles[dname] = ax.add_collection(dstruct['data'])
                     except AttributeError:
-                        if style_as_string:
+                        if isinstance(style, str):
                             #Check if data are two or three dimensional.
                             if len(dstruct['data']) == 2:
                                 ##ISSUE: Should repeat changes made to this case (i.e., setting the picker and new dstruct properties)
@@ -1373,7 +1369,7 @@ class Plotter(object):
                                 ## style_as_string == False is a potential landmine.
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            s, linewidth= dstruct['linewidth'],
+                                            style, linewidth= dstruct['linewidth'],
                                             zorder = dstruct['zorder'], markersize = dstruct['markersize'],
                                             visible= dstruct['display'])[0]
                                 #ax.add_artist(lay.handles[dname])
@@ -1382,20 +1378,20 @@ class Plotter(object):
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                            s, visible= dstruct['display'])[0]
-                        else:
+                                            style, visible= dstruct['display'])[0]
+                        elif isinstance(style, dict):
                             #Display? Visibility?
                             if len(dstruct['data']) == 2:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1],
-                                            **s)[0]
+                                            **style)[0]
                                 #ax.add_artist(lay.handles[dname])
                                 lay.handles[dname].set_picker(True)
                             elif len(dstruct['data']) == 3:
                                 lay.handles[dname] = \
                                     ax.plot(dstruct['data'][ix0], dstruct['data'][ix1], dstruct['data'][ix2],
-                                            **s)[0]
-
+                                            **style)[0]
+                        #else:  # Never get here because try clause would have worked
                     #ax.add_artist(lay.handles[dname])
                     lay.force = False
 
@@ -1452,7 +1448,8 @@ class diagnosticGUI(object):
             self.add_points(points)
 
         # ---------------
-        # Rocket stuff
+        # Model-related stuff
+        # (needs to be refactored out)
         # ---------------
 
         self.model = None
@@ -1493,14 +1490,7 @@ class diagnosticGUI(object):
                              'shift': 10,
                              'control': 1}
         self._last_ix = None
-
-        #Delete these.
-
-        #global plotter
-        #plotter = objPlotter
-
-        #global gui
-        #gui = self
+        self.tracker = tracker_manager()
 
     def initialize_callbacks(self, fig):
         #INIT FROM GUIROCKET
@@ -2037,9 +2027,10 @@ class diagnosticGUI(object):
 
     def show(self, update='current', rebuild=False, force_wait=None):
         """
-        Wrapper method for plotter.show
+        Wrapper method for plotter.show and to update any associated tracker windows
         """
-        self.plotter.show(update= update, rebuild= rebuild, force_wait= force_wait)
+        self.plotter.show(update=update, rebuild=rebuild, force_wait=force_wait)
+        self.tracker.show()
 
     def show_legends(self, figure=None, subplot=None):
         """
@@ -3278,4 +3269,5 @@ plotter = Plotter()
 
 gui = diagnosticGUI(plotter)
 
-tracker = tracker_manager()
+# Made an attribute of diagnosticGUI class
+#tracker = tracker_manager()
