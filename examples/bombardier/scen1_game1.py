@@ -69,7 +69,7 @@ game1.go()
 
 # User interaction to draw line
 
-print "Pause here to draw line with 'l'"
+print "Pause here to draw line with 'l' then make it an Event"
 plt.show()
 
 ##def line_to_event():
@@ -83,8 +83,6 @@ plt.show()
 ##    # make event terminal
 ##    game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
 
-
-#1/0
 
 #game1.model.set(algparams={'max_pts': 50000})
 
