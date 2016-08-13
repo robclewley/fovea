@@ -3144,10 +3144,12 @@ class tracker_plotter(tracker_GUI):
     """
     Auto-updating plots that are connected to a diagnostic GUI.
     """
-    def __init__(self):
+    def __init__(self, clear_on_refresh=True):
         self.figs = {}
         self.sim = None
         self.calc_context = None
+        self.clear_on_refresh = clear_on_refresh
+        self.ever_shown = False
 
     def __call__(self, calc_context, fignum, xstr, ystr, style):
         self.sim = calc_context.sim
@@ -3165,7 +3167,8 @@ class tracker_plotter(tracker_GUI):
             fig = plt.figure(fignum)
             ax = plt.gca()
             #figdata.figure.clf()
-            ax.cla()
+            if self.clear_on_refresh:
+                ax.cla()
             wspace = self.calc_context.workspace
             for tracked in figdata.tracked:
                 try:
@@ -3178,12 +3181,18 @@ class tracker_plotter(tracker_GUI):
                 except Exception as e:
                     print("Failed to evaluate: '%s' in workspace '%s'" % (tracked.ystr, wspace._name))
                     raise
-                plt.plot(xdata, ydata,
-                     tracked.style, label=_escape_underscore(tracked.ystr))
-            plt.legend()
-            plt.title('%s measures vs %s (workspace: %s)'%(self.calc_context.sim.name, tracked.xstr,
+                if self.clear_on_refresh or not self.ever_shown:
+                    # only show labels once
+                    ax.plot(xdata, ydata,
+                            tracked.style, label=_escape_underscore(tracked.ystr))
+                else:
+                    ax.plot(xdata, ydata, tracked.style)
+            if not self.ever_shown:
+                plt.legend()
+                plt.title('%s measures vs %s (workspace: %s)'%(self.calc_context.sim.name, tracked.xstr,
                                                            _escape_underscore(self.calc_context.workspace._name)))
-            fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
+                fig.canvas.set_window_title("Fig %i, Workspace %s" % (fignum, self.calc_context.workspace._name))
+                self.ever_shown = True
         #plt.show()
 
 class tracker_manager(object):
@@ -3198,7 +3207,7 @@ class tracker_manager(object):
         self.all_figs = []
 
     def __call__(self, calc_context, fignum, plot_metadata=None,
-                 text_metadata=None):
+                 text_metadata=None, clear_on_refresh=True):
         """
         plot_metadata (default None) = (xstr, ystr, style)
         *or*
@@ -3208,6 +3217,8 @@ class tracker_manager(object):
         textconsole type that accesses declared python objects to access an
         attribute
 
+        clear_on_refresh (default True) causes track plots to clear on refresh
+           per subplot axes
         """
         valid_input = plot_metadata is None or text_metadata is None
         if not valid_input:
@@ -3233,7 +3244,7 @@ class tracker_manager(object):
             if fignum in self.all_figs:
                 raise ValueError("Figure number %i already in use" % fignum)
             if track_plot:
-                tp = tracker_plotter()
+                tp = tracker_plotter(clear_on_refresh=clear_on_refresh)
                 tp(calc_context, fignum, xstr, ystr, style)
             else:
                 tp = tracker_textconsole()

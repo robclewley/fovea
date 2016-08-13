@@ -9,7 +9,9 @@ from matplotlib import pyplot as plt
 
 import fovea
 import fovea.graphics as gx
-from fovea.graphics import tracker
+from fovea.graphics import tracker_manager
+
+tracker = tracker_manager()
 
 class LogWrappedFunction(object):
     def __init__(self, function):
