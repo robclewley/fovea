@@ -33,6 +33,8 @@ import bombardier
 import fovea
 import fovea.graphics as gx
 
+import sys
+
 import yaml
 with open('bodies_setup.yaml') as f:
     setup = yaml.load(f)
@@ -45,34 +47,14 @@ body_setup1 = setup['Full_model']
 
 game1 = GUIrocket(body_setup1, "Scenario 1: Game 1", axisbgcol='white')
 # ! W1b Initial conditions
-game1.set( (-79, 0.7) )
+# Hit planet 3
+game1.set( (-51.6, 0.7) )
 
 # ! W2a Constraints
 # NONE
 
 # ! W2b Goals / targets
-# User interaction to draw line
 
-#ltarget = game1.selected_object
-
-ltarget = gx.line_GUI(game1, pp.Point2D(0.36, 0.74),
-                      pp.Point2D(0.42, 0.8), subplot='11')
-ltarget.make_event_def('target1', 1)
-game1.setup_gen(game1.model_namer)
-
-# make event terminal
-game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
-
-target = target4D_line('test_line', pars=args(pt1=pp.Point2D((ltarget.x1, ltarget.y1)),
-                                          pt2=pp.Point2D((ltarget.x2, ltarget.y2)),
-                                          speed_inter=Interval('speed', float, (1,2)),
-                                          bearing_inter=Interval('bearing', float, (-15,45)),
-                                          loc_event_name='exit_ev_target1')
-                       )
-
-#l = array((target.pars.pt1, target.pars.pt2))
-#game1.ax.plot(l.T[0], l.T[1], 'k-', lw=3)
-#plt.draw()
 
 # ! W3 Create exploratory tool & calculation context objects
 
@@ -83,8 +65,44 @@ variability_force = fovea.make_measure('variability_force', 'math.sqrt(np.std(ne
 con1.attach(variability_force)
 
 game1.go()
-test_model = intModelInterface(game1.model)
-print("Success? %s"%(str(target(test_model))))
+
+
+# User interaction to draw line
+
+print "Pause here to draw line with 'l'"
+plt.show()
+
+##def line_to_event():
+##    ltarget = game1.selected_object
+##
+##    #ltarget = gx.line_GUI(game1, pp.Point2D(0.31, 0.8),
+##    #                      pp.Point2D(0.36, 0.74), subplot='11')
+##    ltarget.make_event_def('target1', -1)
+##    game1.setup_gen(game1.model_namer)
+##
+##    # make event terminal
+##    game1.model.setDSEventTerm('gen', 'exit_ev_target1', True)
+
+
+#1/0
+
+#game1.model.set(algparams={'max_pts': 50000})
+
+#ltarget = game1.selected_object
+##target = target4D_line('test_line', pars=args(pt1=pp.Point2D((ltarget.x1, ltarget.y1)),
+##                                          pt2=pp.Point2D((ltarget.x2, ltarget.y2)),
+##                                          speed_inter=Interval('speed', float, (1,2)),
+##                                          bearing_inter=Interval('bearing', float, (-15,45)),
+##                                          loc_event_name='exit_ev_target1')
+##                       )
+##test_model = intModelInterface(game1.model)
+##print("Success? %s"%(str(target(test_model))))
+
+
+#l = array((target.pars.pt1, target.pars.pt2))
+#game1.ax.plot(l.T[0], l.T[1], 'k-', lw=3)
+#plt.draw()
+
 
 print("Variability of net force felt along trajectory = %.3f" % con1.variability_force())
 print(" (smaller is better)")
@@ -94,7 +112,7 @@ ecc1 = eccentricity_vs_n(game1, 1)
 peri1 = pericenter_vs_n(game1, 1, ecc1)
 print("Eccentricity = %.3f" % ecc1)
 
-dom_thresh = 0.6
+dom_thresh = 0.2 # dominance larger than this to be in region
 
 def body4_dominant_at_point(pt_array, fsign=None):
     """
@@ -110,15 +128,17 @@ game1.current_domain_handler.assign_criterion_func(body4_dominant_at_point)
 User now clicks near body 4 to center the initial domain, and again a little further
 away to seed the initial radius.
 """
-1/0
 
 # Run this to show domain growth.
 pd = game1.current_domain_handler.polygon_domain_obj
-n=0
-import sys
+
+1/0 # STOP
+
+n = 0
+
 def grow_step():
     global n
-    n+=1
+    n += 1
     print(n)
     sys.stdout.flush()
     pd.grow_step(verbose=True)
