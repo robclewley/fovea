@@ -1034,8 +1034,10 @@ class Plotter(object):
                 if 'callbacks' in subplot_struct:
                     if ax not in self.gui.cb_axes:
                         self.gui.cb_axes.append(ax)
-                        self.gui.RS_boxes[ax] = RectangleSelector(ax, self.gui.onselect_box, drawtype= 'box')
-                        self.gui.RS_lines[ax] = RectangleSelector(ax, self.gui.onselect_line, drawtype='line')
+                        self.gui.RS_boxes[ax] = RectangleSelector(ax, self.gui.onselect_box,
+                                                                  drawtype= 'box')
+                        self.gui.RS_lines[ax] = RectangleSelector(ax, self.gui.onselect_line,
+                                                                  drawtype='line')
                         self.gui.RS_boxes[ax].set_active(False)
                         self.gui.RS_lines[ax].set_active(False)
 
@@ -2460,9 +2462,11 @@ class diagnosticGUI(object):
             x1, y1 = eclick.xdata, eclick.ydata
             x2, y2 = erelease.xdata, erelease.ydata
 
-            self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2), subplot= eclick.inaxes), figure= self.plotter.currFig)
+            self.set_selected_object(line_GUI(self, pp.Point2D(x1, y1), pp.Point2D(x2, y2),
+                                              subplot= eclick.inaxes),
+                                     figure=self.plotter.currFig)
             print("Created line as new selected object, now give it a name")
-            print("  by calling this object's .update() method with the name param")
+            print("  by calling this object's .update(<name>) method")
             self.RS_lines[eclick.inaxes].set_active(False)
 
             self.mouse_wait_state_owner = None
