@@ -37,11 +37,13 @@ da_dict = dict(zip( ('h','H','j','J','n','m'),
 dv_dict = dict(zip( ('d','D','f','F','c','v'),
                     (-1, -10, 1, 10, -0.1, 0.1)))
 
-print("Change angle keys:")
-print(da_dict)
+# !!
+# These don't work with new Bombardier implementation
+#print("Change angle keys:")
+#print(da_dict)
 
-print("Change velocity keys:")
-print(dv_dict)
+#print("Change velocity keys:")
+#print(dv_dict)
 
 # other keys used in GUIrocket:
 # l = make a line of interest (click-drag-release)
@@ -89,6 +91,7 @@ class GUIrocket(gx.diagnosticGUI):
         gx.diagnosticGUI.__init__(self, plotter)
 
         self.current_domain_handler = dom.GUI_domain_handler(self)
+        self._event_num = 1  # for line_to_event counter
 
         # --- SPECIFIC TO BOMBARDIER
         # Setup shoot params
@@ -164,7 +167,11 @@ class GUIrocket(gx.diagnosticGUI):
 
         # Move these to a _recreate method than can be reused for un-pickling
 
-        self.add_widget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03), label='Go!')
+        self.add_widget(Button, callback=self.go, axlims=(0.005, 0.1, 0.045, 0.03),
+                        label='Go!')
+
+        self.add_widget(Button, callback=self.line_to_event,
+                        axlims=(0.005, 0.15, 0.08, 0.03), label='Event!')
 
         # context_changed flag set when new objects created using declare_in_context(),
         # and unset when Generator is created with the new context code included
@@ -368,6 +375,15 @@ class GUIrocket(gx.diagnosticGUI):
         # turns arguments into Generator then embed into Model object
         self.model = self.gen_versioner.make(DSargs)
 
+    def line_to_event(self, e):
+        ltarget = self.selected_object
+
+        ltarget.make_event_def('target%i' % self._event_num, 0)
+        self.setup_gen(self.model_namer)
+
+        # make event terminal
+        self.model.setDSEventTerm('gen', 'exit_ev_target%i' % self._event_num, True)
+        self._event_num += 1
 
     def go(self, run=True):
         """
